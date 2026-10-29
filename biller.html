@@ -1318,6 +1318,9 @@
       <a id="modalDriveLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none">
         <i class="fa fa-file-pdf"></i> View Original
       </a>
+      <button class="btn btn-primary btn-sm" id="modalSaveBtn" onclick="Dashboard.saveReviewOnly()" style="display:inline-flex;align-items:center;gap:6px;font-weight:600;">
+        <i class="fa fa-save"></i> Save Changes
+      </button>
       <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeReviewModal()">Close</button>
     </div>
 
@@ -3211,14 +3214,15 @@ const Dashboard = {
     const bill = Dashboard.currentBill;
     if (!bill) return;
 
-    const notes = document.getElementById("editReviewNotes").value;
+    const notesElem = document.getElementById("editReviewNotes");
+    const notes = notesElem ? notesElem.value : "";
     
     if (Object.keys(Dashboard.pendingEdits).length === 0 && !notes) {
       Toast.info("No changes to save.");
       return;
     }
 
-    Loader.show("Saving all fields...");
+    Loader.show("Saving changes to database...");
     
     const res = await API.biller.updateReview(bill.queueRowIndex, {
       queueRowIndex: bill.queueRowIndex,
@@ -3229,15 +3233,32 @@ const Dashboard = {
     Loader.hide();
 
     if (res?.success) {
-      Toast.success("Data saved in Biller Queue! ✅");
+      Toast.success("Invoice fields saved to database! ✅");
+      
+      // Update in-memory bill object immediately
+      Object.keys(Dashboard.pendingEdits).forEach(k => {
+        bill[k] = Dashboard.pendingEdits[k];
+      });
+
+      if (Dashboard.pendingEdits["A20. Basic Amount"] !== undefined) {
+        bill["A20. Basic Amount"] = Number(Dashboard.pendingEdits["A20. Basic Amount"]) || 0;
+      }
+      if (Dashboard.pendingEdits["D1. Final Payable Amt"] !== undefined) {
+        bill["D1. Final Payable Amt"] = Number(Dashboard.pendingEdits["D1. Final Payable Amt"]) || 0;
+      }
       
       Dashboard.pendingEdits = {};
-      document.getElementById("editIndicator").style.display = "none";
-      
-      bill["Approval Status"] = "Reviewed";
-      Dashboard.closeReviewModal();
+      const indEl = document.getElementById("editIndicator");
+      if (indEl) indEl.style.display = "none";
+      const cntEl = document.getElementById("editCount");
+      if (cntEl) cntEl.textContent = "0";
+
+      // Clear yellow borders
+      document.querySelectorAll(".edit-field.changed").forEach(el => el.classList.remove("changed"));
+
+      // Refresh stats & list
       await Dashboard.loadStats();
-      await Dashboard.loadRecentBills();
+      if (Dashboard.loadNewSection) await Dashboard.loadNewSection();
     } else {
       Toast.error(res?.message || "Failed to save data");
     }
