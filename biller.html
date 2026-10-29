@@ -1708,7 +1708,7 @@ const Dashboard = {
       <i class="fa fa-spinner fa-spin"></i></div>`;
     const res = await API.biller.getQueue();
     if (res?.success) {
-      Dashboard.setQueue(res.data.queue);
+      Dashboard.setQueue(res.data.queue, res.data.invoices, res.data.masterInvoices);
       Dashboard.filtered = [...Dashboard.queue];
       Dashboard.renderBills("all");
     }
@@ -2139,10 +2139,14 @@ const Dashboard = {
   async loadRecentBills() {
     const res = await API.biller.getQueue();
     if (!res?.success) return;
-    Dashboard.setQueue(res.data.queue);
+    Dashboard.setQueue(res.data.queue, res.data.invoices, res.data.masterInvoices);
 
     const recent = [...Dashboard.queue]
-      .sort((a,b) => new Date(b["Timestamp"]) - new Date(a["Timestamp"]))
+      .sort((a,b) => {
+        const da = new Date(a["Timestamp"] || a.created_at || 0).getTime() || 0;
+        const db = new Date(b["Timestamp"] || b.created_at || 0).getTime() || 0;
+        return db - da;
+      })
       .slice(0,5);
 
     const el = document.getElementById("recentBills");
@@ -2187,19 +2191,25 @@ const Dashboard = {
   },
 
   async loadNewSection() {
-    await Dashboard.ensureQueue();
-    // Strictly load from Invoices sheet
-    const newBills = Dashboard.invoicesQueue;
-    const el    = document.getElementById("newBillsList2");
+    const el = document.getElementById("newBillsList2");
+    if (el) el.innerHTML = `<div class="text-center" style="padding:32px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i> Loading new bills...</div>`;
+
+    // Fetch fresh data from backend
+    const res = await API.biller.getQueue();
+    if (res?.success) {
+      Dashboard.setQueue(res.data.queue, res.data.invoices, res.data.masterInvoices);
+    }
+
+    const newBills = Dashboard.invoicesQueue || [];
     const count = document.getElementById("newCount");
-    if (count) count.textContent = `(${newBills.length} bills in Invoices sheet)`;
+    if (count) count.textContent = `(${newBills.length} pending)`;
 
     if (!el) return;
     if (newBills.length === 0) {
       el.innerHTML = `<div class="empty-state" style="padding:32px">
         <div class="empty-icon">🎉</div>
-        <div class="empty-title">No new bills in Invoices sheet!</div>
-        <div class="empty-text">All bills in Invoices sheet have been reviewed</div>
+        <div class="empty-title">No new bills pending!</div>
+        <div class="empty-text">All bills have been reviewed or sent for approval.</div>
       </div>`;
       return;
     }
@@ -3777,33 +3787,42 @@ const SubmitInvoice = {
         result = JSON.parse(rawText);
       } catch (jsonErr) {
         console.warn("Non-JSON response from server:", rawText);
+        if (!response.ok) {
+          throw new Error(`Server error (${response.status}): ${rawText.substring(0, 120) || "Gateway/Network Timeout"}`);
+        }
         if (rawText && (rawText.toLowerCase().includes("success") || rawText.toLowerCase().includes("http") || rawText.toLowerCase().includes("drive"))) {
           result = { success: true, message: rawText };
         } else {
-          result = { success: true };
+          throw new Error("Invalid response format received from server.");
         }
       }
 
-      if (result && result.success === false) {
-        throw new Error(result.message || "Backend processing failed. Please try again.");
+      if (!response.ok || (result && result.success === false)) {
+        throw new Error(result.message || `Backend processing failed (${response.status}). Please try again.`);
       }
 
       // STEP 4: Handle successful submission
       showProcessingScreen("Finalizing database entry...", 90);
       showProcessingSuccess();
-      Toast.success("Invoice " + (result.invoiceNumber || "") + " successfully submitted! 🎉");
+      const invLabel = result.invoiceNumber ? `Invoice #${result.invoiceNumber}` : "Invoice";
+      Toast.success(`${invLabel} successfully submitted! 🎉`);
       
       // Clear the form inputs
       SubmitInvoice.resetForm();
       
-      // Redirect to the invoices list after a brief delay
-      setTimeout(() => {
+      // Reset local cache so fresh data is immediately loaded
+      Dashboard.queue = [];
+      Dashboard.invoicesQueue = [];
+
+      // Redirect to the New Bills section after a brief delay and refresh data
+      setTimeout(async () => {
         hideProcessingScreen();
-        if (typeof Dashboard !== 'undefined' && Dashboard.showSection) {
-          Dashboard.showSection("invoices");
- 
+        if (typeof Dashboard !== 'undefined') {
+          if (Dashboard.showSection) Dashboard.showSection("new");
+          if (Dashboard.loadStats) await Dashboard.loadStats();
+          if (Dashboard.loadNewSection) await Dashboard.loadNewSection();
         }
-      }, 2500);
+      }, 1500);
 
     } catch (error) {
       hideProcessingScreen();
