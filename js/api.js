@@ -71,10 +71,7 @@ const API = {
       }
       API._consecutive401 = 0;
 
-      // 🔄 Globally reverse queue arrays so newest (last row in sheet) is always first
-      if (data.data && Array.isArray(data.data.queue)) {
-          data.data.queue.reverse();
-      }
+      // Order is already preserved newest-first from Supabase SQL order
 
       // ⚡ Write action notification: immediately trigger auto-sync check
       const writeActions = [
