@@ -84,7 +84,7 @@ const GEMINI_MODELS = [
 ];
 
 function getGeminiApiKeys() {
-  const raw = process.env.GEMINI_API_KEY || "";
+  const raw = process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS || process.env.GEMINI_KEY || "";
   return raw.split(",").map(k => k.trim().replace(/^["']|["']$/g, "")).filter(k => k.length > 0);
 }
 
@@ -220,7 +220,15 @@ module.exports = async function handler(req, res) {
     }
 
     const pureBase64 = fileContent.includes(",") ? fileContent.split(",")[1] : fileContent;
-    const resolvedType = fileType || (fileName.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
+    
+    let resolvedType = fileType;
+    if (!resolvedType || resolvedType === "application/octet-stream") {
+      const lower = (fileName || "").toLowerCase();
+      if (lower.endsWith(".pdf")) resolvedType = "application/pdf";
+      else if (lower.endsWith(".png")) resolvedType = "image/png";
+      else if (lower.endsWith(".webp")) resolvedType = "image/webp";
+      else resolvedType = "image/jpeg";
+    }
 
     // Parallel Execution with graceful fallback so bills are NEVER lost
     const drivePromise = uploadToDriveViaAppsScript(fileName, resolvedType, pureBase64, receivedFrom)
@@ -238,7 +246,7 @@ module.exports = async function handler(req, res) {
         A13: fileName.replace(/\.[^/.]+$/, "").substring(0, 50),
         A14: "Manual / AI Review",
         overallStatus: "REVIEW",
-        redFlags: ["AI extraction timed out or failed; review needed"]
+        redFlags: [`AI Notice: ${err.message || "Extraction timeout or busy"}`]
       };
     });
 
