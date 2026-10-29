@@ -315,6 +315,14 @@ module.exports = async function handler(req, res) {
         });
       }
 
+      case "syncBillerQueue": {
+        const { count: newCount } = await supabase
+          .from("invoices")
+          .select("id", { count: "exact", head: true })
+          .eq("biller_status", "New");
+        return Response.success(res, { count: newCount || 0 });
+      }
+
       // ── Biller Specific Operations ──
       case "getBillerQueue": {
         const { data: newBills } = await supabase
@@ -333,11 +341,18 @@ module.exports = async function handler(req, res) {
           "Approval Status": "New",
           isNew: true,
           queueRowIndex: b.id,
+          _sourceSheet: "Invoices",
           // Field mappings for UI compatibility
+          "A1. Billed To": b.a1_billed_to,
+          "A12. Invoice Date": b.a12_invoice_date,
           "A13. Invoice Number": b.a13_invoice_number,
           "A14. Vendor Name": b.a14_vendor_name,
+          "A16. Bill Description": b.a16_bill_description,
+          "A17. Notes": b.a17_notes,
+          "A19. Ledger Name": b.a19_ledger_name,
           "A20. Basic Amount": b.a20_basic_amount,
-          "A12. Invoice Date": b.a12_invoice_date,
+          "B8. TDS Amount": b.b8_tds_amount,
+          "D1. Final Payable Amt": b.d1_final_payable_amt,
           "Drive URL": b.drive_url,
           "🚩 Red Flags": b.red_flags,
           Timestamp: b.timestamp || b.created_at
@@ -353,10 +368,19 @@ module.exports = async function handler(req, res) {
             "Approval Status": statusLabel,
             isNew: false,
             queueRowIndex: b.id,
+            _sourceSheet: "Master_Invoices",
+            "A1. Billed To": b.a1_billed_to,
+            "A12. Invoice Date": b.a12_invoice_date,
             "A13. Invoice Number": b.a13_invoice_number,
             "A14. Vendor Name": b.a14_vendor_name,
+            "A16. Bill Description": b.a16_bill_description,
+            "A17. Notes": b.a17_notes,
+            "A19. Ledger Name": b.a19_ledger_name,
             "A20. Basic Amount": b.a20_basic_amount,
-            "A12. Invoice Date": b.a12_invoice_date,
+            "B8. TDS Amount": b.b8_tds_amount,
+            "D1. Final Payable Amt": b.d1_final_payable_amt,
+            "Current_Stage": b.current_stage,
+            "Close at": b.close_at,
             "Drive URL": b.drive_url,
             "🚩 Red Flags": b.red_flags,
             Timestamp: b.timestamp || b.created_at
@@ -364,7 +388,12 @@ module.exports = async function handler(req, res) {
         });
 
         const combined = [...formattedNew, ...formattedMaster];
-        return Response.success(res, { queue: combined, total: combined.length });
+        return Response.success(res, {
+          queue: combined,
+          invoices: formattedNew,
+          masterInvoices: formattedMaster,
+          total: combined.length
+        });
       }
 
       case "updateBillReview":

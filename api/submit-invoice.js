@@ -2,12 +2,15 @@
 // SupaApp — api/submit-invoice.js (Vercel Serverless Function)
 // Invoice Intake, AI 54-Point Extraction & Direct Supabase Ingestion
 // Drive Upload via lightweight Google Apps Script Webhook
+// Optimized for Speed & Maximum Timeout Protection
 // ============================================================================
 
 const { createClient } = require("@supabase/supabase-js");
 
-// Vercel Body Parser: up to 20MB for PDFs & High-Res Invoices
+// Vercel Serverless Timeout: Extend to 60 seconds (prevents 504 Timeout)
+export const maxDuration = 60;
 export const config = {
+  maxDuration: 60,
   api: {
     bodyParser: {
       sizeLimit: "20mb",
@@ -30,8 +33,12 @@ function getSupabase() {
 // 1. Google Drive Upload via Apps Script Webhook
 // ─────────────────────────────────────────────
 async function uploadToDriveViaAppsScript(fileName, fileType, pureBase64, receivedFrom) {
-  const uploadUrl = process.env.APPS_SCRIPT_UPLOAD_URL || "https://script.google.com/macros/s/AKfycbybJBvh412l4I32UmZVums6KiX16ckQiYHppHF0-FEwlqDF-tpyMFms0BQy7kzysX04/exec";
-  
+  const uploadUrl = process.env.APPS_SCRIPT_UPLOAD_URL;
+  if (!uploadUrl) {
+    console.warn("[Drive Upload] APPS_SCRIPT_UPLOAD_URL not configured, skipping Drive upload.");
+    return "N/A";
+  }
+
   try {
     const payload = {
       action: "uploadOnly",
@@ -44,31 +51,36 @@ async function uploadToDriveViaAppsScript(fileName, fileType, pureBase64, receiv
       notes: "Saved via SupaApp"
     };
 
+    // 15-second AbortController timeout to prevent cold-start freeze
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const res = await fetch(uploadUrl, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
-      redirect: "follow",
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     const data = await res.json();
     if (data && (data.driveUrl || data.url)) {
       return data.driveUrl || data.url;
     }
   } catch (err) {
-    console.warn("[Drive Upload Warning]", err.message);
+    console.warn("[Drive Upload Warning]", err.name === "AbortError" ? "Drive upload timed out (15s)" : err.message);
   }
   return "N/A";
 }
 
 // ─────────────────────────────────────────────
-// 2. Gemini Multi-Model Failover
+// 2. Gemini AI Extraction (Using Fast & Stable Models)
 // ─────────────────────────────────────────────
 const GEMINI_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-flash-latest",
-  "gemini-2.5-flash-lite",
-  "gemini-1.5-flash"
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
+  "gemini-2.0-flash",
+  "gemini-flash-latest"
 ];
 
 function getGeminiApiKeys() {
@@ -88,14 +100,20 @@ async function callGeminiWithFailover(parts) {
       const apiKey = apiKeys[i];
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ parts }],
             generationConfig: { responseMimeType: "application/json" }
-          })
+          }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         const text = await res.text();
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.substring(0, 150)}`);
@@ -108,7 +126,8 @@ async function callGeminiWithFailover(parts) {
         return JSON.parse(output);
       } catch (err) {
         lastError = err.message;
-        if (err.message.includes("404")) break;
+        console.warn(`[Gemini Failover] Model ${model} (Key ${i}) warning: ${err.message}`);
+        if (err.message.includes("404")) break; // skip to next model
       }
     }
   }
@@ -203,12 +222,25 @@ module.exports = async function handler(req, res) {
     const pureBase64 = fileContent.includes(",") ? fileContent.split(",")[1] : fileContent;
     const resolvedType = fileType || (fileName.endsWith(".pdf") ? "application/pdf" : "image/jpeg");
 
-    // Parallel Execution: Upload to Google Drive while Gemini extracts 54 points
-    const drivePromise = uploadToDriveViaAppsScript(fileName, resolvedType, pureBase64, receivedFrom);
+    // Parallel Execution with graceful fallback so bills are NEVER lost
+    const drivePromise = uploadToDriveViaAppsScript(fileName, resolvedType, pureBase64, receivedFrom)
+      .catch(err => {
+        console.warn("[Drive Upload Catch]", err.message);
+        return "N/A";
+      });
+
     const geminiPromise = callGeminiWithFailover([
       { inlineData: { mimeType: resolvedType, data: pureBase64 } },
       { text: getGeminiPrompt({ receivedFrom, notes }) }
-    ]);
+    ]).catch(err => {
+      console.warn("[Gemini Extraction Fallback]", err.message);
+      return {
+        A13: fileName.replace(/\.[^/.]+$/, "").substring(0, 50),
+        A14: "Manual / AI Review",
+        overallStatus: "REVIEW",
+        redFlags: ["AI extraction timed out or failed; review needed"]
+      };
+    });
 
     const [driveUrl, ai] = await Promise.all([drivePromise, geminiPromise]);
 
@@ -216,41 +248,43 @@ module.exports = async function handler(req, res) {
 
     // Insert directly into Supabase invoices table
     const invoicePayload = {
+      timestamp: new Date().toISOString(),
       email_from: senderEmail || "Manual Upload",
       email_subject: "Web Submission",
       attachment_name: fileName,
-      drive_url: driveUrl,
+      drive_url: driveUrl || "N/A",
       
       // Section A
-      a1_billed_to: ai.A1, a2_our_name_correct: ai.A2, a3_address_present: ai.A3,
-      a4_our_address: ai.A4, a5_address_correct: ai.A5, a6_pan_present: ai.A6,
-      a7_our_pan: ai.A7, a8_pan_correct: ai.A8, a9_gst_present: ai.A9,
-      a10_our_gst: ai.A10, a11_gst_correct: ai.A11, a12_invoice_date: ai.A12,
-      a13_invoice_number: ai.A13, a14_vendor_name: ai.A14, a15_vendor_address: ai.A15,
-      a16_bill_description: ai.A16, a17_notes: notes || ai.A17, a18_rev_capital: ai.A18,
-      a19_ledger_name: ai.A19, a20_basic_amount: Number(ai.A20) || 0,
-      a21_invoice_type: ai.A21, a22_final_invoice_by: ai.A22,
-      a23_first_time_vendor: ai.A23, a24_amount_justified: ai.A24,
+      a1_billed_to: ai.A1 || "N/A", a2_our_name_correct: ai.A2 || "N/A", a3_address_present: ai.A3 || "N/A",
+      a4_our_address: ai.A4 || "N/A", a5_address_correct: ai.A5 || "N/A", a6_pan_present: ai.A6 || "N/A",
+      a7_our_pan: ai.A7 || "N/A", a8_pan_correct: ai.A8 || "N/A", a9_gst_present: ai.A9 || "N/A",
+      a10_our_gst: ai.A10 || "N/A", a11_gst_correct: ai.A11 || "N/A", a12_invoice_date: ai.A12 || "N/A",
+      a13_invoice_number: ai.A13 || fileName.replace(/\.[^/.]+$/, "").substring(0, 50),
+      a14_vendor_name: ai.A14 || "N/A", a15_vendor_address: ai.A15 || "N/A",
+      a16_bill_description: ai.A16 || "N/A", a17_notes: notes || ai.A17 || "None", a18_rev_capital: ai.A18 || "N/A",
+      a19_ledger_name: ai.A19 || "N/A", a20_basic_amount: Number(ai.A20) || 0,
+      a21_invoice_type: ai.A21 || "N/A", a22_final_invoice_by: ai.A22 || "N/A",
+      a23_first_time_vendor: ai.A23 || "N/A", a24_amount_justified: ai.A24 || "N/A",
 
       // Section B
-      b1_tds_applicable: ai.B1, b2_vendor_pan_avail: ai.B2, b3_vendor_pan: ai.B3,
-      b4_pan_inoperative: ai.B4, b5_vendor_entity_type: ai.B5, b6_tds_section: ai.B6,
-      b7_tds_rate: ai.B7, b8_tds_amount: Number(ai.B8) || 0,
+      b1_tds_applicable: ai.B1 || "N/A", b2_vendor_pan_avail: ai.B2 || "N/A", b3_vendor_pan: ai.B3 || "N/A",
+      b4_pan_inoperative: ai.B4 || "N/A", b5_vendor_entity_type: ai.B5 || "N/A", b6_tds_section: ai.B6 || "N/A",
+      b7_tds_rate: ai.B7 || "N/A", b8_tds_amount: Number(ai.B8) || 0,
 
       // Section C
-      c1_gst_charged: ai.C1, c2_vendor_gst_avail: ai.C2, c3_vendor_gst_no: ai.C3,
-      c4_taxpayer_type: ai.C4, c5_comp_gst_wrong: ai.C5, c6_gst_returns_filed: ai.C6,
-      c7_our_gst_correct: ai.C7, c8_place_of_supply: ai.C8, c9_correct_gst_type: ai.C9,
-      c10_prior_gst_pending: ai.C10, c11_blocked_credit: ai.C11,
+      c1_gst_charged: ai.C1 || "N/A", c2_vendor_gst_avail: ai.C2 || "N/A", c3_vendor_gst_no: ai.C3 || "N/A",
+      c4_taxpayer_type: ai.C4 || "N/A", c5_comp_gst_wrong: ai.C5 || "N/A", c6_gst_returns_filed: ai.C6 || "N/A",
+      c7_our_gst_correct: ai.C7 || "N/A", c8_place_of_supply: ai.C8 || "N/A", c9_correct_gst_type: ai.C9 || "N/A",
+      c10_prior_gst_pending: ai.C10 || "N/A", c11_blocked_credit: ai.C11 || "N/A",
 
       // Section D
-      d1_final_payable_amt: Number(ai.D1) || 0, d2_invoice_by: ai.D2,
-      d3_received_via: receivedFrom || "Web Upload", d4_hod_name: ai.D4,
-      d5_hod_approval: ai.D5, d6_hod_screenshot: ai.D6, d7_arvind_alok_apprvl: ai.D7,
-      d8_arvind_alok_ss: ai.D8, d9_update_person: "AI Intake", d10_update_email: senderEmail,
+      d1_final_payable_amt: Number(ai.D1) || Number(ai.A20) || 0, d2_invoice_by: ai.D2 || "N/A",
+      d3_received_via: receivedFrom || "Web Upload", d4_hod_name: ai.D4 || "N/A",
+      d5_hod_approval: ai.D5 || "N/A", d6_hod_screenshot: ai.D6 || "N/A", d7_arvind_alok_apprvl: ai.D7 || "N/A",
+      d8_arvind_alok_ss: ai.D8 || "N/A", d9_update_person: "AI Intake", d10_update_email: senderEmail || "N/A",
       d11_narration: "Auto-extracted via AI",
 
-      red_flags: Array.isArray(ai.redFlags) ? ai.redFlags.join(" | ") : "",
+      red_flags: Array.isArray(ai.redFlags) ? ai.redFlags.join(" | ") : (ai.redFlags || ""),
       overall_status: ai.overallStatus || "REVIEW",
       biller_status: "New"
     };
@@ -268,6 +302,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: "Invoice extracted and saved to Supabase successfully",
+      invoiceNumber: inserted.a13_invoice_number,
       data: {
         id: inserted.id,
         invoiceUniqueId: inserted.invoice_unique_id,
