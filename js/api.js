@@ -199,9 +199,15 @@ const API = {
       });
     },
 
-    async sendForApproval(queueRowIndex, targetRole, targetName, notes) {
+    async sendForApproval(queueRowIndex, deptOrRole, targetEmail, targetName, notes, updatedFields) {
       return await API.request("sendBillForApproval", {
-        queueRowIndex, targetRole, targetName, notes
+        queueRowIndex,
+        id: queueRowIndex,
+        department: deptOrRole || "General",
+        hodEmail: targetEmail || "",
+        hodName: targetName || (targetEmail ? targetEmail.split("@")[0] : ""),
+        notes: notes || "",
+        updatedFields: updatedFields || {}
       });
     },
 
