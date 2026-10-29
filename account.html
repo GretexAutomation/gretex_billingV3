@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Account Dashboard — Gretex</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+
+  <style>
+    /* ── Basic Section & Modals ── */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .modal-box.large { max-width: 900px; }
+
+    /* ── Invoice Detail Tabs ── */
+    .detail-tabs {
+      display      : flex;
+      gap          : 4px;
+      padding      : 16px 20px 0;
+      border-bottom: 1px solid var(--gray-200);
+      background   : var(--gray-50);
+      flex-wrap    : wrap;
+    }
+
+    .detail-tab {
+      padding      : 8px 16px;
+      border-radius: 8px 8px 0 0;
+      font-size    : 0.82rem;
+      font-weight  : 500;
+      cursor       : pointer;
+      border       : 1px solid transparent;
+      color        : var(--gray-600);
+      transition   : var(--transition);
+      background   : transparent;
+    }
+
+    .detail-tab.active {
+      background         : var(--white);
+      color              : var(--primary);
+      border-color       : var(--gray-200);
+      border-bottom-color: var(--white);
+      font-weight        : 600;
+    }
+
+    .detail-tab-content { display: none; }
+    .detail-tab-content.active { display: block; }
+
+    /* ── Dashboard Layout ── */
+    .dashboard-grid {
+      display              : grid;
+      grid-template-columns: 1fr 360px;
+      gap                  : 16px;
+    }
+
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Action Buttons ── */
+    .queue-action-btn {
+      display      : inline-flex;
+      align-items  : center;
+      gap          : 5px;
+      padding      : 5px 12px;
+      border-radius: 6px;
+      font-size    : 0.78rem;
+      font-weight  : 600;
+      cursor       : pointer;
+      border       : none;
+      transition   : opacity 0.15s, transform 0.1s;
+    }
+
+    .queue-action-btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+    .queue-action-btn:active { transform: translateY(0); }
+
+    .btn-approve { background: #34a853; color: #fff; }
+    .btn-reject  { background: #ea4335; color: #fff; }
+
+    /* ── Reject Modal Textarea ── */
+    #rejectReason {
+      width        : 100%;
+      resize       : vertical;
+      font-size    : 0.85rem;
+      padding      : 10px 12px;
+      border       : 1.5px solid var(--gray-300);
+      border-radius: 8px;
+      font-family  : 'Inter', sans-serif;
+      outline      : none;
+      min-height   : 100px;
+      transition   : border-color 0.2s;
+    }
+
+    #rejectReason:focus {
+      border-color: #ea4335;
+      box-shadow  : 0 0 0 3px rgba(234,67,53,0.1);
+    }
+
+    .reject-modal-header {
+      background: linear-gradient(135deg, #c62828, #8b0000);
+    }
+
+    /* =========================================
+       ✨ MODERN UI STYLES (UPDATED) ✨
+       ========================================= */
+
+    /* ── 1. Queue Stats Mini Row (Top Cards) ── */
+    .queue-stats-row {
+      display      : flex;
+      gap          : 16px; 
+      flex-wrap    : wrap;
+      margin-bottom: 24px;
+    }
+
+    .queue-mini-stat {
+      flex          : 1;
+      min-width     : 120px;
+      padding       : 16px 20px;
+      border-radius : 12px; 
+      background    : var(--white);
+      border        : 1px solid rgba(0,0,0,0.05); 
+      box-shadow    : 0 4px 12px rgba(0,0,0,0.03); 
+      text-align    : center;
+      transition    : transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .queue-mini-stat:hover {
+      transform : translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+    }
+
+    .queue-mini-stat .mini-val {
+      font-size  : 1.8rem; 
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .queue-mini-stat .mini-label {
+      font-size     : 0.8rem;
+      font-weight   : 600;
+      color         : var(--gray-500);
+      margin-top    : 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .mini-val.pending  { color: #f9a825; }
+    .mini-val.approved { color: #34a853; }
+    .mini-val.rejected { color: #ea4335; }
+    .mini-val.total    { color: var(--primary); }
+
+    /* ── 2. Modern Filter Tabs (Pill style) ── */
+    .filter-tabs {
+      display      : flex;
+      gap          : 6px;
+      background   : var(--gray-50);
+      padding      : 4px;
+      border-radius: 8px;
+      border       : 1px solid var(--gray-200);
+    }
+
+    .filter-tab, .filter-tab-q, .filter-tab-c {
+      padding      : 6px 16px;
+      border-radius: 6px;
+      font-size    : 0.82rem;
+      font-weight  : 500;
+      cursor       : pointer;
+      border       : none;
+      color        : var(--gray-600);
+      background   : transparent;
+      transition   : all 0.2s ease;
+    }
+
+    .filter-tab:hover, .filter-tab-q:hover, .filter-tab-c:hover {
+      background: rgba(0,0,0,0.04);
+    }
+
+    .filter-tab.active, .filter-tab-q.active, .filter-tab-c.active {
+      background : var(--white);
+      color      : var(--primary); 
+      font-weight: 600;
+      box-shadow : 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    /* ── 3. Table Rows & Spacing ── */
+    .data-table tbody tr {
+      transition: background-color 0.15s ease;
+    }
+    
+    .data-table tbody tr:hover {
+      background-color: #f8faff; 
+    }
+
+    .data-table td, .data-table th {
+      padding       : 14px 16px; 
+      vertical-align: middle;
+    }
+
+    /* ── 4. Soft Premium Status Badges ── */
+    .queue-status-badge {
+      display       : inline-flex;
+      align-items   : center;
+      padding       : 4px 12px;
+      border-radius : 20px; 
+      font-size     : 0.75rem;
+      font-weight   : 600;
+      letter-spacing: 0.3px;
+    }
+
+    .status-pending  { background: #fff8e1; color: #f57f17; border: 1px solid #ffe082; }
+    .status-approved { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .status-rejected { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+    .status-sent     { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+
+    /* ── 5. Tracking Timeline ── */
+    .tracking-wrapper {
+      background: #fff;
+      padding: 24px 20px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--gray-200);
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .tracking-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+      width: 100%;
+    }
+
+    .track-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .track-step::before {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: -50%;
+      width: 100%;
+      height: 3px;
+      background: #e5e7eb;
+      z-index: -1;
+      transition: all 0.3s ease;
+    }
+    .track-step:first-child::before { display: none; }
+
+    .track-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      color: transparent; 
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .track-step.completed .track-icon { background: #10b981; border-color: #10b981; color: #fff; }
+    .track-step.completed::before { background: #10b981; }
+    .track-step.active .track-icon { background: #4f46e5; border-color: #4f46e5; color: #fff; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
+    .track-step.active::before { background: #10b981; }
+    .track-step.rejected .track-icon { background: #ef4444; border-color: #ef4444; color: #fff; }
+    .track-text h6 { font-size: 0.75rem; margin: 0 0 4px 0; color: var(--gray-800); font-weight: 600; }
+    .track-text p { font-size: 0.65rem; margin: 0; color: var(--gray-500); line-height: 1.2; }
+
+    .completed-card {
+      background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--border-radius);
+      padding: 16px 20px; margin-bottom: 10px; display: flex; align-items: center; gap: 16px; cursor: pointer;
+    }
+    .completed-card:hover { border-color: var(--primary); }
+    .completed-card.approved { border-left: 4px solid var(--secondary); }
+    .completed-card.rejected { border-left: 4px solid var(--danger); }
+  </style>
+</head>
+
+<body>
+<div class="app-wrapper">
+
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content" id="mainContent">
+
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="page-content">
+
+      <!-- DASHBOARD OVERVIEW -->
+      <div class="section active" id="section-dashboard">
+
+        <div class="stats-grid">
+          <div class="stat-card total" style="cursor:pointer" onclick="Dashboard.showSection('invoices')">
+            <div class="stat-icon"><i class="fa fa-inbox"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statTotal">--</div>
+              <div class="stat-label">Total Invoices</div>
+            </div>
+          </div>
+          <div class="stat-card pass" style="cursor:pointer" onclick="Dashboard.showSection('invoices')">
+            <div class="stat-icon"><i class="fa fa-circle-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statPass">--</div>
+              <div class="stat-label">Passed</div>
+            </div>
+          </div>
+          <div class="stat-card review" style="cursor:pointer" onclick="Dashboard.showSection('approval')">
+            <div class="stat-icon"><i class="fa fa-triangle-exclamation"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statReview">--</div>
+              <div class="stat-label">Action Needed</div>
+            </div>
+          </div>
+          <div class="stat-card fail" style="cursor:pointer" onclick="Dashboard.showSection('invoices')">
+            <div class="stat-icon"><i class="fa fa-circle-xmark"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statFail">--</div>
+              <div class="stat-label">Failed</div>
+            </div>
+          </div>
+          <div class="stat-card amount">
+            <div class="stat-icon"><i class="fa fa-indian-rupee-sign"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statAmount">--</div>
+              <div class="stat-label">Total Amount</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa fa-clock-rotate-left"></i> Recent Invoices
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="Dashboard.showSection('invoices')">
+                View All <i class="fa fa-arrow-right"></i>
+              </button>
+            </div>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Invoice No</th>
+                    <th>Vendor</th>
+                    <th>Amount</th>
+                    <th>Stage</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="recentBody">
+                  <tr><td colspan="5" class="text-center" style="padding:24px;color:var(--gray-400)">
+                    <i class="fa fa-spinner fa-spin"></i> Loading...
+                  </td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title" style="color:var(--danger)">🚩 Red Flags</div>
+              <button class="btn btn-ghost btn-sm" onclick="Dashboard.showSection('redflags')">
+                View All <i class="fa fa-arrow-right"></i>
+              </button>
+            </div>
+            <div id="redFlagsPanel" style="padding:0 16px;max-height:320px;overflow-y:auto">
+              <div class="text-center" style="padding:24px;color:var(--gray-400)">
+                <i class="fa fa-spinner fa-spin"></i>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ALL INVOICES -->
+      <div class="section" id="section-invoices">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div class="filter-tabs">
+                <button class="filter-tab active" data-status="ALL">All</button>
+                <button class="filter-tab" data-status="Completed">✅ Completed</button>
+                <button class="filter-tab" data-status="Account">⏳ At Account</button>
+                <button class="filter-tab" data-status="CFO">💼 At CFO</button>
+              </div>
+              <div style="flex:1;min-width:200px;position:relative">
+                <i class="fa fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-400);pointer-events:none"></i>
+                <input type="text" class="form-control" id="searchInput" autocomplete="off" placeholder="Search vendor, invoice no..." style="padding-left:36px"/>
+              </div>
+              <button class="btn btn-outline btn-sm" id="redFlagToggle" onclick="Dashboard.toggleRedFlagFilter()">
+                🚩 Red Flags Only
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-file-invoice"></i> All Invoices
+              <span id="invoiceCount" style="font-weight:400;color:var(--gray-500);font-size:0.8rem"></span>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table" id="invoiceTable">
+              <thead>
+                <tr>
+                  <th>#</th><th>Date</th><th>Invoice No</th><th>Vendor</th><th>Description</th>
+                  <th>Basic Amt</th><th>TDS</th><th>Payable</th><th>Type</th><th>🚩</th><th>Current Stage</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="invoiceBody">
+                <tr><td colspan="12" class="text-center" style="padding:32px;color:var(--gray-400)">
+                  <i class="fa fa-spinner fa-spin"></i> Loading invoices...
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:12px 20px;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center">
+            <span id="tableInfo" style="font-size:0.78rem;color:var(--gray-500)"></span>
+            <div id="tablePagination" style="display:flex;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- APPROVAL QUEUE -->
+      <div class="section" id="section-approval">
+        <div class="queue-stats-row" id="queueStatsRow">
+          <div class="queue-mini-stat"><div class="mini-val total" id="qStatTotal">--</div><div class="mini-label">Total</div></div>
+          <div class="queue-mini-stat"><div class="mini-val pending" id="qStatPending">--</div><div class="mini-label">Pending Action</div></div>
+          <div class="queue-mini-stat"><div class="mini-val approved" id="qStatApproved">--</div><div class="mini-label">Approved</div></div>
+          <div class="queue-mini-stat"><div class="mini-val rejected" id="qStatRejected">--</div><div class="mini-label">Rejected</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <div class="filter-tabs">
+                <button class="filter-tab-q active" data-status="ALL">All</button>
+                <button class="filter-tab-q" data-status="Pending">⏳ Pending</button>
+                <button class="filter-tab-q" data-status="Approved">✅ Approved</button>
+                <button class="filter-tab-q" data-status="Rejected">❌ Rejected</button>
+              </div>
+              <div style="flex:1;min-width:200px;position:relative">
+                <i class="fa fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-400);pointer-events:none"></i>
+                <input type="text" class="form-control" id="queueSearchInput" autocomplete="off" placeholder="Search vendor, invoice no..." style="padding-left:36px"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadApprovalQueue()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-list-check"></i> Approval Queue
+              <span id="queueCount" style="font-weight:400;color:var(--gray-500);font-size:0.8rem"></span>
+            </div>
+            <div style="font-size:0.78rem;color:var(--gray-500)">Pending invoices require your action</div>
+          </div>
+          <!-- Updated Table Wrapper for Scrolling -->
+          <div class="table-wrapper" style="max-height: 60vh; overflow-y: auto;">
+            <table class="data-table" id="queueTable">
+              <thead style="position: sticky; top: 0; z-index: 10;">
+                <tr>
+                  <th>#</th><th>Invoice No</th><th>Vendor</th><th>Basic Amt</th><th>TDS</th>
+                  <th>Final Payable</th><th>🚩</th><th>Queue Status</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="queueBody">
+                <tr><td colspan="9" class="text-center" style="padding:32px;color:var(--gray-400)">
+                  <i class="fa fa-spinner fa-spin"></i> Loading queue...
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- New Pagination Controls -->
+          <div style="padding:12px 20px;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:var(--white);border-radius:0 0 12px 12px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:0.78rem;color:var(--gray-500)">Rows per page:</span>
+              <select id="queuePageSize" style="font-size:0.78rem;padding:4px 8px;border-radius:6px;border:1px solid var(--gray-300);outline:none;cursor:pointer;" onchange="Dashboard.changeQueuePageSize(this.value)">
+                <option value="10">10</option>
+                <option value="15" selected>15</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span id="queueTableInfo" style="font-size:0.78rem;color:var(--gray-500);margin-left:10px;"></span>
+            </div>
+            <div id="queueTablePagination" style="display:flex;gap:6px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPLETED -->
+      <div class="section" id="section-completed">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card">
+            <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:20px">
+              <div style="width:52px;height:52px;border-radius:12px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;font-size:1.5rem">✅</div>
+              <div>
+                <div style="font-size:2rem;font-weight:800;color:var(--secondary)" id="completedApproved">--</div>
+                <div style="font-size:0.8rem;color:var(--gray-500)">Bills Approved by You</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="display:flex;align-items:center;gap:16px;padding:20px">
+              <div style="width:52px;height:52px;border-radius:12px;background:#ffebee;display:flex;align-items:center;justify-content:center;font-size:1.5rem">❌</div>
+              <div>
+                <div style="font-size:2rem;font-weight:800;color:var(--danger)" id="completedRejected">--</div>
+                <div style="font-size:0.8rem;color:var(--gray-500)">Bills Rejected by You</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="filter-tab-c active" data-cstatus="ALL" onclick="Dashboard.filterCompleted(this)">All</button>
+              <button class="filter-tab-c" data-cstatus="Approved" onclick="Dashboard.filterCompleted(this)">✅ Approved</button>
+              <button class="filter-tab-c" data-cstatus="Rejected" onclick="Dashboard.filterCompleted(this)">❌ Rejected</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-flag-checkered"></i> Your Processed Bills
+              <span id="completedCount" style="font-weight:400;color:var(--gray-500);font-size:0.8rem"></span>
+            </div>
+          </div>
+          <div id="completedList" style="padding:16px">
+            <div class="text-center" style="padding:32px;color:var(--gray-400)">
+              <i class="fa fa-spinner fa-spin"></i> Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RED FLAGS -->
+      <div class="section" id="section-redflags">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="color:var(--danger)">
+              🚩 Red Flag Invoices <span id="redFlagCount" style="font-weight:400;color:var(--gray-500);font-size:0.8rem"></span>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Invoice No</th><th>Vendor</th><th>Amount</th><th>Red Flags</th><th>Stage</th><th>Date</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="redFlagBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px;color:var(--gray-400)">
+                  <i class="fa fa-spinner fa-spin"></i> Loading...
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAILED SUMMARY SECTION -->
+      <div class="section" id="section-summary">
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-bottom: 16px;">
+          <div class="card">
+            <div class="card-body" style="padding: 20px; text-align: center;">
+              <div style="font-size: 0.85rem; color: var(--gray-500); text-transform: uppercase; font-weight: 600;">Total Invoices</div>
+              <div style="font-size: 2rem; font-weight: 800; color: var(--primary); margin-top: 8px;" id="sumTotalCount">0</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding: 20px; text-align: center;">
+              <div style="font-size: 0.85rem; color: var(--gray-500); text-transform: uppercase; font-weight: 600;">Total Amount</div>
+              <div style="font-size: 1.8rem; font-weight: 800; color: var(--gray-800); margin-top: 8px;" id="sumTotalAmount">₹0</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding: 20px; text-align: center;">
+              <div style="font-size: 0.85rem; color: var(--gray-500); text-transform: uppercase; font-weight: 600;">Approved Value</div>
+              <div style="font-size: 1.8rem; font-weight: 800; color: #34a853; margin-top: 8px;" id="sumApprovedAmount">₹0</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding: 20px; text-align: center;">
+              <div style="font-size: 0.85rem; color: var(--gray-500); text-transform: uppercase; font-weight: 600;">Pending Value</div>
+              <div style="font-size: 1.8rem; font-weight: 800; color: #f9a825; margin-top: 8px;" id="sumPendingAmount">₹0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa fa-chart-pie"></i> Vendor-wise Summary</div>
+          </div>
+          <div class="table-wrapper" style="max-height: 50vh; overflow-y: auto;">
+            <table class="data-table">
+              <thead style="position: sticky; top: 0; z-index: 10;">
+                <tr>
+                  <th>Vendor Name</th>
+                  <th style="text-align:center;">Total Invoices</th>
+                  <th style="text-align:center;">Approved</th>
+                  <th style="text-align:center;">Pending/Other</th>
+                  <th style="text-align:right;">Total Value</th>
+                </tr>
+              </thead>
+              <tbody id="summaryVendorBody">
+                <tr><td colspan="5" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Generating summary...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="section" id="section-profile">
+        <div class="card" style="max-width:500px">
+          <div class="card-header">
+            <div class="card-title"><i class="fa fa-user"></i> My Profile</div>
+          </div>
+          <div class="card-body" id="profileBody">
+            <div class="text-center" style="padding:24px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="section" id="section-password">
+        <div class="card" style="max-width:440px">
+          <div class="card-header">
+            <div class="card-title"><i class="fa fa-lock"></i> Change Password</div>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="oldPassword" placeholder="Enter current password"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" id="newPassword" placeholder="Min 6 characters"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="confirmPassword" placeholder="Re-enter new password"/>
+            </div>
+            <button class="btn btn-primary w-100" onclick="Dashboard.changePassword()">
+              <i class="fa fa-key"></i> Update Password
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- INVOICE DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box large">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
+      <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+        <i class="fa fa-file-invoice"></i> Invoice —
+        <span id="modalInvoiceNo"></span><span id="modalStatus" style="margin-left:8px"></span>
+      </h5>
+      <button class="modal-close" onclick="Dashboard.closeModal()">✕</button>
+    </div>
+
+    <div id="modalTrackingTimeline" style="padding: 20px 20px 0; background: var(--white);"></div>
+
+    <div class="detail-tabs">
+      <button class="detail-tab active" data-tab="tab-attachment" onclick="Dashboard.switchTab(this, 'tab-attachment')">📎 Attachment</button>
+      <button class="detail-tab" data-tab="tab-accounting" onclick="Dashboard.switchTab(this, 'tab-accounting')">📊 Accounting</button>
+      <button class="detail-tab" data-tab="tab-tds" onclick="Dashboard.switchTab(this, 'tab-tds')">💰 TDS</button>
+      <button class="detail-tab" data-tab="tab-gst" onclick="Dashboard.switchTab(this, 'tab-gst')">🧾 GST</button>
+      <button class="detail-tab" data-tab="tab-process" onclick="Dashboard.switchTab(this, 'tab-process')">⚙️ Process</button>
+      <button class="detail-tab" data-tab="tab-flags" onclick="Dashboard.switchTab(this, 'tab-flags')">🚩 Red Flags</button>
+    </div>
+
+    <div style="max-height:55vh;overflow-y:auto;background:var(--white);">
+      <div class="detail-tab-content active" id="tab-attachment"></div>
+      <div class="detail-tab-content" id="tab-accounting"></div>
+      <div class="detail-tab-content" id="tab-tds"></div>
+      <div class="detail-tab-content" id="tab-gst"></div>
+      <div class="detail-tab-content" id="tab-process"></div>
+      <div class="detail-tab-content" id="tab-flags"></div>
+    </div>
+
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
+      <a id="driveLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none">
+        <i class="fa fa-file-pdf"></i> View Original
+      </a>
+      
+      <button class="btn btn-sm" id="modalApproveBtn" onclick="Dashboard.approveFromModal()" style="display:none; background:#34a853; color:#fff; border:none; font-weight:600; padding:6px 14px; border-radius:6px;">
+        <i class="fa fa-check"></i> Approve
+      </button>
+      <button class="btn btn-sm" id="modalRejectBtn" onclick="Dashboard.rejectFromModal()" style="display:none; background:#ea4335; color:#fff; border:none; font-weight:600; padding:6px 14px; border-radius:6px;">
+        <i class="fa fa-xmark"></i> Reject
+      </button>
+      
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeModal()">
+        <i class="fa fa-xmark"></i> Close
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- REJECT MODAL -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header reject-modal-header">
+      <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+        <i class="fa fa-circle-xmark"></i> Reject Invoice
+        <span id="rejectModalInvoiceNo" style="font-size:0.85rem;opacity:0.85;margin-left:4px"></span>
+      </h5>
+      <button class="modal-close" onclick="Dashboard.closeRejectModal()">✕</button>
+    </div>
+    <div style="padding:20px">
+      <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:14px;line-height:1.5">
+        <i class="fa fa-circle-info" style="color:#ea4335;margin-right:6px"></i>
+        This invoice will be <strong>stopped here</strong> and not forwarded to CFO.
+      </p>
+      <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--gray-700);margin-bottom:6px;display:block">
+        Rejection Reason <span style="color:#ea4335">*</span>
+      </label>
+      <textarea id="rejectReason" placeholder="e.g. Missing vendor PAN..." rows="4"></textarea>
+      <div id="rejectReasonError" style="display:none;color:#ea4335;font-size:0.78rem;margin-top:6px">
+        <i class="fa fa-triangle-exclamation"></i> Rejection reason is required.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" id="confirmRejectBtn" style="background:#ea4335;color:#fff;padding:7px 18px;font-weight:600;border:none;border-radius:7px;cursor:pointer" onclick="Dashboard.confirmReject()">
+        <i class="fa fa-circle-xmark"></i> Confirm Reject
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeRejectModal()"><i class="fa fa-xmark"></i> Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVE MODAL -->
+<div class="modal-overlay" id="approveModal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header" style="background: linear-gradient(135deg, #34a853, #1b5e20);">
+      <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+        <i class="fa fa-check-circle"></i> Approve Invoice
+        <span id="approveModalInvoiceNo" style="font-size:0.85rem;opacity:0.85;margin-left:4px"></span>
+      </h5>
+      <button class="modal-close" onclick="Dashboard.closeApproveModal()">✕</button>
+    </div>
+    <div style="padding:20px">
+      <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:14px;line-height:1.5">
+        <i class="fa fa-circle-info" style="color:#34a853;margin-right:6px"></i>
+        This invoice will be <strong>approved</strong> and forwarded to the CFO.
+      </p>
+      <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--gray-700);margin-bottom:6px;display:block">
+        Approval Remark / Note
+      </label>
+      <textarea id="approveReason" placeholder="e.g. All documents verified, amounts match..." rows="3" style="width:100%;resize:vertical;font-size:0.85rem;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:8px;font-family:'Inter', sans-serif;outline:none;transition:border-color 0.2s;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" id="confirmApproveBtn" style="background:#34a853;color:#fff;padding:7px 18px;font-weight:600;border:none;border-radius:7px;cursor:pointer" onclick="Dashboard.confirmApprove()">
+        <i class="fa fa-check"></i> Confirm Approve
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeApproveModal()"><i class="fa fa-xmark"></i> Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+
+<script>
+const Dashboard = {
+  invoices     : [],
+  redFlagFilter: false,
+  currentRow   : null,
+  currentPage  : 1,
+  pageSize     : 15,
+  filteredData : [],
+
+  queueData        : [],
+  queueFiltered    : [],
+  queueCurrentPage : 1, // New Pagination Variable
+  queuePageSize    : 15, // New Pagination Variable
+  pendingRejectRow : null,
+  pendingRejectInvoiceNo: "",
+  
+  pendingApproveRow : null,
+  pendingApproveInvoiceNo: "",
+
+  generateTrackingTimeline(inv) {
+    const steps = [
+      { key: "Received", label: "Received",    date: inv["Timestamp"],       icon: "fa-envelope" },
+      { key: "Biller",   label: "Biller",      date: inv["Biller_Send_At"],  icon: "fa-user-check", statusCol: "" },
+      { key: "Account",  label: "Account",     date: inv["Account_Send_At"], icon: "fa-calculator", statusCol: inv["Account_Status"] },
+      { key: "CFO",      label: "CFO",         date: inv["CFO_Send_At"],     icon: "fa-briefcase",  statusCol: inv["CFO_Status"] },
+      { key: "Admin",    label: "Admin",       date: inv["Admin_Send_At"],   icon: "fa-user-shield",statusCol: inv["Admin_Status"] },
+      { key: "SA",       label: "Super Admin", date: inv["SA_Approved_At"],  icon: "fa-crown",      statusCol: inv["SA_Status"] }
+    ];
+    const currentStage = inv["Current_Stage"] || "New";
+    let hasRejected = steps.some(s => s.statusCol && s.statusCol.includes("Rejected"));
+    let stageReached = false;
+    let html = `<div class="tracking-wrapper"><div class="tracking-container">`;
+    steps.forEach((step) => {
+      let statusClass = "";
+      let iconHtml = `<i class="fa ${step.icon}"></i>`;
+      let dateText = step.date ? step.date : "Pending...";
+      if (step.date && step.date !== "") {
+        statusClass = "completed"; iconHtml = `<i class="fa fa-check"></i>`; 
+        if (step.statusCol && step.statusCol.includes("Rejected")) {
+          statusClass = "rejected"; iconHtml = `<i class="fa fa-times"></i>`;
+        }
+      } else {
+        if (!stageReached && !hasRejected && currentStage !== "Completed") {
+          statusClass = "active"; stageReached = true; 
+        }
+      }
+      html += `
+        <div class="track-step ${statusClass}">
+          <div class="track-icon">${iconHtml}</div>
+          <div class="track-text"><h6>${step.label}</h6><p>${dateText}</p></div>
+        </div>`;
+    });
+    html += `</div></div>`;
+
+    let rBy = ""; let rRem = "";
+    if ((inv["Account_Status"] || "").includes("Rejected")) { rBy = "Account"; rRem = inv["Account_Remark"] || ""; }
+    else if ((inv["CFO_Status"] || "").includes("Rejected")) { rBy = "CFO"; rRem = inv["CFO_Remark"] || ""; }
+    else if ((inv["Admin_Status"] || "").includes("Rejected")) { rBy = "Admin"; rRem = inv["Admin_Remark"] || ""; }
+    else if ((inv["SA_Status"] || "").includes("Rejected")) { rBy = "Super Admin"; rRem = inv["SA_Remark"] || ""; }
+    
+    if (rBy) {
+      html += `<div style="margin-top:16px;background:#fff0f0;border-left:4px solid #ea4335;border-radius:6px;padding:12px 16px;font-size:0.9rem;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+        <div style="color:#d32f2f;font-weight:700;margin-bottom:6px;"><i class="fa fa-circle-exclamation"></i> Rejected by ${rBy}</div>
+        <div style="color:#444;line-height:1.4">${rRem || "No reason provided."}</div>
+      </div>`;
+    }
+
+    return html;
+  },
+
+  async init() {
+    if (!Auth.requireRole("Account")) return; AppLoader.show();
+    Header.render("Dashboard");
+    Sidebar.init("dashboard");
+
+    try { await Dashboard.loadDashboardData(); } finally { AppLoader.finish(); }
+
+    const hash = window.location.hash.replace("#", "");
+    if (hash) Dashboard.showSection(hash);
+
+    document.getElementById("searchInput")?.addEventListener("input", Utils.debounce(() => Dashboard.filterInvoices(), 400));
+    document.querySelectorAll(".filter-tab[data-status]").forEach(btn => {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".filter-tab[data-status]").forEach(b => b.classList.remove("active"));
+        this.classList.add("active");
+        Dashboard.currentPage = 1;
+        Dashboard.filterInvoices();
+      });
+    });
+  },
+
+  showSection(id) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(`section-${id}`)?.classList.add("active");
+
+    const titles = { dashboard: "Dashboard", invoices : "All Invoices", approval : "Approval Queue", redflags : "Red Flags", completed: "Completed Bills", summary: "Summary Report", profile: "My Profile", password : "Change Password" };
+    Header.setTitle(titles[id] || "Dashboard");
+    Sidebar.setActive(id);
+
+    if (id === "approval") Dashboard.loadApprovalQueue();
+    if (id === "completed") Dashboard.loadCompletedSection();
+    if (id === "summary") Dashboard.loadSummary();
+    if (id === "profile") Dashboard.loadProfile();
+  },
+
+  switchTab(btn, tabId) {
+    document.querySelectorAll(".detail-tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".detail-tab-content").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    const targetContent = document.getElementById(tabId);
+    if (targetContent) targetContent.classList.add("active");
+  },
+
+  async loadDashboardData() {
+    try {
+      const statsRes = await API.dashboard.getStats();
+      if (statsRes?.success) {
+        const d = statsRes.data;
+        const setSafe = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setSafe("statTotal",  d.invoiceStats?.total  || d.total  || 0);
+        setSafe("statPass",   d.invoiceStats?.pass   || d.pass   || 0);
+        setSafe("statReview", d.invoiceStats?.review || d.review || 0);
+        setSafe("statFail",   d.invoiceStats?.fail   || d.fail   || 0);
+        setSafe("statAmount", Utils.formatCurrency(d.invoiceStats?.totalAmount || d.totalAmount || 0));
+      }
+    } catch(e) { console.error("Stats Error", e); }
+
+    try {
+      const invRes = await API.invoices.getAll();
+      if (invRes?.success) {
+        Dashboard.invoices = invRes.data.invoices || [];
+        Dashboard.filteredData = [...Dashboard.invoices];
+        Dashboard.renderTable();
+
+        const recent = [...Dashboard.invoices].reverse().slice(0, 5);
+        const rBody = document.getElementById("recentBody");
+        if (recent.length === 0) {
+          if (rBody) rBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:24px;color:var(--gray-400)">No invoices yet</td></tr>`;
+        } else {
+          if (rBody) rBody.innerHTML = recent.map(inv => `
+            <tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+              <td><strong style="font-size:0.83rem">${inv["A13. Invoice Number"] || "—"}</strong></td>
+              <td style="font-size:0.82rem">${Utils.truncate(inv["A14. Vendor Name"], 18)}</td>
+              <td style="font-size:0.83rem">${Utils.formatCurrency(inv["A20. Basic Amount"])}</td>
+              <td>${Utils.statusBadge(inv["Current_Stage"])}</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})"><i class="fa fa-eye"></i></button></td>
+            </tr>`).join("");
+        }
+
+        const flagged = Dashboard.invoices.filter(i => i["🚩 Red Flags"] && i["🚩 Red Flags"].trim() !== "");
+        const fPanel = document.getElementById("redFlagsPanel");
+        if (flagged.length === 0) {
+          if (fPanel) fPanel.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="empty-icon">✅</div><div class="empty-title">No red flags!</div></div>`;
+        } else {
+          if (fPanel) fPanel.innerHTML = flagged.slice(0, 8).map(inv => `
+            <div style="padding:10px 0;border-bottom:1px solid var(--gray-100);cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+                <strong style="font-size:0.83rem">${inv["A13. Invoice Number"] || "—"}</strong>${Utils.statusBadge(inv["Current_Stage"])}
+              </div>
+              <div style="font-size:0.78rem;color:var(--gray-600)">${Utils.truncate(inv["A14. Vendor Name"], 24)}</div>
+              <div style="font-size:0.72rem;color:var(--danger);margin-top:3px">🚩 ${Utils.truncate(inv["🚩 Red Flags"], 48)}</div>
+            </div>`).join("");
+        }
+        Dashboard.loadRedFlagTableLocally(flagged);
+      }
+    } catch(e) { console.error("Invoice Error", e); }
+  },
+
+  filterInvoices() {
+    const status  = document.querySelector(".filter-tab[data-status].active")?.dataset.status || "ALL";
+    const search  = document.getElementById("searchInput")?.value.toLowerCase() || "";
+    const redOnly = Dashboard.redFlagFilter;
+
+    let filtered = [...Dashboard.invoices];
+    if (status !== "ALL") {
+      filtered = filtered.filter(i => {
+        if (status === "Completed") return i["Current_Stage"] === "Completed";
+        return i["Current_Stage"] === status;
+      });
+    }
+    if (search) filtered = filtered.filter(i => (i["A14. Vendor Name"]||"").toLowerCase().includes(search) || (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A16. Bill Description"]||"").toLowerCase().includes(search));
+    if (redOnly) filtered = filtered.filter(i => i["🚩 Red Flags"] && i["🚩 Red Flags"].trim() !== "");
+
+    Dashboard.filteredData = filtered;
+    Dashboard.currentPage  = 1;
+    Dashboard.renderTable();
+  },
+
+  renderTable() {
+    const tbody  = document.getElementById("invoiceBody");
+    const count  = document.getElementById("invoiceCount");
+    const total  = Dashboard.filteredData.length;
+    const start  = (Dashboard.currentPage - 1) * Dashboard.pageSize;
+    const end    = Math.min(start + Dashboard.pageSize, total);
+    const page   = Dashboard.filteredData.slice(start, end);
+
+    if(count) count.textContent = `(${total} records)`;
+
+    if (total === 0) {
+      if(tbody) tbody.innerHTML = `<tr><td colspan="12" class="text-center" style="padding:32px;color:var(--gray-400)">📭 No invoices found</td></tr>`;
+      Dashboard.renderPagination(0, 0); return;
+    }
+
+    if(tbody) tbody.innerHTML = page.map((inv, i) => `
+      <tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+        <td style="color:var(--gray-400);font-size:0.75rem">${start + i + 1}</td>
+        <td style="white-space:nowrap;font-size:0.8rem">${inv["Timestamp"] || inv["A12. Invoice Date"] || "—"}</td>
+        <td><strong style="font-size:0.83rem">${inv["A13. Invoice Number"] || "—"}</strong></td>
+        <td style="font-size:0.82rem">${Utils.truncate(inv["A14. Vendor Name"], 18)}</td>
+        <td style="color:var(--gray-500);font-size:0.78rem">${Utils.truncate(inv["A16. Bill Description"], 22)}</td>
+        <td style="font-size:0.83rem">${Utils.formatCurrency(inv["A20. Basic Amount"])}</td>
+        <td>${inv["B1. TDS Applicable"] === "Yes" ? `<span style="color:var(--warning);font-weight:600;font-size:0.82rem">${Utils.formatCurrency(inv["B8. TDS Amount"])}</span>` : `<span style="color:var(--gray-300);font-size:0.8rem">N/A</span>`}</td>
+        <td><strong style="font-size:0.83rem">${Utils.formatCurrency(inv["D1. Final Payable Amt"])}</strong></td>
+        <td><span class="badge ${inv["A21. Invoice Type"] === 'Proforma' ? 'badge-warning' : 'badge-info'}" style="font-size:0.68rem">${inv["A21. Invoice Type"] || "—"}</span></td>
+        <td>${inv["🚩 Red Flags"] && inv["🚩 Red Flags"] !== "" ? `<span style="color:var(--danger);font-size:0.78rem;font-weight:600;cursor:pointer" title="${inv["🚩 Red Flags"]}">🚩 ${inv["🚩 Red Flags"].split("|").length}</span>` : `<span style="color:var(--gray-200)">—</span>`}</td>
+        <td>${Utils.statusBadge(inv["Current_Stage"])}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})" title="View Details"><i class="fa fa-eye"></i></button></td>
+      </tr>
+    `).join("");
+    Dashboard.renderPagination(total, end);
+  },
+
+  renderPagination(total, end) {
+    const info = document.getElementById("tableInfo");
+    const pagDiv = document.getElementById("tablePagination");
+    if(!info || !pagDiv) return;
+
+    const pages = Math.ceil(total / Dashboard.pageSize);
+    const start = (Dashboard.currentPage - 1) * Dashboard.pageSize + 1;
+
+    info.textContent = total > 0 ? `Showing ${start}–${end} of ${total}` : "";
+    if (pages <= 1) { pagDiv.innerHTML = ""; return; }
+
+    let html = `<button class="btn btn-ghost btn-sm" ${Dashboard.currentPage === 1 ? "disabled" : ""} onclick="Dashboard.goPage(${Dashboard.currentPage - 1})"><i class="fa fa-chevron-left"></i></button>`;
+    for (let i = 1; i <= pages; i++) {
+      if (i === 1 || i === pages || (i >= Dashboard.currentPage - 1 && i <= Dashboard.currentPage + 1)) {
+        html += `<button class="btn btn-sm ${i === Dashboard.currentPage ? 'btn-primary' : 'btn-ghost'}" onclick="Dashboard.goPage(${i})">${i}</button>`;
+      } else if (i === Dashboard.currentPage - 2 || i === Dashboard.currentPage + 2) {
+        html += `<span style="padding:0 4px;color:var(--gray-400)">...</span>`;
+      }
+    }
+    html += `<button class="btn btn-ghost btn-sm" ${Dashboard.currentPage === pages ? "disabled" : ""} onclick="Dashboard.goPage(${Dashboard.currentPage + 1})"><i class="fa fa-chevron-right"></i></button>`;
+    pagDiv.innerHTML = html;
+  },
+
+  goPage(page) {
+    const pages = Math.ceil(Dashboard.filteredData.length / Dashboard.pageSize);
+    if (page < 1 || page > pages) return;
+    Dashboard.currentPage = page;
+    Dashboard.renderTable();
+    document.getElementById("section-invoices")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  },
+
+  toggleRedFlagFilter() {
+    Dashboard.redFlagFilter = !Dashboard.redFlagFilter;
+    const btn = document.getElementById("redFlagToggle");
+    btn.className = Dashboard.redFlagFilter ? "btn btn-danger btn-sm" : "btn btn-outline btn-sm";
+    Dashboard.filterInvoices();
+  },
+
+  loadRedFlagTableLocally(flaggedData) {
+    const tbody = document.getElementById("redFlagBody");
+    const count = document.getElementById("redFlagCount");
+    if(!tbody) return;
+
+    if (flaggedData.length === 0) {
+      if(count) count.textContent = "(0 flagged)";
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:32px"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">No red flags!</div></div></td></tr>`;
+      return;
+    }
+    
+    if(count) count.textContent = `(${flaggedData.length} flagged)`;
+    tbody.innerHTML = flaggedData.map(inv => `
+      <tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+        <td><strong>${inv["A13. Invoice Number"] || "—"}</strong></td>
+        <td>${Utils.truncate(inv["A14. Vendor Name"], 20)}</td>
+        <td>${Utils.formatCurrency(inv["A20. Basic Amount"])}</td>
+        <td>${(inv["🚩 Red Flags"] || "").split("|").map(f => `<div class="red-flag-item" style="margin-bottom:4px">🚩 ${f.trim()}</div>`).join("")}</td>
+        <td>${Utils.statusBadge(inv["Current_Stage"])}</td>
+        <td style="white-space:nowrap;font-size:0.8rem">${inv["Timestamp"] || "—"}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})"><i class="fa fa-eye"></i> View</button></td>
+      </tr>`).join("");
+  },
+
+  async loadApprovalQueue(isSilent = false) {
+    const tbody = document.getElementById("queueBody");
+    if (!isSilent && tbody) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:32px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i> Loading queue...</td></tr>`;
+    }
+
+    const res = await API.account.getQueue();
+    if (!res?.success) {
+      if (!isSilent && tbody) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:32px;color:var(--gray-400)">Failed to load queue.</td></tr>`;
+      }
+      return;
+    }
+    Dashboard.queueData = (res.data.queue || []).map(item => {
+      const accStatus   = (item["Account_Status"] || "").toString();
+      const cfoStatus   = (item["CFO_Status"] || "").toString();
+      const adminStatus = (item["Admin_Status"] || "").toString();
+      const saStatus    = (item["SA_Status"] || "").toString();
+      const isRejectedAnywhere = [accStatus, cfoStatus, adminStatus, saStatus].some(s => s === "Rejected");
+      if (isRejectedAnywhere) { item["Approval Status"] = "Rejected"; } 
+      else if (accStatus === "Approved") { item["Approval Status"] = "Approved"; } 
+      else if (item["Current_Stage"] === "Account") { item["Approval Status"] = "Pending"; }
+      return item;
+    });
+    Dashboard.queueFiltered = [...Dashboard.queueData];
+    Dashboard.queueCurrentPage = 1; // Reset to page 1 on load
+    Dashboard.updateQueueStats();
+    Dashboard.renderQueue();
+
+    const input = document.getElementById("queueSearchInput");
+    if (input && !input._qBound) {
+      input._qBound = true;
+      input.addEventListener("input", Utils.debounce(() => Dashboard.filterQueue(), 350));
+    }
+    document.querySelectorAll(".filter-tab-q").forEach(btn => {
+      if (!btn._qBound) {
+        btn._qBound = true;
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".filter-tab-q").forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+          Dashboard.filterQueue();
+        });
+      }
+    });
+  },
+
+  updateQueueStats() {
+    const data     = Dashboard.queueData;
+    const total    = data.length;
+    const pending  = data.filter(i => (i["Approval Status"] || "Pending") === "Pending").length;
+    const approved = data.filter(i => i["Approval Status"] === "Approved").length;
+    const rejected = data.filter(i => i["Approval Status"] === "Rejected").length;
+    const safe = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    safe("qStatTotal",    total);
+    safe("qStatPending",  pending);
+    safe("qStatApproved", approved);
+    safe("qStatRejected", rejected);
+  },
+
+  filterQueue() {
+    const status = document.querySelector(".filter-tab-q.active")?.dataset.status || "ALL";
+    const search = (document.getElementById("queueSearchInput")?.value || "").toLowerCase();
+    let filtered = [...Dashboard.queueData];
+    if (status !== "ALL") filtered = filtered.filter(i => (i["Approval Status"] || "Pending") === status);
+    if (search) filtered = filtered.filter(i => (i["A13. Invoice Number"] || "").toLowerCase().includes(search) || (i["A14. Vendor Name"] || "").toLowerCase().includes(search));
+    Dashboard.queueFiltered = filtered;
+    Dashboard.queueCurrentPage = 1; // 👈 Reset filter to page 1
+    Dashboard.renderQueue();
+  },
+
+  renderQueue() {
+    const tbody = document.getElementById("queueBody");
+    const count = document.getElementById("queueCount");
+    const data  = Dashboard.queueFiltered;
+
+    if(count) count.textContent = `(${data.length} items)`;
+
+    if (data.length === 0) {
+      if(tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:40px"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Queue is empty</div></div></td></tr>`;
+      Dashboard.renderQueuePagination(0, 0);
+      return;
+    }
+
+    // Pagination logic applied here
+    const total = data.length;
+    const start = (Dashboard.queueCurrentPage - 1) * Dashboard.queuePageSize;
+    const end = Math.min(start + parseInt(Dashboard.queuePageSize), total);
+    const pageData = data.slice(start, end);
+
+    if(tbody) tbody.innerHTML = pageData.map((item, i) => {
+      const status    = item["Approval Status"] || "Pending";
+      const isPending = status === "Pending" || status === "";
+      const rowIdx    = item.queueRowIndex;
+      const redFlags  = item["🚩 Red Flags"] || "";
+      const tdsAmt    = item["B8. TDS Amount"];
+      const isBypassed = Utils.isBillBypassed(item);
+      
+      return `
+        <tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail(${rowIdx})">
+          <td style="color:var(--gray-400);font-size:0.75rem">${start + i + 1}</td>
+          <td><strong style="font-size:0.83rem">${item["A13. Invoice Number"] || "—"}</strong><div style="font-size:0.72rem;color:var(--gray-400);margin-top:2px">${item["Timestamp"] || item["A12. Invoice Date"]}</div></td>
+          <td style="font-size:0.82rem"><div>${Utils.truncate(item["A14. Vendor Name"], 20)}</div><div style="font-size:0.72rem;color:var(--gray-400)">${Utils.truncate(item["A16. Bill Description"] || "", 22)}</div></td>
+          <td style="font-size:0.83rem">${Utils.formatCurrency(item["A20. Basic Amount"])}</td>
+          <td>${item["B1. TDS Applicable"] === "Yes" ? `<span style="color:var(--warning);font-weight:600;font-size:0.82rem">${Utils.formatCurrency(tdsAmt)}</span>` : `<span style="color:var(--gray-300);font-size:0.8rem">N/A</span>`}</td>
+          <td><strong style="font-size:0.85rem;color:var(--primary)">${Utils.formatCurrency(item["D1. Final Payable Amt"])}</strong></td>
+          <td>${redFlags && redFlags !== "" ? `<span style="color:var(--danger);font-size:0.78rem;font-weight:600;cursor:pointer" title="${redFlags}">🚩 ${redFlags.split("|").length}</span>` : `<span style="color:var(--gray-200)">—</span>`}</td>
+          <td>${Dashboard.queueStatusBadge(status)}</td>
+          <td onclick="event.stopPropagation()">
+            ${isPending
+              ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                   <button class="queue-action-btn btn-approve" onclick="Dashboard.approveItem(${rowIdx}, '${String(item["A13. Invoice Number"] || "").replace(/'/g, "\\'")}')"><i class="fa fa-check" style="font-size:0.72rem"></i> Approve</button>
+                   ${!isBypassed 
+                     ? `<button class="queue-action-btn btn-reject" onclick="Dashboard.openRejectModal(${rowIdx}, '${String(item["A13. Invoice Number"] || "").replace(/'/g, "\\'")}')"><i class="fa fa-xmark" style="font-size:0.72rem"></i> Reject</button>`
+                     : `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:0.7rem;padding:3px 6px;font-weight:600" title="Bypassed invoices can only be approved">⚡ Bypassed</span>`}
+                 </div>`
+              : `<span style="font-size:0.78rem;color:var(--gray-400)">${status === "Approved" ? '<i class="fa fa-check" style="color:#34a853"></i> Sent to CFO' : '<i class="fa fa-xmark" style="color:#ea4335"></i> Stopped'}</span>`}
+          </td>
+        </tr>`;
+    }).join("");
+
+    Dashboard.renderQueuePagination(total, end);
+  },
+
+  renderQueuePagination(total, end) {
+    const info = document.getElementById("queueTableInfo");
+    const pagDiv = document.getElementById("queueTablePagination");
+    if(!info || !pagDiv) return;
+
+    const pages = Math.ceil(total / Dashboard.queuePageSize);
+    const start = (Dashboard.queueCurrentPage - 1) * Dashboard.queuePageSize + 1;
+
+    info.textContent = total > 0 ? `Showing ${start}–${end} of ${total}` : "";
+    if (pages <= 1) { pagDiv.innerHTML = ""; return; }
+
+    let html = `<button class="btn btn-ghost btn-sm" ${Dashboard.queueCurrentPage === 1 ? "disabled" : ""} onclick="Dashboard.goQueuePage(${Dashboard.queueCurrentPage - 1})"><i class="fa fa-chevron-left"></i></button>`;
+    for (let i = 1; i <= pages; i++) {
+      if (i === 1 || i === pages || (i >= Dashboard.queueCurrentPage - 1 && i <= Dashboard.queueCurrentPage + 1)) {
+        html += `<button class="btn btn-sm ${i === Dashboard.queueCurrentPage ? 'btn-primary' : 'btn-ghost'}" onclick="Dashboard.goQueuePage(${i})">${i}</button>`;
+      } else if (i === Dashboard.queueCurrentPage - 2 || i === Dashboard.queueCurrentPage + 2) {
+        html += `<span style="padding:0 4px;color:var(--gray-400)">...</span>`;
+      }
+    }
+    html += `<button class="btn btn-ghost btn-sm" ${Dashboard.queueCurrentPage === pages ? "disabled" : ""} onclick="Dashboard.goQueuePage(${Dashboard.queueCurrentPage + 1})"><i class="fa fa-chevron-right"></i></button>`;
+    pagDiv.innerHTML = html;
+  },
+
+  goQueuePage(page) {
+    const pages = Math.ceil(Dashboard.queueFiltered.length / Dashboard.queuePageSize);
+    if (page < 1 || page > pages) return;
+    Dashboard.queueCurrentPage = page;
+    Dashboard.renderQueue();
+  },
+
+  changeQueuePageSize(size) {
+    Dashboard.queuePageSize = parseInt(size);
+    Dashboard.queueCurrentPage = 1;
+    Dashboard.renderQueue();
+  },
+
+  queueStatusBadge(status) {
+    const map = { "Pending" : "status-pending", "Approved" : "status-approved", "Rejected" : "status-rejected" };
+    return `<span class="queue-status-badge ${map[status] || "status-pending"}">${status || "Pending"}</span>`;
+  },
+
+  // ─────────────────────────────────────────────
+  // APPROVE ITEM & MODAL
+  // ─────────────────────────────────────────────
+  approveItem(queueRowIndex, invoiceNo) {
+    Dashboard.pendingApproveRow        = queueRowIndex;
+    Dashboard.pendingApproveInvoiceNo = invoiceNo || "";
+    
+    document.getElementById("approveReason").value = "Verified and Approved."; // Default text
+    document.getElementById("approveModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
+    document.getElementById("approveModal").classList.add("active");
+    
+    setTimeout(() => document.getElementById("approveReason").focus(), 150);
+  },
+
+  closeApproveModal() {
+    document.getElementById("approveModal").classList.remove("active");
+    Dashboard.pendingApproveRow = null; 
+    Dashboard.pendingApproveInvoiceNo = "";
+  },
+
+  async confirmApprove() {
+    const reason = document.getElementById("approveReason").value.trim() || "Approved";
+    const btn = document.getElementById("confirmApproveBtn");
+    
+    btn.disabled = true; 
+    btn.textContent = "Approving...";
+    
+    Loader.show("Approving invoice...");
+    const res = await API.account.approveBill(Dashboard.pendingApproveRow, reason);
+    Loader.hide();
+    
+    btn.disabled = false; 
+    btn.innerHTML = '<i class="fa fa-check"></i> Confirm Approve';
+    
+    if (res?.success) {
+      Dashboard.closeApproveModal();
+      const label = Dashboard.pendingApproveInvoiceNo ? `Invoice ${Dashboard.pendingApproveInvoiceNo}` : "Invoice";
+      Toast.success(`✅ ${label} approved and forwarded to CFO!`);
+      await Dashboard.loadApprovalQueue();
+      await Dashboard.loadDashboardData(); 
+    } else { 
+      Toast.error(res?.message || "Failed to approve invoice"); 
+    }
+  },
+
+  openRejectModal(queueRowIndex, invoiceNo) {
+    const inv = (Dashboard.queueData || []).find(b => b.queueRowIndex === queueRowIndex) || (Dashboard.invoices || []).find(b => b.rowIndex === queueRowIndex);
+    if (inv && Utils.isBillBypassed(inv)) {
+      Toast.error("This invoice has been bypassed and can only be approved, not rejected.");
+      return;
+    }
+    Dashboard.pendingRejectRow        = queueRowIndex;
+    Dashboard.pendingRejectInvoiceNo = invoiceNo || "";
+    document.getElementById("rejectReason").value = "";
+    document.getElementById("rejectReasonError").style.display = "none";
+    document.getElementById("rejectModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
+    document.getElementById("rejectModal").classList.add("active");
+    setTimeout(() => document.getElementById("rejectReason").focus(), 150);
+  },
+
+  closeRejectModal() {
+    document.getElementById("rejectModal").classList.remove("active");
+    Dashboard.pendingRejectRow = null; Dashboard.pendingRejectInvoiceNo = "";
+  },
+
+  async confirmReject() {
+    const reason = document.getElementById("rejectReason").value.trim();
+    const errorDiv = document.getElementById("rejectReasonError");
+    const btn = document.getElementById("confirmRejectBtn");
+    if (!reason) { errorDiv.style.display = "block"; document.getElementById("rejectReason").focus(); return; }
+    errorDiv.style.display = "none";
+    btn.disabled = true; btn.textContent = "Rejecting...";
+    Loader.show("Rejecting invoice...");
+    const res = await API.account.rejectBill(Dashboard.pendingRejectRow, reason);
+    Loader.hide();
+    btn.disabled = false; btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
+    if (res?.success) {
+      Dashboard.closeRejectModal();
+      Toast.success(`❌ Invoice rejected successfully.`);
+      await Dashboard.loadApprovalQueue();
+      await Dashboard.loadDashboardData(); 
+    } else { Toast.error(res?.message || "Failed to reject invoice"); }
+  },
+
+  async loadCompletedSection() {
+    if (Dashboard.invoices.length === 0) {
+      await Dashboard.loadDashboardData();
+    }
+    const all = Dashboard.invoices;
+    const approved = all.filter(b => b["Account_Status"] === "Approved").length;
+    const rejected = all.filter(b => b["Account_Status"] === "Rejected").length;
+
+    const appEl = document.getElementById("completedApproved");
+    const rejEl = document.getElementById("completedRejected");
+    if (appEl) appEl.textContent = approved;
+    if (rejEl) rejEl.textContent = rejected;
+
+    Dashboard.filterCompleted(document.querySelector(".filter-tab-c.active"));
+  },
+
+  filterCompleted(btn) {
+    if (btn) {
+      document.querySelectorAll(".filter-tab-c").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+    const status = document.querySelector(".filter-tab-c.active")?.dataset.cstatus || "ALL";
+    const el = document.getElementById("completedList");
+    const count = document.getElementById("completedCount");
+    if (!el) return;
+
+    let bills = Dashboard.invoices.filter(b => {
+      const s = b["Account_Status"] || "";
+      if (status === "ALL") return s === "Approved" || s === "Rejected";
+      return s === status;
+    });
+
+    if (count) count.textContent = `(${bills.length} bills)`;
+
+    if (bills.length === 0) {
+      el.innerHTML = `<div class="empty-state" style="padding:32px"><div class="empty-icon">📋</div><div class="empty-title">No completed bills yet</div></div>`;
+      return;
+    }
+
+    el.innerHTML = bills.map(b => {
+      const isApproved = b["Account_Status"] === "Approved";
+      return `
+        <div class="completed-card ${isApproved ? 'approved':'rejected'}" onclick="Dashboard.openDetail(${b.rowIndex})">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <strong style="font-size:0.9rem">${b["A13. Invoice Number"]||"—"}</strong>
+            </div>
+            <div style="font-size:0.82rem;color:var(--gray-700);margin-bottom:3px">${Utils.truncate(b["A14. Vendor Name"],30)}</div>
+            <div style="font-size:0.75rem;color:var(--gray-500);display:flex;gap:16px;flex-wrap:wrap">
+              <span>💰 ${Utils.formatCurrency(b["A20. Basic Amount"])}</span>
+              <span>${b["Account_Send_At"] || "—"}</span>
+              <span style="color:var(--${isApproved ? 'secondary' : 'danger'})">${isApproved ? '✅ Approved' : '❌ Rejected'}</span>
+            </div>
+          </div>
+          <i class="fa fa-chevron-right" style="color:var(--gray-300)"></i>
+        </div>`;
+    }).join("");
+  },
+
+  // ─────────────────────────────────────────────
+  // SUMMARY REPORT LOGIC
+  // ─────────────────────────────────────────────
+  async loadSummary() {
+    if (Dashboard.invoices.length === 0) {
+      await Dashboard.loadDashboardData();
+    }
+    
+    const all = Dashboard.invoices;
+    let totalAmount = 0, approvedAmount = 0, pendingAmount = 0;
+    const vendorStats = {};
+
+    all.forEach(inv => {
+      const amt = Number(inv["D1. Final Payable Amt"]) || Number(inv["A20. Basic Amount"]) || 0;
+      const stage = inv["Current_Stage"] || "";
+      // Simplified status logic
+      const isApproved = stage === "Completed" && inv["Account_Status"] !== "Rejected"; 
+      const isPending = stage !== "Completed" && stage !== "Rejected";
+      
+      totalAmount += amt;
+      if (isApproved) approvedAmount += amt;
+      else if (isPending) pendingAmount += amt;
+      
+      const vendor = inv["A14. Vendor Name"] || "Unknown Vendor";
+      if (!vendorStats[vendor]) {
+        vendorStats[vendor] = { count: 0, approved: 0, pending: 0, value: 0 };
+      }
+      
+      vendorStats[vendor].count += 1;
+      vendorStats[vendor].value += amt;
+      if (isApproved) vendorStats[vendor].approved += 1;
+      else vendorStats[vendor].pending += 1;
+    });
+
+    document.getElementById("sumTotalCount").textContent = all.length;
+    document.getElementById("sumTotalAmount").textContent = Utils.formatCurrency(totalAmount);
+    document.getElementById("sumApprovedAmount").textContent = Utils.formatCurrency(approvedAmount);
+    document.getElementById("sumPendingAmount").textContent = Utils.formatCurrency(pendingAmount);
+
+    const vendorArr = Object.keys(vendorStats).map(v => ({ name: v, ...vendorStats[v] }));
+    vendorArr.sort((a, b) => b.value - a.value); // Sort highest value first
+
+    const tbody = document.getElementById("summaryVendorBody");
+    if (vendorArr.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 32px; color: var(--gray-400);">No data available</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = vendorArr.map(v => `
+      <tr>
+        <td><strong>${Utils.truncate(v.name, 40)}</strong></td>
+        <td style="text-align:center;">${v.count}</td>
+        <td style="text-align:center; color: var(--secondary); font-weight: 600;">${v.approved}</td>
+        <td style="text-align:center; color: var(--warning);">${v.pending}</td>
+        <td style="text-align:right; font-weight: 600;">${Utils.formatCurrency(v.value)}</td>
+      </tr>
+    `).join("");
+  },
+
+  openDetail(rowIndex) {
+    if (!rowIndex) return;
+
+    let inv = Dashboard.queueData.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex);
+    if (!inv) inv = Dashboard.invoices.find(b => b.rowIndex === rowIndex);
+    if (!inv) inv = Dashboard.filteredData.find(b => b.rowIndex === rowIndex);
+    
+    if (!inv) {
+      Toast.error("Invoice details not found. Please refresh page.");
+      return;
+    }
+
+    Dashboard.currentRow = rowIndex;
+
+    document.getElementById("modalInvoiceNo").textContent = inv["A13. Invoice Number"] || "N/A";
+    document.getElementById("modalStatus").innerHTML = Utils.statusBadge(inv["Current_Stage"] || "N/A");
+
+    const trackingBox = document.getElementById("modalTrackingTimeline");
+    if(trackingBox) trackingBox.innerHTML = Dashboard.generateTrackingTimeline(inv);
+
+    const driveUrl = inv["Drive URL"];
+    const driveBtn = document.getElementById("driveLink");
+    if (driveUrl && driveUrl !== "N/A" && driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
+      driveBtn.href = driveUrl; driveBtn.style.display = "inline-flex";
+    } else { driveBtn.style.display = "none"; }
+
+    // SHOW APPROVE/REJECT BUTTONS ONLY IF PENDING AT ACCOUNT (Bypassed bills can only be approved)
+    const isPending = inv["Current_Stage"] === "Account";
+    const isBypassed = Utils.isBillBypassed(inv);
+    document.getElementById("modalApproveBtn").style.display = isPending ? "inline-flex" : "none";
+    document.getElementById("modalRejectBtn").style.display  = (isPending && !isBypassed) ? "inline-flex" : "none";
+
+    Dashboard.buildAttachmentTab(inv); 
+    Dashboard.buildAccountingTab(inv); 
+    Dashboard.buildTdsTab(inv);
+    Dashboard.buildGstTab(inv); 
+    Dashboard.buildProcessTab(inv); 
+    Dashboard.buildFlagsTab(inv);
+
+    document.querySelectorAll(".detail-tab").forEach((t, i) => t.classList.toggle("active", i === 0));
+    document.querySelectorAll(".detail-tab-content").forEach((c, i) => c.classList.toggle("active", i === 0));
+    document.getElementById("detailModal").classList.add("active");
+  },
+
+  approveFromModal() {
+    const invoiceNo = document.getElementById("modalInvoiceNo").textContent;
+    const rowToApprove = Dashboard.currentRow;
+    Dashboard.closeModal();
+    Dashboard.approveItem(rowToApprove, invoiceNo);
+  },
+
+  rejectFromModal() {
+    const invoiceNo = document.getElementById("modalInvoiceNo").textContent;
+    const rowToReject = Dashboard.currentRow; 
+    Dashboard.closeModal();
+    Dashboard.openRejectModal(rowToReject, invoiceNo);
+  },
+
+  buildAttachmentTab(inv) {
+    const driveUrl = inv["Drive URL"];
+    const attachmentName = inv["Attachment Name"] || "Invoice File";
+    let html = `<div style="padding:20px">`;
+    if (driveUrl && driveUrl !== "N/A" && driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
+      const isImage = attachmentName.toLowerCase().endsWith(".jpg") || attachmentName.toLowerCase().endsWith(".jpeg") || attachmentName.toLowerCase().endsWith(".png");
+      html += `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div><div style="font-weight:600;font-size:0.95rem">📎 ${attachmentName}</div><div style="font-size:0.75rem;color:var(--gray-500);margin-top:4px">Click button to open full size</div></div>
+          <a href="${driveUrl}" target="_blank" class="btn btn-primary btn-sm"><i class="fa fa-external-link"></i> Open Full Size</a>
+        </div>
+        <div style="border:2px solid var(--gray-200);border-radius:12px;overflow:hidden;background:#f8f9fa;min-height:320px;display:flex;align-items:center;justify-content:center">
+          ${isImage ? `<img src="${driveUrl}" alt="Invoice" style="max-width:100%;max-height:500px;object-fit:contain"/>` : `<div style="text-align:center;padding:48px 24px"><div style="font-size:5rem;margin-bottom:16px">📄</div><div style="font-weight:600;font-size:1rem;margin-bottom:6px">${attachmentName}</div><div style="color:var(--gray-500);font-size:0.85rem;margin-bottom:20px">PDF preview not available here</div><a href="${driveUrl}" target="_blank" class="btn btn-primary"><i class="fa fa-eye"></i> View Invoice PDF</a></div>`}
+        </div>`;
+    } else {
+      html += `<div style="background:#f8f9fa;border:1px solid var(--gray-200);border-radius:12px;padding:48px 24px;text-align:center"><div style="font-size:4rem;margin-bottom:16px">📎</div><div style="font-weight:600;font-size:1rem;margin-bottom:6px;color:var(--gray-700)">No Attachment</div><div style="font-size:0.85rem;color:var(--gray-500)">Invoice file not uploaded to Drive</div></div>`;
+    }
+    html += `</div>`;
+    document.getElementById("tab-attachment").innerHTML = html;
+  },
+
+    buildAccountingTab(inv) {
+    document.getElementById("tab-accounting").innerHTML = `<div class="section-header">📉 Accounting Checks</div><div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      ${Dashboard.field("A1. Billed To", inv["A1. Billed To"])}
+      ${Dashboard.field("A2. Our Name Correct", inv["A2. Our Name Correct"])}
+      ${Dashboard.field("A3. Address Present", inv["A3. Address Present"])}
+      ${Dashboard.field("A4. Our Address", inv["A4. Our Address"])}
+      ${Dashboard.field("A5. Address Correct", inv["A5. Address Correct"])}
+      ${Dashboard.field("A6. PAN Present", inv["A6. PAN Present"])}
+      ${Dashboard.field("A7. Our PAN", inv["A7. Our PAN"])}
+      ${Dashboard.field("A8. PAN Correct", inv["A8. PAN Correct"])}
+      ${Dashboard.field("A9. GST Present", inv["A9. GST Present"])}
+      ${Dashboard.field("A10. Our GST", inv["A10. Our GST"])}
+      ${Dashboard.field("A11. GST Correct", inv["A11. GST Correct"])}
+      ${Dashboard.field("A12. Invoice Date", inv["A12. Invoice Date"])}
+      ${Dashboard.field("A13. Invoice Number", inv["A13. Invoice Number"])}
+      ${Dashboard.field("A14. Vendor Name", inv["A14. Vendor Name"])}
+      ${Dashboard.field("A15. Vendor Address", inv["A15. Vendor Address"])}
+      ${Dashboard.field("A16. Bill Description", inv["A16. Bill Description"])}
+      ${Dashboard.field("A17. Notes", inv["A17. Notes"])}
+      ${Dashboard.field("A18. Rev/Capital", inv["A18. Rev/Capital"])}
+      ${Dashboard.field("A19. Ledger Name", inv["A19. Ledger Name"])}
+      ${Dashboard.field("A20. Basic Amount", Utils.formatCurrency(inv["A20. Basic Amount"]))}
+      ${Dashboard.field("A21. Invoice Type", inv["A21. Invoice Type"])}
+      ${Dashboard.field("A22. Final Invoice By", inv["A22. Final Invoice By"])}
+    </div>`;
+  },
+  buildTdsTab(inv) {
+    document.getElementById("tab-tds").innerHTML = `<div class="section-header">🔥 TDS Checks</div><div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      ${Dashboard.field("B1. TDS Applicable", inv["B1. TDS Applicable"])}
+      ${Dashboard.field("B2. Vendor PAN Avail", inv["B2. Vendor PAN Avail"])}
+      ${Dashboard.field("B3. Vendor PAN", inv["B3. Vendor PAN"])}
+      ${Dashboard.field("B4. PAN Inoperative", inv["B4. PAN Inoperative"])}
+      ${Dashboard.field("B5. Entity Type", inv["B5. Vendor Entity Type"])}
+      ${Dashboard.field("B6. TDS Section", inv["B6. TDS Section"])}
+      ${Dashboard.field("B7. TDS Rate", inv["B7. TDS Rate"])}
+      ${Dashboard.field("B8. TDS Amount", Utils.formatCurrency(inv["B8. TDS Amount"]))}
+    </div>`;
+  },
+  buildGstTab(inv) {
+    document.getElementById("tab-gst").innerHTML = `<div class="section-header">📑 GST Checks</div><div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      ${Dashboard.field("C1. GST Charged", inv["C1. GST Charged"])}
+      ${Dashboard.field("C2. Vendor GST Avail", inv["C2. Vendor GST Avail"])}
+      ${Dashboard.field("C3. Vendor GST No", inv["C3. Vendor GST No"])}
+      ${Dashboard.field("C4. Taxpayer Type", inv["C4. Taxpayer Type"])}
+      ${Dashboard.field("C5. Comp GST Wrong", inv["C5. Comp GST Wrong"])}
+      ${Dashboard.field("C6. GST Returns Filed", inv["C6. GST Returns Filed"])}
+      ${Dashboard.field("C7. Our GST Correct", inv["C7. Our GST Correct"])}
+      ${Dashboard.field("C8. Place of Supply", inv["C8. Place of Supply"])}
+      ${Dashboard.field("C9. Correct GST Type", inv["C9. Correct GST Type"])}
+      ${Dashboard.field("C10. Prior GST Pending", inv["C10. Prior GST Pending"])}
+    </div>`;
+  },
+  buildProcessTab(inv) {
+    document.getElementById("tab-process").innerHTML = `<div class="section-header">⚙️ Process Checks</div><div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      ${Dashboard.field("D1. Final Payable", Utils.formatCurrency(inv["D1. Final Payable Amt"]))}
+      ${Dashboard.field("D2. Invoice By", inv["D2. Invoice By"])}
+      ${Dashboard.field("D3. Received Via", inv["D3. Received Via"])}
+      ${Dashboard.field("D4. HOD Name", inv["D4. HOD Name"])}
+      ${Dashboard.field("D5. HOD Approval", inv["D5. HOD Approval"])}
+      ${Dashboard.field("D6. HOD Screenshot", inv["D6. HOD Screenshot"])}
+      ${Dashboard.field("D7. Arvind/Alok Apprvl", inv["D7. Arvind/Alok Apprvl"])}
+      ${Dashboard.field("D8. Arvind/Alok SS", inv["D8. Arvind/Alok SS"])}
+      ${Dashboard.field("D9. Update Person", inv["D9. Update Person"])}
+      ${Dashboard.field("D10. Update Email", inv["D10. Update Email"])}
+      ${Dashboard.field("D11. Narration", inv["D11. Narration"])}
+    </div>`;
+  },
+  buildFlagsTab(inv) {
+    const flags  = inv["🚩 Red Flags"] || "";
+    const status = inv["Current_Stage"] || "N/A";
+    document.getElementById("tab-flags").innerHTML = `
+      <div class="section-header">🚩 Red Flags & Overall Status</div>
+      <div style="padding:20px">
+        <div style="margin-bottom:20px;padding:16px;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200)">
+          <label style="font-size:0.72rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Current Stage</label>
+          <div style="font-size:1.2rem">${Utils.statusBadge(status)}</div>
+        </div>
+        <div>
+          <label style="font-size:0.72rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:10px">Red Flags Detected</label>
+          ${flags && flags.trim() !== "" ? Utils.buildRedFlags(flags) : `<div class="empty-state" style="padding:24px"><div class="empty-icon">✅</div><div class="empty-title">No red flags!</div><div class="empty-text">This invoice passed all checks</div></div>`}
+        </div>
+      </div>`;
+  },
+
+  field(label, value) {
+    const display = (value !== undefined && value !== null && value !== "") ? value : "—";
+    return `<div class="detail-item"><label>${label}</label><p style="margin:0;font-size:0.875rem">${display}</p></div>`;
+  },
+
+  closeModal() {
+    document.getElementById("detailModal").classList.remove("active");
+    Dashboard.currentRow = null; 
+  },
+
+  loadProfile() {
+    const user  = Auth.getUser();
+    const color = Utils.getRoleColor(user?.role || "");
+    document.getElementById("profileBody").innerHTML = `
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="width:80px;height:80px;border-radius:50%;background:${color};display:inline-flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#fff;margin-bottom:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+          ${Utils.getInitials(user?.name || "")}
+        </div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--gray-900)">${user?.name || ""}</div>
+        <div style="margin-top:8px">${Utils.roleBadge(user?.role || "")}</div>
+      </div>
+      <div class="detail-grid" style="grid-template-columns:1fr">
+        <div class="detail-item"><label>Email Address</label><p>${user?.email || "—"}</p></div>
+        <div class="detail-item"><label>Role</label><p>${user?.role || "—"}</p></div>
+      </div>`;
+  },
+
+  async changePassword() {
+    const o = document.getElementById("oldPassword").value;
+    const n = document.getElementById("newPassword").value;
+    const c = document.getElementById("confirmPassword").value;
+    if (!o || !n || !c) { Toast.warning("Please fill all fields"); return; }
+    if (n !== c)         { Toast.error("New passwords do not match"); return; }
+    if (n.length < 6)    { Toast.error("Password must be at least 6 characters"); return; }
+    Loader.show("Updating password...");
+    const res = await API.auth.changePassword(o, n);
+    Loader.hide();
+    if (res?.success) {
+      Toast.success("Password changed successfully!");
+      document.getElementById("oldPassword").value = ""; document.getElementById("newPassword").value = ""; document.getElementById("confirmPassword").value = "";
+    } else { Toast.error(res?.message || "Failed to change password"); }
+  }
+};
+
+document.addEventListener("DOMContentLoaded", () => Dashboard.init());
+</script>
+</body>
+</html>

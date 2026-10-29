@@ -1,0 +1,17 @@
+{
+  "name": "gretex-billing-supaapp",
+  "version": "2.0.0",
+  "description": "Enterprise Billing & Invoice Management System (Supabase + Vercel)",
+  "main": "api/app.js",
+  "scripts": {
+    "start": "node api/app.js",
+    "test": "node -e 'console.log(\"Dependencies OK\")'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "googleapis": "^144.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

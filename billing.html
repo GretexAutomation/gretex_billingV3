@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Billing Dashboard — Gretex</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+  <style>
+    .section { display: none; }
+    .section.active { display: block; }
+  </style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="app-header" id="appHeader"></header>
+    <div class="page-content">
+
+      <!-- DASHBOARD -->
+      <div class="section active" id="section-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card total">
+            <div class="stat-icon"><i class="fa fa-inbox"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statTotal">--</div>
+              <div class="stat-label">Total Invoices</div>
+            </div>
+          </div>
+          <div class="stat-card amount">
+            <div class="stat-icon"><i class="fa fa-indian-rupee-sign"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statAmount">--</div>
+              <div class="stat-label">Total Amount</div>
+            </div>
+          </div>
+          <div class="stat-card pass">
+            <div class="stat-icon"><i class="fa fa-circle-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statPass">--</div>
+              <div class="stat-label">Passed</div>
+            </div>
+          </div>
+          <div class="stat-card review">
+            <div class="stat-icon"><i class="fa fa-clock"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statReview">--</div>
+              <div class="stat-label">Pending</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="display:grid;grid-template-columns:
+          repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:4px">
+          <div class="card" style="cursor:pointer"
+            onclick="Dashboard.showSection('invoices')">
+            <div class="card-body" style="text-align:center;padding:28px">
+              <div style="font-size:2rem;margin-bottom:8px">📋</div>
+              <div style="font-weight:600">All Invoices</div>
+            </div>
+          </div>
+          <div class="card" style="cursor:pointer"
+            onclick="Dashboard.showSection('payments')">
+            <div class="card-body" style="text-align:center;padding:28px">
+              <div style="font-size:2rem;margin-bottom:8px">💸</div>
+              <div style="font-weight:600">Payments</div>
+            </div>
+          </div>
+          <div class="card" style="cursor:pointer"
+            onclick="Dashboard.showSection('pending')">
+            <div class="card-body" style="text-align:center;padding:28px">
+              <div style="font-size:2rem;margin-bottom:8px">⏳</div>
+              <div style="font-weight:600;color:var(--warning)">
+                Pending Bills
+              </div>
+            </div>
+          </div>
+          <div class="card" style="cursor:pointer"
+            onclick="Dashboard.showSection('summary')">
+            <div class="card-body" style="text-align:center;padding:28px">
+              <div style="font-size:2rem;margin-bottom:8px">📊</div>
+              <div style="font-weight:600">Summary</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVOICES -->
+      <div class="section" id="section-invoices">
+        <div class="card"><div class="card-header">
+          <div class="card-title">
+            <i class="fa fa-file-invoice"></i> All Invoices
+          </div></div>
+          <div class="card-body"><div class="empty-state">
+            <div class="empty-icon">🚧</div>
+            <div class="empty-title">Coming Soon</div>
+            <div class="empty-text">Invoice list for billing team</div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- PAYMENTS -->
+      <div class="section" id="section-payments">
+        <div class="card"><div class="card-header">
+          <div class="card-title">
+            <i class="fa fa-money-bill"></i> Payments
+          </div></div>
+          <div class="card-body"><div class="empty-state">
+            <div class="empty-icon">💸</div>
+            <div class="empty-title">Coming Soon</div>
+            <div class="empty-text">
+              Payment tracking and management
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- PENDING -->
+      <div class="section" id="section-pending">
+        <div class="card"><div class="card-header">
+          <div class="card-title" style="color:var(--warning)">
+            <i class="fa fa-clock"></i> Pending Bills
+          </div></div>
+          <div class="card-body"><div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <div class="empty-title">Coming Soon</div>
+            <div class="empty-text">Bills awaiting payment</div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- SUMMARY -->
+      <div class="section" id="section-summary">
+        <div class="card"><div class="card-header">
+          <div class="card-title">
+            <i class="fa fa-chart-pie"></i> Summary
+          </div></div>
+          <div class="card-body"><div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">Coming Soon</div>
+            <div class="empty-text">Billing summary and reports</div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="section" id="section-profile">
+        <div class="card" style="max-width:500px">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-user"></i> My Profile
+            </div>
+          </div>
+          <div class="card-body" id="profileBody"></div>
+        </div>
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="section" id="section-password">
+        <div class="card" style="max-width:440px">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-lock"></i> Change Password
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="oldPassword"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" id="newPassword"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-control" id="confirmPassword"/>
+            </div>
+            <button class="btn btn-primary w-100"
+              onclick="Dashboard.changePassword()">
+              <i class="fa fa-key"></i> Update Password
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+const Dashboard = {
+  async init() {
+    if (!Auth.requireRole("Billing")) return;
+    Header.render("Dashboard");
+    Sidebar.init("dashboard");
+    await Dashboard.loadStats();
+    const hash = window.location.hash.replace("#","");
+    if (hash) Dashboard.showSection(hash);
+  },
+
+  async loadStats() {
+    const res = await API.dashboard.getStats();
+    if (!res?.success) return;
+    const d = res.data;
+    document.getElementById("statTotal") .textContent = d.total  || 0;
+    document.getElementById("statPass")  .textContent = d.pass   || 0;
+    document.getElementById("statReview").textContent = d.review || 0;
+    document.getElementById("statAmount").textContent =
+      Utils.formatCurrency(d.totalAmount);
+  },
+
+  showSection(id) {
+    document.querySelectorAll(".section")
+      .forEach(s => s.classList.remove("active"));
+    document.getElementById(`section-${id}`)?.classList.add("active");
+    const titles = {
+      dashboard: "Dashboard", invoices: "All Invoices",
+      payments : "Payments",  pending : "Pending Bills",
+      summary  : "Summary",   profile : "My Profile",
+      password : "Change Password"
+    };
+    Header.setTitle(titles[id] || "Dashboard");
+    Sidebar.setActive(id);
+    if (id === "profile") Dashboard.loadProfile();
+  },
+
+  loadProfile() {
+    const user  = Auth.getUser();
+    const color = Utils.getRoleColor(user?.role||"");
+    document.getElementById("profileBody").innerHTML = `
+      <div style="text-align:center;margin-bottom:20px">
+        <div style="width:72px;height:72px;border-radius:50%;
+          background:${color};display:inline-flex;align-items:center;
+          justify-content:center;font-size:28px;font-weight:700;
+          color:#fff;margin-bottom:12px">
+          ${Utils.getInitials(user?.name||"")}
+        </div>
+        <div style="font-size:1.1rem;font-weight:700">${user?.name||""}</div>
+        <div style="margin-top:6px">${Utils.roleBadge(user?.role||"")}</div>
+      </div>
+      <div class="detail-grid" style="grid-template-columns:1fr">
+        <div class="detail-item"><label>Email</label>
+          <p>${user?.email||"—"}</p></div>
+        <div class="detail-item"><label>Role</label>
+          <p>${user?.role||"—"}</p></div>
+      </div>`;
+  },
+
+  async changePassword() {
+    const o = document.getElementById("oldPassword").value;
+    const n = document.getElementById("newPassword").value;
+    const c = document.getElementById("confirmPassword").value;
+    if (!o||!n||!c) { Toast.warning("Fill all fields"); return; }
+    if (n!==c)      { Toast.error("Passwords don't match"); return; }
+    if (n.length<6) { Toast.error("Min 6 characters"); return; }
+    Loader.show("Updating...");
+    const res = await API.auth.changePassword(o,n);
+    Loader.hide();
+    res?.success ? Toast.success("Updated!") :
+      Toast.error(res?.message||"Failed");
+  },
+
+  async loadCurrentSection() { await Dashboard.loadStats(); }
+};
+
+document.addEventListener("DOMContentLoaded", () => Dashboard.init());
+</script>
+</body>
+</html>

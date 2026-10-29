@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Finance Approval Dashboard — Gretex</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+  <style>
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: #161b22; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 90%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+  </style>
+</head>
+<body>
+<div class="app-wrapper">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="app-header" id="appHeader" style="padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2 style="color:#fff;font-size:1.3rem;font-weight:700;">Finance Verification & Budget Clearance</h2>
+        <div style="font-size:0.85rem;color:rgba(255,255,255,0.5);">Universal Enterprise Queue (Account-cleared bills ready for CFO signoff)</div>
+      </div>
+      <button class="btn btn-secondary" onclick="Dashboard.loadQueue()"><i class="fa fa-rotate"></i> Refresh</button>
+    </header>
+
+    <div class="page-content" style="padding:24px;">
+      <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+        <div class="stat-card" style="background:#161b22;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Bills Awaiting Clearance</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#6366f1;margin-top:4px;" id="statPending">0</div>
+        </div>
+        <div class="stat-card" style="background:#161b22;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Total Financial Value</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#10b981;margin-top:4px;" id="statAmount">₹0</div>
+        </div>
+      </div>
+
+      <div class="card" style="background:#161b22;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:700;color:#fff;font-size:1.05rem;"><i class="fa fa-money-bill-transfer"></i> Finance Verification Queue</div>
+          <input type="text" id="searchInput" placeholder="Search vendor, invoice no..." oninput="Dashboard.filterQueue()" 
+            style="padding:8px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#fff;font-size:0.85rem;width:250px;"/>
+        </div>
+        <div class="card-body" style="padding:0;overflow-x:auto;">
+          <table class="data-table" style="width:100%;border-collapse:collapse;text-align:left;font-size:0.88rem;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);">
+                <th style="padding:14px 16px;">Unique ID</th>
+                <th style="padding:14px 16px;">Department</th>
+                <th style="padding:14px 16px;">Invoice No</th>
+                <th style="padding:14px 16px;">Vendor Name</th>
+                <th style="padding:14px 16px;">Basic Amount</th>
+                <th style="padding:14px 16px;">TDS</th>
+                <th style="padding:14px 16px;">Final Payable</th>
+                <th style="padding:14px 16px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="queueTableBody">
+              <tr><td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,0.4);">Loading queue...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW MODAL -->
+<div class="modal" id="reviewModal">
+  <div class="modal-content">
+    <div class="modal-header" style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="color:#fff;font-size:1.15rem;font-weight:700;" id="modalTitle">Finance Review</h3>
+      <button onclick="Dashboard.closeModal()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:24px;overflow-y:auto;flex:1;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Department</div>
+          <div style="font-size:1.05rem;font-weight:700;color:#6366f1;" id="mDept">--</div>
+        </div>
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Payable Amount</div>
+          <div style="font-size:1.05rem;font-weight:700;color:#10b981;" id="mPayable">--</div>
+        </div>
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Vendor</div>
+          <div style="font-size:0.95rem;font-weight:600;color:#fff;" id="mVendor">--</div>
+        </div>
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">TDS Rate & Section</div>
+          <div style="font-size:0.95rem;font-weight:600;color:#fff;" id="mTds">--</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <a id="mDriveLink" href="#" target="_blank" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:8px;">
+          <i class="fa fa-external-link"></i> View Original Invoice on Google Drive
+        </a>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:0.85rem;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600;">Finance Remarks:</label>
+        <textarea id="mRemark" placeholder="e.g. Budget verified, forwarded to CFO for final signoff" rows="3"
+          style="width:100%;padding:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#fff;font-size:0.9rem;resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="padding:18px 24px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn btn-danger" onclick="Dashboard.submitDecision('reject')"><i class="fa fa-times"></i> Reject</button>
+      <button class="btn btn-primary" onclick="Dashboard.submitDecision('approve')"><i class="fa fa-check"></i> Approve & Send to CFO</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+  const Dashboard = {
+    bills: [],
+    currentBill: null,
+
+    async init() {
+      if (!Auth.requireAuth(["Finance", "SuperAdmin"])) return;
+      Sidebar.render("approval");
+      await this.loadQueue();
+    },
+
+    async loadQueue() {
+      const tbody = document.getElementById("queueTableBody");
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;">Loading Finance queue...</td></tr>';
+
+      const res = await API.approval.getQueue("Finance");
+      if (res && res.success) {
+        this.bills = res.data.queue || [];
+        this.renderTable(this.bills);
+        this.updateStats();
+      } else {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:#ef4444;">Failed to load queue.</td></tr>';
+      }
+    },
+
+    renderTable(list) {
+      const tbody = document.getElementById("queueTableBody");
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:rgba(255,255,255,0.4);">No pending bills in Finance queue 🎉</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(b => `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+          <td style="padding:14px 16px;font-weight:600;color:#6366f1;">${b.invoice_unique_id || 'N/A'}</td>
+          <td style="padding:14px 16px;"><span class="badge badge-primary">${b.department || 'General'}</span></td>
+          <td style="padding:14px 16px;font-weight:600;color:#fff;">${b["A13. Invoice Number"] || 'N/A'}</td>
+          <td style="padding:14px 16px;">${b["A14. Vendor Name"] || 'N/A'}</td>
+          <td style="padding:14px 16px;">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td style="padding:14px 16px;">${b.b6_tds_section || 'N/A'} (${b.b7_tds_rate || '0%'})</td>
+          <td style="padding:14px 16px;font-weight:600;color:#10b981;">${Utils.formatCurrency(b.d1_final_payable_amt || b["A20. Basic Amount"])}</td>
+          <td style="padding:14px 16px;">
+            <button class="btn btn-primary" style="padding:6px 14px;font-size:0.8rem;" onclick="Dashboard.openModal('${b.id}')">
+              Review & Signoff
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    updateStats() {
+      document.getElementById("statPending").textContent = this.bills.length;
+      const totalAmt = this.bills.reduce((sum, b) => sum + (Number(b["A20. Basic Amount"]) || 0), 0);
+      document.getElementById("statAmount").textContent = Utils.formatCurrency(totalAmt);
+    },
+
+    filterQueue() {
+      const q = document.getElementById("searchInput").value.toLowerCase();
+      const filtered = this.bills.filter(b => 
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q) ||
+        (b.department || "").toLowerCase().includes(q)
+      );
+      this.renderTable(filtered);
+    },
+
+    openModal(id) {
+      const bill = this.bills.find(b => b.id === id);
+      if (!bill) return;
+      this.currentBill = bill;
+
+      document.getElementById("modalTitle").textContent = `Finance Clearance — ${bill.invoice_unique_id || ''}`;
+      document.getElementById("mDept").textContent = bill.department || "General";
+      document.getElementById("mPayable").textContent = Utils.formatCurrency(bill.d1_final_payable_amt || bill["A20. Basic Amount"]);
+      document.getElementById("mVendor").textContent = bill["A14. Vendor Name"] || "N/A";
+      document.getElementById("mTds").textContent = `${bill.b6_tds_section || 'N/A'} @ ${bill.b7_tds_rate || '0%'}`;
+      document.getElementById("mDriveLink").href = bill["Drive URL"] || "#";
+      document.getElementById("mRemark").value = "";
+
+      document.getElementById("reviewModal").classList.add("active");
+    },
+
+    closeModal() {
+      document.getElementById("reviewModal").classList.remove("active");
+    },
+
+    async submitDecision(action) {
+      if (!this.currentBill) return;
+      const remark = document.getElementById("mRemark").value.trim();
+
+      if (action === "reject" && !remark) {
+        alert("Please enter a remark explaining why this bill is being rejected.");
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to ${action.toUpperCase()} this bill?`)) return;
+
+      const res = action === "approve"
+        ? await API.approval.approve(this.currentBill.id, remark)
+        : await API.approval.reject(this.currentBill.id, remark);
+
+      if (res && res.success) {
+        Toast.success(action === "approve" ? "Bill approved & sent to CFO!" : "Bill rejected.");
+        this.closeModal();
+        await this.loadQueue();
+      }
+    },
+
+    showSection(s) {
+      if (s === "invoices" || s === "approval") this.loadQueue();
+    }
+  };
+
+  window.addEventListener("DOMContentLoaded", () => Dashboard.init());
+</script>
+</body>
+</html>

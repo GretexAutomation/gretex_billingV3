@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HOD Department Approval — Gretex</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+  <style>
+    .section { display: none; }
+    .section.active { display: block; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: #161b22; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 90%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+  </style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="app-header" id="appHeader" style="padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2 style="color:#fff;font-size:1.3rem;font-weight:700;">HOD Department Approvals</h2>
+        <div style="font-size:0.85rem;color:rgba(255,255,255,0.5);">
+          Department: <span id="deptBadge" class="badge badge-primary" style="font-size:0.8rem;text-transform:uppercase;">...</span> 
+          (Showing only invoices assigned to your department)
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-secondary" onclick="Dashboard.loadQueue()"><i class="fa fa-rotate"></i> Refresh</button>
+      </div>
+    </header>
+
+    <div class="page-content" style="padding:24px;">
+
+      <!-- STATS -->
+      <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
+        <div class="stat-card total" style="background:#161b22;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Pending In Queue</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#6366f1;margin-top:4px;" id="statPending">0</div>
+        </div>
+        <div class="stat-card amount" style="background:#161b22;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Department Total Value</div>
+          <div style="font-size:1.8rem;font-weight:800;color:#10b981;margin-top:4px;" id="statAmount">₹0</div>
+        </div>
+      </div>
+
+      <!-- QUEUE TABLE -->
+      <div class="card" style="background:#161b22;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:700;color:#fff;font-size:1.05rem;"><i class="fa fa-inbox"></i> Pending HOD Reviews</div>
+          <input type="text" id="searchInput" placeholder="Search vendor, invoice no..." oninput="Dashboard.filterQueue()" 
+            style="padding:8px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#fff;font-size:0.85rem;width:250px;"/>
+        </div>
+        <div class="card-body" style="padding:0;overflow-x:auto;">
+          <table class="data-table" style="width:100%;border-collapse:collapse;text-align:left;font-size:0.88rem;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);">
+                <th style="padding:14px 16px;">Unique ID</th>
+                <th style="padding:14px 16px;">Invoice No</th>
+                <th style="padding:14px 16px;">Vendor Name</th>
+                <th style="padding:14px 16px;">Date</th>
+                <th style="padding:14px 16px;">Basic Amount</th>
+                <th style="padding:14px 16px;">Red Flags</th>
+                <th style="padding:14px 16px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="queueTableBody">
+              <tr><td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,0.4);">Loading queue...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW & APPROVAL MODAL -->
+<div class="modal" id="reviewModal">
+  <div class="modal-content">
+    <div class="modal-header" style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
+      <h3 style="color:#fff;font-size:1.15rem;font-weight:700;" id="modalTitle">Review Invoice</h3>
+      <button onclick="Dashboard.closeModal()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    
+    <div class="modal-body" style="padding:24px;overflow-y:auto;flex:1;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Invoice Number</div>
+          <div style="font-size:1.05rem;font-weight:700;color:#fff;" id="mInvNo">--</div>
+        </div>
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Basic Amount</div>
+          <div style="font-size:1.05rem;font-weight:700;color:#10b981;" id="mAmt">--</div>
+        </div>
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Vendor Name</div>
+          <div style="font-size:0.95rem;font-weight:600;color:#fff;" id="mVendor">--</div>
+        </div>
+        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Invoice Date</div>
+          <div style="font-size:0.95rem;font-weight:600;color:#fff;" id="mDate">--</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">Description / Purpose:</div>
+        <div style="background:#0d1117;padding:12px;border-radius:8px;border:1px solid #30363d;color:#c9d1d9;" id="mDesc">--</div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">Invoice PDF / Attachment:</div>
+        <a id="mDriveLink" href="#" target="_blank" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:8px;">
+          <i class="fa fa-external-link"></i> View Original Invoice on Google Drive
+        </a>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:0.85rem;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600;">HOD Decision Remark / Notes:</label>
+        <textarea id="mRemark" placeholder="e.g. Verified with work order / approved for processing" rows="3"
+          style="width:100%;padding:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#fff;font-size:0.9rem;resize:vertical;"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding:18px 24px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn btn-danger" onclick="Dashboard.submitDecision('reject')">
+        <i class="fa fa-times"></i> Reject Bill
+      </button>
+      <button class="btn btn-primary" onclick="Dashboard.submitDecision('approve')">
+        <i class="fa fa-check"></i> Approve & Forward to Account
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+  const Dashboard = {
+    bills: [],
+    currentBill: null,
+
+    async init() {
+      if (!Auth.requireAuth(["HOD", "SuperAdmin"])) return;
+      const user = Auth.getUser();
+      document.getElementById("deptBadge").textContent = user.department || "General";
+      Sidebar.render("approval");
+      await this.loadQueue();
+    },
+
+    async loadQueue() {
+      const tbody = document.getElementById("queueTableBody");
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;">Loading department queue...</td></tr>';
+
+      const res = await API.approval.getQueue("HOD");
+      if (res && res.success) {
+        this.bills = res.data.queue || [];
+        this.renderTable(this.bills);
+        this.updateStats();
+      } else {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#ef4444;">Failed to load queue.</td></tr>';
+      }
+    },
+
+    renderTable(list) {
+      const tbody = document.getElementById("queueTableBody");
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,0.4);">No pending bills in your department queue 🎉</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(b => `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+          <td style="padding:14px 16px;font-weight:600;color:#6366f1;">${b.invoice_unique_id || 'N/A'}</td>
+          <td style="padding:14px 16px;font-weight:600;color:#fff;">${b["A13. Invoice Number"] || 'N/A'}</td>
+          <td style="padding:14px 16px;">${b["A14. Vendor Name"] || 'N/A'}</td>
+          <td style="padding:14px 16px;">${b["A12. Invoice Date"] || 'N/A'}</td>
+          <td style="padding:14px 16px;font-weight:600;color:#10b981;">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td style="padding:14px 16px;">${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
+          <td style="padding:14px 16px;">
+            <button class="btn btn-primary" style="padding:6px 14px;font-size:0.8rem;" onclick="Dashboard.openModal('${b.id}')">
+              Review & Signoff
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    updateStats() {
+      document.getElementById("statPending").textContent = this.bills.length;
+      const totalAmt = this.bills.reduce((sum, b) => sum + (Number(b["A20. Basic Amount"]) || 0), 0);
+      document.getElementById("statAmount").textContent = Utils.formatCurrency(totalAmt);
+    },
+
+    filterQueue() {
+      const q = document.getElementById("searchInput").value.toLowerCase();
+      const filtered = this.bills.filter(b => 
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderTable(filtered);
+    },
+
+    openModal(id) {
+      const bill = this.bills.find(b => b.id === id);
+      if (!bill) return;
+      this.currentBill = bill;
+
+      document.getElementById("modalTitle").textContent = `Review Invoice — ${bill.invoice_unique_id || ''}`;
+      document.getElementById("mInvNo").textContent = bill["A13. Invoice Number"] || "N/A";
+      document.getElementById("mAmt").textContent = Utils.formatCurrency(bill["A20. Basic Amount"]);
+      document.getElementById("mVendor").textContent = bill["A14. Vendor Name"] || "N/A";
+      document.getElementById("mDate").textContent = bill["A12. Invoice Date"] || "N/A";
+      document.getElementById("mDesc").textContent = bill["A16. Bill Description"] || "No description provided";
+      document.getElementById("mDriveLink").href = bill["Drive URL"] || "#";
+      document.getElementById("mRemark").value = "";
+
+      document.getElementById("reviewModal").classList.add("active");
+    },
+
+    closeModal() {
+      document.getElementById("reviewModal").classList.remove("active");
+    },
+
+    async submitDecision(action) {
+      if (!this.currentBill) return;
+      const remark = document.getElementById("mRemark").value.trim();
+
+      if (action === "reject" && !remark) {
+        alert("Please enter a remark explaining why this bill is being rejected.");
+        return;
+      }
+
+      const confirmMsg = action === "approve"
+        ? "Approve this invoice and forward to Accounts team?"
+        : "Are you sure you want to REJECT this invoice?";
+
+      if (!confirm(confirmMsg)) return;
+
+      const res = action === "approve"
+        ? await API.approval.approve(this.currentBill.id, remark)
+        : await API.approval.reject(this.currentBill.id, remark);
+
+      if (res && res.success) {
+        Toast.success(action === "approve" ? "Invoice approved & sent to Accounts!" : "Invoice rejected.");
+        this.closeModal();
+        await this.loadQueue();
+      }
+    },
+
+    showSection(s) {
+      if (s === "invoices" || s === "approval") this.loadQueue();
+    }
+  };
+
+  window.addEventListener("DOMContentLoaded", () => Dashboard.init());
+</script>
+</body>
+</html>

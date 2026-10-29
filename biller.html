@@ -1,0 +1,3867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Biller Dashboard — Gretex</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+  <link href="css/style.css" rel="stylesheet"/>
+
+  <style>
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Processing Screen ── */
+    #processingScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      backdrop-filter: blur(4px);
+    }
+
+    #processingScreen.active {
+      display: flex;
+    }
+
+    .processing-box {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .processing-spinner {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .processing-spinner i {
+      font-size: 2.5rem;
+      color: var(--primary);
+      animation: spin 1s linear infinite;
+    }
+
+    .processing-success {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    .processing-box h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+
+    .processing-box p {
+      color: var(--gray-500);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .progress-bar {
+      background: var(--gray-200);
+      border-radius: 20px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 20px;
+    }
+
+    .progress-text {
+      color: var(--gray-400);
+      font-size: 0.8rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ── Status Badges ── */
+    .status-new      { background:#e8f0fe;color:#1a73e8;font-weight:700;padding:4px 12px;border-radius:20px;font-size:0.72rem }
+    .status-reviewed { background:#fff2cc;color:#7f6000;font-weight:700;padding:4px 12px;border-radius:20px;font-size:0.72rem }
+    .status-sent     { background:#d9ead3;color:#274e13;font-weight:700;padding:4px 12px;border-radius:20px;font-size:0.72rem }
+    .status-approved { background:#d9ead3;color:#274e13;font-weight:700;padding:4px 12px;border-radius:20px;font-size:0.72rem }
+    .status-rejected { background:#f4cccc;color:#660000;font-weight:700;padding:4px 12px;border-radius:20px;font-size:0.72rem }
+    .status-pending  { background:#fff2cc;color:#7f6000;font-weight:700;padding:4px 12px;border-radius:20px;font-size:0.72rem }
+
+    /* ── Modal ── */
+    .modal-box.xlarge { max-width: 900px; }
+
+    /* ── Review Modal Tabs ── */
+    .rev-tab {
+      padding      : 12px 16px;
+      border       : none;
+      background   : transparent;
+      cursor       : pointer;
+      font-size    : 0.82rem;
+      font-weight  : 500;
+      color        : var(--gray-600);
+      border-bottom: 3px solid transparent;
+      transition   : all 0.2s;
+      white-space  : nowrap;
+      font-family  : 'Inter', sans-serif;
+    }
+    .rev-tab:hover { color: var(--primary); background: var(--gray-50); }
+    .rev-tab.active {
+      color             : var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight       : 700;
+      background        : var(--primary-light);
+    }
+    .rev-tab-content { display: none; }
+    .rev-tab-content.active { display: block; }
+
+    /* ── Editable Field ── */
+    .edit-field {
+      background   : var(--white);
+      border       : 1.5px solid var(--gray-200);
+      border-radius: 8px;
+      padding      : 10px 12px;
+      transition   : var(--transition);
+    }
+    .edit-field:hover { border-color: var(--primary); }
+    .edit-field label {
+      display      : block;
+      font-size    : 0.68rem;
+      font-weight  : 600;
+      color        : var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+    .edit-field input,
+    .edit-field select,
+    .edit-field textarea {
+      width      : 100%;
+      border     : none;
+      outline    : none;
+      font-size  : 0.83rem;
+      color      : var(--gray-900);
+      background : transparent;
+      font-family: 'Inter', sans-serif;
+      padding    : 0;
+    }
+    .edit-field.changed {
+      border-color: #f59e0b !important;
+      background  : #fffbeb !important;
+    }
+
+    /* ── Bill Card ── */
+    .bill-card {
+      background   : var(--white);
+      border       : 1px solid var(--gray-200);
+      border-radius: var(--border-radius);
+      padding      : 14px 18px;
+      margin-bottom: 8px;
+      cursor       : pointer;
+      transition   : var(--transition);
+      display      : flex;
+      align-items  : center;
+      gap          : 14px;
+    }
+    .bill-card:hover {
+      border-color: var(--primary);
+      box-shadow  : 0 2px 12px rgba(26,115,232,0.1);
+      transform   : translateX(2px);
+    }
+    .bill-card.new-bill      { border-left: 4px solid #1a73e8; }
+    .bill-card.reviewed-bill { border-left: 4px solid #f9ab00; }
+    .bill-card.sent-bill     { border-left: 4px solid #34a853; }
+    .bill-card.approved-bill { border-left: 4px solid #34a853; opacity:.85; }
+    .bill-card.rejected-bill { border-left: 4px solid #ea4335; opacity:.85; }
+
+    /* ── Timeline ── */
+    .timeline-item {
+      display       : flex;
+      gap           : 14px;
+      padding-bottom: 20px;
+      position      : relative;
+    }
+    .timeline-item:not(:last-child)::after {
+      content   : "";
+      position  : absolute;
+      left      : 17px;
+      top       : 36px;
+      width     : 2px;
+      height    : calc(100% - 16px);
+      background: var(--gray-200);
+    }
+    .timeline-dot {
+      width          : 36px;
+      height         : 36px;
+      border-radius  : 50%;
+      display        : flex;
+      align-items    : center;
+      justify-content: center;
+      font-size      : 15px;
+      flex-shrink    : 0;
+      z-index        : 1;
+    }
+    .timeline-content {
+      flex         : 1;
+      background   : var(--gray-50);
+      border       : 1px solid var(--gray-200);
+      border-radius: 10px;
+      padding      : 12px 14px;
+    }
+
+    /* ── Dashboard grid ── */
+    .dash-grid {
+      display              : grid;
+      grid-template-columns: 1fr 340px;
+      gap                  : 16px;
+    }
+    @media (max-width:1024px) { .dash-grid { grid-template-columns: 1fr; } }
+
+    /* ── Grid Layout for Card Views (All Bills, Approved, Completed, Flowup) ── */
+    #billsList, #approvedList, #completedList, #processBillsList {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      padding: 16px;
+    }
+
+    #billsList {
+      max-height: 800px;
+      overflow-y: auto;
+    }
+    
+    /* Make empty/loading text span all columns */
+    #billsList > div:not(.bill-card),
+    #approvedList > div:not(.bill-card),
+    #completedList > div:not(.bill-card),
+    #processBillsList > div:not(.bill-card) {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 32px;
+    }
+    
+    #billsList .bill-card,
+    #approvedList .bill-card,
+    #completedList .bill-card,
+    #processBillsList .bill-card {
+      margin-bottom: 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      height: 100%;
+      background: #ffffff;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #billsList .bill-card:hover,
+    #approvedList .bill-card:hover,
+    #completedList .bill-card:hover,
+    #processBillsList .bill-card:hover {
+      border-color: #27ae60;
+      box-shadow: 0 6px 20px rgba(39,174,96,0.12);
+      transform: translateY(-2px);
+    }
+    
+    #billsList .bill-card > div:first-child,
+    #approvedList .bill-card > div:first-child,
+    #completedList .bill-card > div:first-child,
+    #processBillsList .bill-card > div:first-child {
+      width: 100%;
+    }
+    
+    #billsList .bill-card > div:last-child,
+    #approvedList .bill-card > div:last-child,
+    #completedList .bill-card > div:last-child,
+    #processBillsList .bill-card > div:last-child {
+      width: 100%;
+      text-align: right;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px dashed var(--gray-200);
+    }
+
+    /* ── Flag count ── */
+    .flag-count {
+      display      : inline-flex;
+      align-items  : center;
+      gap          : 3px;
+      background   : #fff0f0;
+      color        : var(--danger);
+      padding      : 2px 8px;
+      border-radius: 20px;
+      font-size    : 0.7rem;
+      font-weight  : 700;
+    }
+
+    /* ── Completed section ── */
+    .completed-card {
+      background   : var(--white);
+      border       : 1px solid var(--gray-200);
+      border-radius: var(--border-radius);
+      padding      : 16px 20px;
+      margin-bottom: 10px;
+      display      : flex;
+      align-items  : center;
+      gap          : 16px;
+    }
+    .completed-card.approved { border-left: 4px solid var(--secondary); }
+    .completed-card.rejected { border-left: 4px solid var(--danger); }
+  </style>
+</head>
+
+<body>
+<div class="app-wrapper">
+
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content" id="mainContent">
+    <header class="app-header" id="appHeader"></header>
+    <div class="page-content">
+
+      <div class="section active" id="section-dashboard">
+
+        <div class="stats-grid">
+          <div class="stat-card total" style="cursor:pointer"
+            onclick="Dashboard.showSection('invoices')">
+            <div class="stat-icon"><i class="fa fa-inbox"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statTotal">--</div>
+              <div class="stat-label">Total Bills</div>
+            </div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #1a73e8;
+            cursor:pointer"
+            onclick="Dashboard.showSection('new')">
+            <div class="stat-icon"
+              style="background:#e8f0fe;color:#1a73e8">
+              <i class="fa fa-envelope-open"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="statNew"
+                style="color:#1a73e8">--</div>
+              <div class="stat-label">New Bills</div>
+            </div>
+          </div>
+          <div class="stat-card review" style="cursor:pointer"
+            onclick="Dashboard.showSection('process')">
+            <div class="stat-icon">
+              <i class="fa fa-eye"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="statReviewed">--</div>
+              <div class="stat-label">In Process</div>
+            </div>
+          </div>
+          <div class="stat-card"
+            style="border-left:4px solid #34a853;cursor:pointer"
+            onclick="Dashboard.showSection('process')">
+            <div class="stat-icon"
+              style="background:#e8f5e9;color:#34a853">
+              <i class="fa fa-paper-plane"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="statSent"
+                style="color:#34a853">--</div>
+              <div class="stat-label">Sent for Approval</div>
+            </div>
+          </div>
+          <div class="stat-card pass" style="cursor:pointer"
+            onclick="Dashboard.showSection('completed')">
+            <div class="stat-icon">
+              <i class="fa fa-circle-check"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="statApproved">--</div>
+              <div class="stat-label">Approved</div>
+            </div>
+          </div>
+          <div class="stat-card fail" style="cursor:pointer"
+            onclick="Dashboard.showSection('completed')">
+            <div class="stat-icon">
+              <i class="fa fa-circle-xmark"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-value" id="statRejected">--</div>
+              <div class="stat-label">Rejected</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <i class="fa fa-clock-rotate-left"></i>
+                Recent Bills
+              </div>
+              <button class="btn btn-ghost btn-sm"
+                onclick="Dashboard.showSection('invoices')">
+                View All <i class="fa fa-arrow-right"></i>
+              </button>
+            </div>
+            <div class="card-body" id="recentBills"
+              style="padding:12px">
+              <div class="text-center"
+                style="padding:24px;color:var(--gray-400)">
+                <i class="fa fa-spinner fa-spin"></i> Loading...
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+
+            <div class="card" id="newBillsAlert">
+              <div class="card-header"
+                style="background:#e8f0fe;border-radius:12px 12px 0 0">
+                <div class="card-title" style="color:#1a73e8">
+                  <i class="fa fa-bell"></i>
+                  New Bills Arrived
+                </div>
+                <button class="btn btn-primary btn-sm"
+                  onclick="Dashboard.showSection('new')">
+                  View All
+                </button>
+              </div>
+              <div id="newBillsList"
+                style="padding:12px;max-height:200px;overflow-y:auto">
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-body"
+                style="text-align:center;padding:20px">
+                <div style="font-size:2rem;margin-bottom:8px">🔄</div>
+                <div style="font-weight:600;font-size:0.9rem;
+                  margin-bottom:6px">Sync New Bills</div>
+                <div style="font-size:0.78rem;color:var(--gray-500);
+                  margin-bottom:14px">
+                  Pull latest invoices from automation
+                </div>
+                <button class="btn btn-primary btn-sm w-100"
+                  id="syncBtn" onclick="Dashboard.syncBills()">
+                  <i class="fa fa-rotate"></i> Sync Now
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="section-new">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px">
+            <div style="display:flex;align-items:center;
+              gap:10px;flex-wrap:wrap">
+              <div style="flex:1;min-width:200px;position:relative">
+                <i class="fa fa-search" style="position:absolute;
+                  left:12px;top:50%;transform:translateY(-50%);
+                  color:var(--gray-400);pointer-events:none"></i>
+                <input type="text" class="form-control"
+                  id="newSearchInput"
+                  placeholder="Search new bills..."
+                  style="padding-left:36px"/>
+              </div>
+              <button class="btn btn-primary btn-sm"
+                onclick="Dashboard.syncBills()">
+                <i class="fa fa-rotate"></i> Sync
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="color:#1a73e8">
+              <i class="fa fa-envelope-open"></i>
+              New Bills
+              <span id="newCount"
+                style="font-weight:400;color:var(--gray-500);
+                font-size:0.8rem"></span>
+            </div>
+          </div>
+          <div id="newBillsList2" style="padding:16px">
+            <div class="text-center"
+              style="padding:32px;color:var(--gray-400)">
+              <i class="fa fa-spinner fa-spin"></i> Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="section-process">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px">
+            <div style="display:flex;align-items:center;
+              gap:10px;flex-wrap:wrap">
+              <div class="filter-tabs">
+                <button class="filter-tab active"
+                  data-pstatus="ALL">All</button>
+                <button class="filter-tab"
+                  data-pstatus="Reviewed">👁️ Reviewed</button>
+                <button class="filter-tab"
+                  data-pstatus="Sent">📤 Sent</button>
+                <button class="filter-tab"
+                  data-pstatus="Pending">⏳ Pending</button>
+              </div>
+              <div style="flex:1;min-width:180px;position:relative">
+                <i class="fa fa-search" style="position:absolute;
+                  left:12px;top:50%;transform:translateY(-50%);
+                  color:var(--gray-400);pointer-events:none"></i>
+                <input type="text" class="form-control"
+                  id="processSearchInput"
+                  placeholder="Search..."
+                  style="padding-left:36px"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="color:var(--warning)">
+              <i class="fa fa-gears"></i>
+              Bills In Process
+              <span id="processCount"
+                style="font-weight:400;color:var(--gray-500);
+                font-size:0.8rem"></span>
+            </div>
+          </div>
+          <div id="processBillsList" style="padding:16px">
+            <div class="text-center"
+              style="padding:32px;color:var(--gray-400)">
+              <i class="fa fa-spinner fa-spin"></i> Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="section-invoices">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px">
+            <div style="display:flex;align-items:center;
+              gap:10px;flex-wrap:wrap">
+              <div class="filter-tabs">
+                <button class="filter-tab active"
+                  data-status="ALL">All</button>
+                <button class="filter-tab"
+                  data-status="New">🆕 New</button>
+                <button class="filter-tab"
+                  data-status="Reviewed">👁️ Reviewed</button>
+                <button class="filter-tab"
+                  data-status="Sent">📤 Sent</button>
+                <button class="filter-tab"
+                  data-status="Approved">✅ Approved</button>
+                <button class="filter-tab"
+                  data-status="Rejected">❌ Rejected</button>
+              </div>
+              <div style="flex:1;min-width:180px;position:relative">
+                <i class="fa fa-search" style="position:absolute;
+                  left:12px;top:50%;transform:translateY(-50%);
+                  color:var(--gray-400);pointer-events:none"></i>
+                <input type="text" class="form-control"
+                  id="searchInput"
+                  placeholder="Search invoice, vendor..."
+                  style="padding-left:36px"/>
+              </div>
+              <button class="btn btn-outline btn-sm"
+                onclick="Dashboard.syncBills()">
+                <i class="fa fa-rotate"></i> Sync
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-file-invoice"></i>
+              All Bills
+              <span id="billCount"
+                style="font-weight:400;color:var(--gray-500);
+                font-size:0.8rem"></span>
+            </div>
+          </div>
+          <div id="billsList" style="padding:16px">
+            <div class="text-center"
+              style="padding:32px;color:var(--gray-400)">
+              <i class="fa fa-spinner fa-spin"></i> Loading...
+            </div>
+          </div>
+          <div id="billerPagination" style="padding: 12px 16px; border-top: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--gray-600); background: #fafafa; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;">
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="section-completed">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;
+          gap:16px;margin-bottom:16px">
+          <div class="card">
+            <div class="card-body"
+              style="display:flex;align-items:center;
+              gap:16px;padding:20px">
+              <div style="width:52px;height:52px;border-radius:12px;
+                background:#e8f5e9;display:flex;align-items:center;
+                justify-content:center;font-size:1.5rem">✅</div>
+              <div>
+                <div style="font-size:2rem;font-weight:800;
+                  color:var(--secondary)" id="completedApproved">
+                  --
+                </div>
+                <div style="font-size:0.8rem;color:var(--gray-500)">
+                  Bills Approved
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
+        
+          <div class="card">
+            <div class="card-body"
+              style="display:flex;align-items:center;
+              gap:16px;padding:20px">
+              <div style="width:52px;height:52px;border-radius:12px;
+                background:#ffebee;display:flex;align-items:center;
+                justify-content:center;font-size:1.5rem">❌</div>
+              <div>
+                <div style="font-size:2rem;font-weight:800;
+                  color:var(--danger)" id="completedRejected">
+                  --
+                </div>
+                <div style="font-size:0.8rem;color:var(--gray-500)">
+                  Bills Rejected
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="filter-tab active"
+                data-cstatus="ALL"
+                onclick="Dashboard.filterCompleted(this)">
+                All
+              </button>
+              <button class="filter-tab"
+                data-cstatus="Approved"
+                onclick="Dashboard.filterCompleted(this)">
+                ✅ Approved
+              </button>
+              <button class="filter-tab"
+                data-cstatus="Rejected"
+                onclick="Dashboard.filterCompleted(this)">
+                ❌ Rejected
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-flag-checkered"></i>
+              Completed Bills
+              <span id="completedCount"
+                style="font-weight:400;color:var(--gray-500);
+                font-size:0.8rem"></span>
+            </div>
+          </div>
+          <div id="completedList" style="padding:16px">
+            <div class="text-center"
+              style="padding:32px;color:var(--gray-400)">
+              <i class="fa fa-spinner fa-spin"></i> Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      
+      <div class="section" id="section-approved">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div class="filter-tabs" style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="filter-tab active" id="btnApprovedOpen"
+                onclick="Dashboard.setApprovedFilter('OPEN', this)"
+                style="display:flex;align-items:center;gap:6px">
+                <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#10b981"></span>
+                Open Bills (<span id="appOpenCount">0</span>)
+              </button>
+              <button class="filter-tab" id="btnApprovedClosed"
+                onclick="Dashboard.setApprovedFilter('CLOSED', this)"
+                style="display:flex;align-items:center;gap:6px">
+                <i class="fa fa-lock" style="font-size:0.75rem"></i>
+                Closed Bills (<span id="appClosedCount">0</span>)
+              </button>
+              <button class="filter-tab" id="btnApprovedAll"
+                onclick="Dashboard.setApprovedFilter('ALL', this)"
+                style="display:flex;align-items:center;gap:6px">
+                <i class="fa fa-list" style="font-size:0.75rem"></i>
+                All Approved (<span id="appAllCount">0</span>)
+              </button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="text" class="form-control" id="approvedSearchInput"
+                placeholder="Search approved bills..."
+                style="width:240px;font-size:0.82rem;padding:6px 12px"
+                oninput="Dashboard.filterApproved(this.value)"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div class="card-title">
+              <i class="fa fa-check-double" style="color:var(--success)"></i>
+              <span id="approvedSectionTitle">Approved Bills (Open)</span>
+              <span id="approvedCount"
+                style="font-weight:600;color:var(--success);font-size:0.85rem;margin-left:6px"></span>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.syncBills()">
+              <i class="fa fa-rotate"></i> Sync
+            </button>
+          </div>
+          <div id="approvedList" style="padding:16px">
+            <div class="text-center"
+              style="padding:32px;color:var(--gray-400)">
+              <i class="fa fa-spinner fa-spin"></i> Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="section-track">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-map-location-dot"></i>
+              Bill Status Tracker
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;gap:10px;margin-bottom:20px">
+              <input type="text" class="form-control"
+                id="trackSearch"
+                placeholder="Enter Invoice Number to track..."/>
+              <button class="btn btn-primary"
+                onclick="Dashboard.trackBill()">
+                <i class="fa fa-magnifying-glass"></i> Track
+              </button>
+            </div>
+            <div id="trackResult">
+              <div class="empty-state">
+                <div class="empty-icon">🔍</div>
+                <div class="empty-title">Enter Invoice Number</div>
+                <div class="empty-text">
+                  Track where your bill is in the approval process
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- FLOWUP SECTION ═══════════════════════════════════════════════ -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div class="section" id="section-flowup" style="width: 100%; overflow: hidden;">
+        <div class="card" style="max-width: 100%; overflow: hidden;">
+          <div class="card-header">
+            <div class="card-title" style="color:var(--primary)">
+              <i class="fa fa-list"></i> Flowup - All Bills Status
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.syncBills()">
+              <i class="fa fa-rotate"></i> Sync
+            </button>
+          </div>
+          <div class="card-body">
+            <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <button class="btn btn-outline btn-sm" onclick="const el = document.getElementById('columnSelector'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';">
+                  <i class="fa fa-columns"></i> Select Columns
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="const el = document.getElementById('stageFilterSelector'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';" style="background: var(--blue-50); color: var(--primary); border-color: var(--primary);">
+                  <i class="fa fa-filter"></i> Filter Stages
+                </button>
+                <div class="filter-tabs" style="display: inline-flex; gap: 2px; padding: 2px; background: var(--gray-100); border-radius: 6px;">
+                  <button class="filter-tab active" id="flowupCloseFilterAll" style="padding: 4px 10px; font-size: 0.78rem;" onclick="Dashboard.setFlowupCloseFilter('ALL', this)">All</button>
+                  <button class="filter-tab" id="flowupCloseFilterOpen" style="padding: 4px 10px; font-size: 0.78rem;" onclick="Dashboard.setFlowupCloseFilter('OPEN', this)">🟢 Open</button>
+                  <button class="filter-tab" id="flowupCloseFilterClosed" style="padding: 4px 10px; font-size: 0.78rem;" onclick="Dashboard.setFlowupCloseFilter('CLOSED', this)">🔒 Closed</button>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.bulkCloseFlowup(true)" style="color:#d93025; border-color:#d93025;" title="Mark selected bills as Closed">
+                  <i class="fa fa-lock"></i> Close Selected
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.bulkCloseFlowup(false)" title="Reopen selected bills">
+                  <i class="fa fa-lock-open"></i> Reopen Selected
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.exportFlowupCSV()" style="background: var(--success-50, #e8f5e9); color: var(--success, #2e7d32); border-color: var(--success, #2e7d32);">
+                  <i class="fa fa-file-excel"></i> <span id="exportCsvBtnText">Export CSV</span>
+                </button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <label style="font-size: 0.85rem; color: var(--gray-600);">Show</label>
+                <select class="form-control" style="width: auto; padding: 4px 8px; height: 32px; font-size: 0.85rem;" onchange="Dashboard.changeFlowupLimit(this.value)">
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                </select>
+                <label style="font-size: 0.85rem; color: var(--gray-600);">entries</label>
+              </div>
+            </div>
+            <div id="columnSelector" style="display: none; flex-wrap: wrap; gap: 10px; padding: 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 16px; max-height: 200px; overflow-y: auto;">
+              <!-- checkboxes will go here -->
+            </div>
+            
+            <!-- Stage Filter Panel -->
+            <div id="stageFilterSelector" style="display: none; flex-wrap: wrap; gap: 12px; padding: 16px; background: #e3f2fd; border: 1px solid #bbdefb; border-radius: 8px; margin-bottom: 16px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 700; color: var(--gray-800); border-right: 1px solid #bbdefb; padding-right: 12px; margin-right: 4px;">
+                <input type="checkbox" id="selectAllStages" checked onchange="Dashboard.toggleAllFlowupFilters(this)" /> All
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
+                <input type="checkbox" value="New" checked onchange="Dashboard.toggleFlowupFilter()" /> New Bills
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
+                <input type="checkbox" value="Account" checked onchange="Dashboard.toggleFlowupFilter()" /> Account
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
+                <input type="checkbox" value="CFO" checked onchange="Dashboard.toggleFlowupFilter()" /> CFO
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
+                <input type="checkbox" value="Admin" checked onchange="Dashboard.toggleFlowupFilter()" /> Admin
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
+                <input type="checkbox" value="Super Admin" checked onchange="Dashboard.toggleFlowupFilter()" /> Final Approval (Super Admin)
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
+                <input type="checkbox" value="Completed" checked onchange="Dashboard.toggleFlowupFilter()" /> Approved
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #d32f2f;">
+                <input type="checkbox" value="Rejected" checked onchange="Dashboard.toggleFlowupFilter()" /> Rejected
+              </label>
+            </div>
+
+            <div class="table-wrapper" style="overflow: auto; width: 100%; max-width: 100%; max-height: 60vh; border: 1px solid var(--gray-200); border-radius: 8px;">
+              <table class="data-table" style="width:100%; border-collapse: collapse; text-align: left;">
+                <thead id="flowupTableHead" style="position: sticky; top: 0; z-index: 2;">
+                </thead>
+                <tbody id="flowupTableBody">
+                  <tr>
+                    <td colspan="100%" class="text-center" style="padding: 32px; color: var(--gray-400);">
+                      <i class="fa fa-spinner fa-spin"></i> Loading...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="flowupPagination" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; font-size: 0.85rem; color: var(--gray-600);">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- SUBMIT INVOICE SECTION - COMPLETE ══════════════════════════════ -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div class="section" id="section-submit">
+        <div class="card" style="max-width:600px">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-plus-circle"></i> Submit New Invoice
+            </div>
+          </div>
+          <div class="card-body">
+
+            <!-- File Upload -->
+            <div class="form-group">
+              <label class="form-label">📎 Invoice File *</label>
+              <div class="file-upload-area" 
+                id="fileUploadArea"
+                style="border:2px dashed var(--primary);
+                       border-radius:10px;
+                       padding:32px 20px;
+                       text-align:center;
+                       cursor:pointer;
+                       transition:all 0.2s;
+                       background:var(--primary-light)">
+                <div style="font-size:2rem;margin-bottom:10px">📄</div>
+                <div style="font-weight:600;color:var(--primary);margin-bottom:4px">
+                  Click to upload invoice (PDF/Image)
+                </div>
+                <div style="font-size:0.75rem;color:var(--gray-500)">
+                  or drag and drop your file here
+                </div>
+                <input type="file" 
+                  id="invoiceFile" 
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  style="display:none"
+                  onchange="SubmitInvoice.handleFileSelect(event)"/>
+              </div>
+              <div id="fileName" 
+                style="margin-top:10px;font-size:0.82rem;
+                       color:var(--secondary);font-weight:600;
+                       display:none">
+                ✅ File selected: <span id="fileNameText"></span>
+              </div>
+            </div>
+
+            <!-- Where received -->
+            <div class="form-group">
+              <label class="form-label">📍 Where did you receive the bill? *</label>
+              <select class="form-control form-select" id="receivedFrom">
+                <option value="">-- Select Source --</option>
+                <option value="Email">📧 Email</option>
+                <option value="WhatsApp">💬 WhatsApp</option>
+                <option value="Hardcopy">🗂️ Hardcopy / In-person</option>
+                <option value="Other">📎 Other</option>
+              </select>
+            </div>
+
+            <!-- When received -->
+            <div class="form-group">
+              <label class="form-label">📅 When did you receive the bill? *</label>
+              <input type="datetime-local" 
+                class="form-control" 
+                id="receivedDate"
+                value="">
+            </div>
+
+            <!-- From whom (optional) -->
+            <div class="form-group">
+              <label class="form-label">👤 From (Sender Name / Email)</label>
+              <input type="text" 
+                class="form-control" 
+                id="senderName"
+                placeholder="e.g., vendor@company.com or John Doe"
+                style="font-size:0.85rem"/>
+            </div>
+
+            <!-- Notes (optional) -->
+            <div class="form-group">
+              <label class="form-label">📝 Additional Notes (Optional)</label>
+              <textarea class="form-control" 
+                id="invoiceNotes"
+                rows="2"
+                placeholder="Any special information about this invoice..."
+                style="font-size:0.85rem;resize:vertical"></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div style="display:flex;gap:10px;margin-top:24px">
+              <button class="btn btn-primary w-100" type="button"
+                onclick="SubmitInvoice.submitForm()">
+                <i class="fa fa-paper-plane"></i> Submit & Process
+              </button>
+              <button class="btn btn-ghost" type="button"
+                onclick="SubmitInvoice.resetForm()">
+                <i class="fa fa-rotate-left"></i> Clear
+              </button>
+            </div>
+
+            <!-- Status -->
+            <div id="submitStatus" 
+              style="margin-top:16px;
+                     padding:12px 16px;
+                     border-radius:8px;
+                     display:none;
+                     font-size:0.85rem">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="card" style="margin-top:16px;max-width:600px">
+          <div class="card-body" style="background:var(--gray-50)">
+            <div style="font-weight:600;color:var(--gray-700);
+                       margin-bottom:8px;display:flex;gap:6px;
+                       align-items:center">
+              <i class="fa fa-info-circle" style="color:var(--primary)"></i>
+              How it works
+            </div>
+            <div style="font-size:0.8rem;color:var(--gray-600);
+                       line-height:1.5">
+              <div style="margin-bottom:6px">1️⃣ Upload invoice file (PDF or image)</div>
+              <div style="margin-bottom:6px">2️⃣ Tell us where you received it from</div>
+              <div style="margin-bottom:6px">3️⃣ Select the date and time</div>
+              <div>4️⃣ Click Submit - AI will process it!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ══════════════════════════════════════════════════════════════ -->
+
+      <div class="section" id="section-profile">
+        <div class="card" style="max-width:500px">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-user"></i> My Profile
+            </div>
+          </div>
+          <div class="card-body" id="profileBody"></div>
+        </div>
+      </div>
+
+      <div class="section" id="section-password">
+        <div class="card" style="max-width:440px">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-lock"></i> Change Password
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" class="form-control"
+                id="oldPassword"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control"
+                id="newPassword"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-control"
+                id="confirmPassword"/>
+            </div>
+            <button class="btn btn-primary w-100"
+              onclick="Dashboard.changePassword()">
+              <i class="fa fa-key"></i> Update Password
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Processing Screen -->
+<div id="processingScreen">
+  <div class="processing-box">
+    <div id="processingContent">
+      <!-- Loading View -->
+      <div id="processingLoadingState">
+        <div class="processing-spinner">
+          <i class="fa fa-spinner fa-spin"></i>
+        </div>
+        <h3 id="processingTitle">Processing your invoice...</h3>
+        <p id="processingText">Please wait...</p>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">0% complete</div>
+        <p style="color: var(--gray-400); font-size: 0.75rem; margin-top: 16px;">
+          ⏱️ This usually takes 3-5 seconds
+        </p>
+      </div>
+      <!-- Success View -->
+      <div id="processingSuccessState" style="display: none;">
+        <div class="processing-success">✅</div>
+        <h3 id="processingSuccessTitle">Invoice added successfully!</h3>
+        <p id="processingSuccessText">Your invoice has been added to the queue</p>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 100%;"></div>
+        </div>
+        <div class="progress-text">100% complete</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal-box xlarge">
+
+    <div class="modal-header"
+      style="background:linear-gradient(135deg,#4f46e5,#1a73e8)">
+      <h5 class="modal-title"
+        style="color:#fff;display:flex;align-items:center;gap:8px">
+        <i class="fa fa-file-invoice"></i>
+        Review Bill — <span id="modalInvoiceNo"></span>
+      </h5>
+      <button class="modal-close"
+        onclick="Dashboard.closeReviewModal()">✕</button>
+    </div>
+
+    <div id="modalBillBanner"
+      style="padding:14px 20px;background:var(--gray-50);
+      border-bottom:1px solid var(--gray-200)"></div>
+
+    <div id="modalTrackingTimeline" style="padding: 15px 20px 0;"></div>
+
+    <div style="display:flex;gap:0;
+      border-bottom:2px solid var(--gray-200);
+      background:var(--white);overflow-x:auto">
+      <button class="rev-tab active" data-tab="rtab-attachment"
+        onclick="Dashboard.switchTab(this,'rtab-attachment')">
+        📎 Attachment
+      </button>
+      <button class="rev-tab" data-tab="rtab-accounting"
+        onclick="Dashboard.switchTab(this,'rtab-accounting')">
+        📊 Accounting
+      </button>
+      <button class="rev-tab" data-tab="rtab-tds"
+        onclick="Dashboard.switchTab(this,'rtab-tds')">
+        💰 TDS
+      </button>
+      <button class="rev-tab" data-tab="rtab-gst"
+        onclick="Dashboard.switchTab(this,'rtab-gst')">
+        🧾 GST
+      </button>
+      <button class="rev-tab" data-tab="rtab-process"
+        onclick="Dashboard.switchTab(this,'rtab-process')">
+        ⚙️ Process
+      </button>
+      <button class="rev-tab" data-tab="rtab-flags"
+        onclick="Dashboard.switchTab(this,'rtab-flags')">
+        🚩 Flags
+      </button>
+      <button class="rev-tab" data-tab="rtab-send"
+        onclick="Dashboard.switchTab(this,'rtab-send')"
+        id="sendApprovalTab"
+        style="margin-left:auto;color:var(--primary);
+        font-weight:600">
+        📤 Send Approval
+      </button>
+    </div>
+
+    <div style="max-height:60vh;overflow-y:auto">
+
+      <div class="rev-tab-content active" id="rtab-attachment">
+        <div id="attachmentPreview" style="padding:20px"></div>
+      </div>
+
+      <div class="rev-tab-content" id="rtab-accounting">
+        <div style="padding:16px 20px">
+          <div style="font-size:0.72rem;font-weight:700;
+            color:var(--primary);text-transform:uppercase;
+            letter-spacing:0.5px;margin-bottom:12px;
+            display:flex;align-items:center;gap:6px">
+            <i class="fa fa-pencil" style="font-size:0.7rem"></i>
+            All fields are editable — changes tracked in yellow
+          </div>
+          <div id="accountingFields"
+            style="display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+            gap:10px">
+          </div>
+        </div>
+      </div>
+
+      <div class="rev-tab-content" id="rtab-tds">
+        <div style="padding:16px 20px">
+          <div id="tdsFields"
+            style="display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+            gap:10px">
+          </div>
+        </div>
+      </div>
+
+      <div class="rev-tab-content" id="rtab-gst">
+        <div style="padding:16px 20px">
+          <div id="gstFields"
+            style="display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+            gap:10px">
+          </div>
+        </div>
+      </div>
+
+      <div class="rev-tab-content" id="rtab-process">
+        <div style="padding:16px 20px">
+          <div id="processFields"
+            style="display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+            gap:10px">
+          </div>
+        </div>
+      </div>
+
+      <div class="rev-tab-content" id="rtab-flags">
+        <div style="padding:20px">
+          <div id="flagsContent"></div>
+        </div>
+      </div>
+
+      <div class="rev-tab-content" id="rtab-send">
+        <div style="padding:20px">
+
+          <div style="margin-bottom:20px">
+            <label class="form-label"
+              style="font-weight:700;color:var(--gray-700)">
+              📝 Review Notes
+            </label>
+            <textarea class="form-control" id="editReviewNotes"
+              rows="3"
+              placeholder="Add your observations or notes..."
+              style="resize:vertical;margin-top:6px">
+            </textarea>
+          </div>
+
+          <div style="background:var(--gray-50);
+            border:1px solid var(--gray-200);
+            border-radius:12px;padding:20px">
+            <div style="font-size:0.9rem;font-weight:700;
+              color:var(--gray-700);margin-bottom:14px">
+              📤 Send for Approval
+            </div>
+            <div style="display:grid;
+              grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group">
+                <label class="form-label">Forward To Role *</label>
+                <select class="form-control form-select"
+                  id="sendToRole"
+                  onchange="Dashboard.onRoleChange()">
+                  <option value="HOD" selected>👔 HOD (Department Head)</option>
+                  <option value="Account">🧾 Account</option>
+                  <option value="Finance">💰 Finance</option>
+                  <option value="CFO">💼 CFO</option>
+                  <option value="SuperAdmin">👑 Super Admin</option>
+                </select>
+              </div>
+              <div class="form-group" id="deptGroup">
+                <label class="form-label">Department *</label>
+                <select class="form-control form-select" id="sendDepartment">
+                  <option value="IT" selected>💻 IT Department</option>
+                  <option value="Marketing">📢 Marketing Department</option>
+                  <option value="Operations">⚙️ Operations Department</option>
+                  <option value="HR">👥 Human Resources (HR)</option>
+                  <option value="Legal">⚖️ Legal Department</option>
+                  <option value="General">🏢 General / Administration</option>
+                </select>
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label">Assign to Specific HOD / Approver</label>
+                <select class="form-control form-select" id="sendToPerson">
+                  <option value="">-- All HODs in Selected Department --</option>
+                  <option value="hod.it@gretex.com">Amit Sharma (hod.it@gretex.com - IT)</option>
+                  <option value="hod.mkt@gretex.com">Sunil Verma (hod.mkt@gretex.com - Marketing)</option>
+                  <option value="hod.ops@gretex.com">Rajesh K (hod.ops@gretex.com - Operations)</option>
+                  <option value="hod.hr@gretex.com">Anita Roy (hod.hr@gretex.com - HR)</option>
+                </select>
+              </div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label class="form-label">
+                  Message for Approver
+                </label>
+                <textarea class="form-control" id="sendNotes"
+                  rows="2"
+                  placeholder="Add message for the approver..."
+                  style="resize:vertical">
+                </textarea>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;
+              justify-content:flex-end;margin-top:8px">
+              <button class="btn btn-ghost"
+                onclick="Dashboard.saveReviewOnly()">
+                <i class="fa fa-save"></i> Save Only
+              </button>
+              <button class="btn btn-primary"
+                onclick="Dashboard.sendForApproval()">
+                <i class="fa fa-paper-plane"></i>
+                Send for Approval
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    
+    <div class="modal-footer" style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; width: 100%; align-items: center;">
+      <!-- Delete Button (Left aligned) -->
+      <button class="btn btn-danger btn-sm" id="modalDeleteBtn" onclick="Dashboard.deleteNewBill()" style="display:none; margin-right:auto;">
+        <i class="fa fa-trash"></i> Delete Duplicate
+      </button>
+
+      <!-- Close / Reopen Bill Button (For Approved Bills) -->
+      <button class="btn btn-sm" id="modalCloseBillBtn" onclick="Dashboard.toggleCloseCurrentBill(this)" style="display:none; margin-right:auto;">
+        <i class="fa fa-lock"></i> Close Bill
+      </button>
+
+      <div id="editIndicator" style="display:none;font-size:0.78rem;color:#f59e0b;font-weight:600">
+        ⚠️ <span id="editCount">0</span> unsaved changes
+      </div>
+      <a id="modalDriveLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none">
+        <i class="fa fa-file-pdf"></i> View Original
+      </a>
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeReviewModal()">Close</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/sidebar.js"></script>
+<script>
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GLOBAL HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64String = reader.result.split(',')[1];
+      resolve(base64String);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function showProcessingScreen(message, progress) {
+  const screen = document.getElementById('processingScreen');
+  let title = document.getElementById('processingTitle');
+  let loading = document.getElementById('processingLoadingState');
+  let success = document.getElementById('processingSuccessState');
+  const content = document.getElementById('processingContent');
+
+  // Self-healing: if elements were somehow destroyed, re-render them
+  if (!title && content) {
+    content.innerHTML = `
+      <div id="processingLoadingState">
+        <div class="processing-spinner">
+          <i class="fa fa-spinner fa-spin"></i>
+        </div>
+        <h3 id="processingTitle">Processing your invoice...</h3>
+        <p id="processingText">Please wait...</p>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">0% complete</div>
+        <p style="color: var(--gray-400); font-size: 0.75rem; margin-top: 16px;">
+          ⏱️ This usually takes 3-5 seconds
+        </p>
+      </div>
+      <div id="processingSuccessState" style="display: none;">
+        <div class="processing-success">✅</div>
+        <h3 id="processingSuccessTitle">Invoice added successfully!</h3>
+        <p id="processingSuccessText">Your invoice has been added to the queue</p>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: 100%;"></div>
+        </div>
+        <div class="progress-text">100% complete</div>
+      </div>
+    `;
+    loading = document.getElementById('processingLoadingState');
+    success = document.getElementById('processingSuccessState');
+    title = document.getElementById('processingTitle');
+  }
+
+  if (loading) loading.style.display = 'block';
+  if (success) success.style.display = 'none';
+
+  const text = document.getElementById('processingText');
+  const fill = document.getElementById('progressFill');
+  const progText = document.getElementById('progressText');
+
+  if (title) title.textContent = message || 'Processing your invoice...';
+  if (text) text.textContent = 'Please wait...';
+  if (fill) fill.style.width = (progress !== undefined ? progress : 0) + '%';
+  if (progText) progText.textContent = (progress !== undefined ? progress : 0) + '% complete';
+
+  if (screen) screen.classList.add('active');
+}
+
+function showProcessingSuccess(titleMsg, descMsg) {
+  const loading = document.getElementById('processingLoadingState');
+  const success = document.getElementById('processingSuccessState');
+  const sTitle = document.getElementById('processingSuccessTitle');
+  const sText = document.getElementById('processingSuccessText');
+
+  if (loading) loading.style.display = 'none';
+  if (success) success.style.display = 'block';
+
+  if (sTitle && titleMsg) sTitle.textContent = titleMsg;
+  if (sText && descMsg) sText.textContent = descMsg;
+}
+
+function hideProcessingScreen() {
+  const screen = document.getElementById('processingScreen');
+  if (screen) screen.classList.remove('active');
+
+  const loading = document.getElementById('processingLoadingState');
+  const success = document.getElementById('processingSuccessState');
+  if (loading) loading.style.display = 'block';
+  if (success) success.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD OBJECT (REST OF CODE CONTINUES...)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const Dashboard = {
+
+  queue        : [],
+  invoicesQueue: [],      // Strictly from 'Invoices' sheet
+  masterQueue  : [],      // Strictly from 'Master_Invoices' sheet
+  filtered     : [],
+  billerCurrentPage: 1,
+  billerRowsPerPage: 15,
+  currentBill  : null,
+  pendingEdits : {},
+  users        : [],
+
+  generateTrackingTimeline(inv) {
+    const steps = [
+      { key: "Received", label: "Received",    date: inv["Timestamp"],       icon: "fa-envelope" },
+      { key: "Biller",   label: "Biller",      date: inv["Biller_Send_At"],  icon: "fa-user-check", statusCol: "" },
+      { key: "Account",  label: "Account",     date: inv["Account_Send_At"], icon: "fa-calculator", statusCol: inv["Account_Status"] },
+      { key: "CFO",      label: "CFO",         date: inv["CFO_Send_At"],     icon: "fa-briefcase",  statusCol: inv["CFO_Status"] },
+      { key: "Admin",    label: "Admin",       date: inv["Admin_Send_At"],   icon: "fa-user-shield",statusCol: inv["Admin_Status"] },
+      { key: "SA",       label: "Super Admin", date: inv["SA_Approved_At"],  icon: "fa-crown",      statusCol: inv["SA_Status"] }
+    ];
+
+    const currentStage = inv["Current_Stage"] || "New";
+    let hasRejected = steps.some(s => s.statusCol && s.statusCol.includes("Rejected"));
+    let stageReached = false;
+
+    let html = `<div class="tracking-wrapper"><div class="tracking-container">`;
+    let rejectionHtml = "";
+
+    steps.forEach((step) => {
+      let statusClass = "";
+      let iconHtml = `<i class="fa ${step.icon}"></i>`;
+      let dateText = step.date ? step.date : "Pending...";
+
+      if ((step.date && step.date !== "") || (step.statusCol && step.statusCol.includes("Approved")) || (step.statusCol && step.statusCol.includes("Rejected"))) {
+        if (!step.date || step.date === "") dateText = "Done";
+        statusClass = "completed";
+        iconHtml = `<i class="fa fa-check"></i>`; 
+        if (step.statusCol && step.statusCol.includes("Rejected")) {
+          statusClass = "rejected";
+          iconHtml = `<i class="fa fa-times"></i>`;
+          
+          // Capture rejection details
+          let remark = "";
+          if (step.key === "Account") remark = inv["Account_Remark"];
+          else if (step.key === "CFO") remark = inv["CFO_Remark"];
+          else if (step.key === "Admin") remark = inv["Admin_Remark"];
+          else if (step.key === "SA") remark = inv["SA_Remark"];
+          
+          if (!remark || remark.trim() === "") remark = "No specific reason provided.";
+          
+          rejectionHtml = `
+            <div style="margin-top: 20px; background: #fff0f0; border-left: 4px solid #ea4335; border-radius: 8px; padding: 12px 16px;">
+              <div style="color: #d32f2f; font-weight: 700; margin-bottom: 4px; font-size: 0.9rem;">
+                ❌ Rejected at ${step.label} Stage
+              </div>
+              <div style="color: #5f6368; font-size: 0.85rem;">
+                <strong>Reason:</strong> ${remark}
+              </div>
+            </div>
+          `;
+        }
+      } else {
+        if (!stageReached && !hasRejected && currentStage !== "Completed") {
+          statusClass = "active";
+          stageReached = true; 
+        }
+      }
+
+      html += `
+        <div class="track-step ${statusClass}">
+          <div class="track-icon">${iconHtml}</div>
+          <div class="track-text">
+            <h6>${step.label}</h6>
+            <p>${dateText}</p>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div></div>`;
+    if (rejectionHtml) html += rejectionHtml;
+    
+    return html;
+  },
+
+  async init() {
+    if (!Auth.requireRole("Biller")) return; AppLoader.show();
+    Header.render("Dashboard");
+    Sidebar.init("dashboard");
+    Dashboard.setupUsers();
+    Dashboard.initLocalStorage();
+    try {
+      await Dashboard.loadStats();
+      await Dashboard.loadRecentBills();
+    } finally {
+      AppLoader.finish();
+    }
+
+    const hash = window.location.hash.replace("#","");
+    if (hash) Dashboard.showSection(hash);
+
+    document.getElementById("searchInput")
+      ?.addEventListener("input",
+        Utils.debounce(() => Dashboard.filterBills("all"), 400));
+    document.getElementById("newSearchInput")
+      ?.addEventListener("input",
+        Utils.debounce(() => Dashboard.filterBills("new"), 400));
+    document.getElementById("processSearchInput")
+      ?.addEventListener("input",
+        Utils.debounce(() => Dashboard.filterBills("process"), 400));
+
+    document.querySelectorAll(".filter-tab[data-status]")
+      .forEach(btn => {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".filter-tab[data-status]")
+            .forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+          Dashboard.filterBills("all");
+        });
+      });
+
+    document.querySelectorAll(".filter-tab[data-pstatus]")
+      .forEach(btn => {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".filter-tab[data-pstatus]")
+            .forEach(b => b.classList.remove("active"));
+          this.classList.add("active");
+          Dashboard.filterBills("process");
+        });
+      });
+
+    SubmitInvoice.init();
+  },
+
+  setupUsers() {
+    Dashboard.usersGrouped = [
+      { name:"Rahul Sharma", email:"rahul@gretex.com",  role:"Account"    },
+      { name:"Priya Mehta",  email:"priya@gretex.com",  role:"CFO"        },
+      { name:"Anup Rajput",  email:"anup@gretex.com",   role:"Admin"      },
+      { name:"Super Admin",  email:"admin@gretex.com",  role:"SuperAdmin" }
+    ];
+  },
+
+  showSection(id) {
+    console.log("Switching to section:", id);
+
+    document.querySelectorAll(".section").forEach(s => {
+        s.classList.remove("active");
+        s.style.display = "none";
+    });
+
+    const target = document.getElementById(`section-${id}`);
+    
+    if (target) {
+        target.classList.add("active");
+        target.style.display = "block";
+    } else {
+        console.error("Section not found: section-" + id);
+        return;
+    }
+
+    const titles = {
+        dashboard: "Dashboard",
+        submit: "Submit New Invoice",
+        new: "New Bills",
+        process: "Bills In Process",
+        invoices: "All Bills",
+        completed: "Completed Bills",
+        track: "Track Bills",
+        profile: "My Profile",
+        password: "Change Password",
+        flowup: "Flowup - All Bills Status"
+    };
+    Header.setTitle(titles[id] || "Dashboard");
+    Sidebar.setActive(id === 'new' || id === 'process' || id === 'invoices' || id === 'completed' ? "myinvoices" : (id === 'submit' ? 'submit' : id));
+
+    if (id === "dashboard") {
+        document.getElementById("recentBills").innerHTML = '<div class="text-center p-4"><i class="fa fa-spinner fa-spin"></i> Loading...</div>';
+        Dashboard.loadStats();
+        Dashboard.loadRecentBills();
+    } else if (id === "new") {
+        Dashboard.loadNewSection();
+    } else if (id === "process") {
+        Dashboard.loadProcessSection();
+    } else if (id === "invoices") {
+        Dashboard.loadQueue();
+    } else if (id === "approved") {
+        Dashboard.loadApprovedSection();
+    } else if (id === "completed") {
+        Dashboard.loadCompletedSection();
+    } else if (id === "profile") {
+        Dashboard.loadProfile();
+    } else if (id === "flowup") {
+        Dashboard.loadFlowupSection();
+    }
+  },
+
+  async loadStats() {
+    const res = await API.biller.getStats();
+    if (!res?.success) return;
+    const d = res.data;
+    document.getElementById("statTotal")   .textContent = d.total    || 0;
+    document.getElementById("statNew")     .textContent = d.newBills || 0;
+    document.getElementById("statReviewed").textContent =
+      (d.reviewed || 0) + (d.sent || 0);
+    document.getElementById("statSent")    .textContent = d.sent     || 0;
+    document.getElementById("statApproved").textContent = d.approved || 0;
+    document.getElementById("statRejected").textContent = d.rejected || 0;
+  },
+
+  initLocalStorage() {
+    try {
+      const invSaved = localStorage.getItem("billing_invoices_sheet_data");
+      const mstSaved = localStorage.getItem("billing_master_sheet_data");
+      if (invSaved) Dashboard.invoicesQueue = JSON.parse(invSaved);
+      if (mstSaved) Dashboard.masterQueue = JSON.parse(mstSaved);
+      if (Dashboard.invoicesQueue.length || Dashboard.masterQueue.length) {
+        Dashboard.queue = [...Dashboard.invoicesQueue, ...Dashboard.masterQueue];
+        Dashboard.filtered = [...Dashboard.queue];
+      }
+    } catch (e) {
+      console.warn("Could not load from localStorage:", e);
+    }
+  },
+
+  saveToLocalStorage() {
+    try {
+      localStorage.setItem("billing_invoices_sheet_data", JSON.stringify(Dashboard.invoicesQueue || []));
+      localStorage.setItem("billing_master_sheet_data", JSON.stringify(Dashboard.masterQueue || []));
+      localStorage.setItem("billing_last_sync", new Date().toISOString());
+    } catch (e) {
+      console.warn("Could not save to localStorage:", e);
+    }
+  },
+
+  setQueue(list, invoicesList, masterList) {
+    const rawList = list || [];
+    
+    Dashboard.queue = rawList.map((b, idx) => {
+      // Determine source sheet strictly:
+      const isNew = (b._sourceSheet === "Invoices") || 
+                    (b["Approval Status"] === "New") || 
+                    (!b["Current_Stage"] && (!b["Approval Status"] || b["Approval Status"] === "New"));
+      
+      const sheet = isNew ? "Invoices" : "Master_Invoices";
+      const validRowIdx = (b._sheetRowIndex !== undefined && b._sheetRowIndex !== null && b._sheetRowIndex !== "")
+        ? b._sheetRowIndex
+        : ((b.queueRowIndex !== undefined && b.queueRowIndex !== null && b.queueRowIndex !== "")
+            ? b.queueRowIndex
+            : ((b.rowIndex !== undefined && b.rowIndex !== null && b.rowIndex !== "") ? b.rowIndex : idx));
+
+      b._sourceSheet = sheet;
+      b._sheetRowIndex = validRowIdx;
+      b.queueRowIndex = validRowIdx;
+      b.rowIndex = validRowIdx;
+      b._uid = `${sheet}_row_${validRowIdx}_${String(b["A13. Invoice Number"] || "").replace(/[^a-zA-Z0-9]/g, "")}`;
+      return b;
+    });
+
+    Dashboard.invoicesQueue = Dashboard.queue.filter(b => b._sourceSheet === "Invoices");
+    Dashboard.masterQueue   = Dashboard.queue.filter(b => b._sourceSheet === "Master_Invoices");
+
+    Dashboard.saveToLocalStorage();
+  },
+
+  async ensureQueue() {
+    if (Dashboard.queue.length === 0) {
+      Dashboard.initLocalStorage();
+    }
+    if (Dashboard.queue.length === 0) {
+      const res = await API.biller.getQueue();
+      if (res?.success) Dashboard.setQueue(res.data.queue, res.data.invoices, res.data.masterInvoices);
+    }
+  },
+
+  async loadQueue(isSilent = false) {
+    const el = document.getElementById("billsList");
+    if (!isSilent && el) el.innerHTML = `<div class="text-center"
+      style="padding:32px;color:var(--gray-400)">
+      <i class="fa fa-spinner fa-spin"></i></div>`;
+    const res = await API.biller.getQueue();
+    if (res?.success) {
+      Dashboard.setQueue(res.data.queue);
+      Dashboard.filtered = [...Dashboard.queue];
+      Dashboard.renderBills("all");
+    }
+  },
+
+  approvedFilterStatus: "OPEN",
+  flowupCloseFilter: "ALL",
+
+  isClosedBill(b) {
+    if (!b) return false;
+    const val = String(b["Close at"] || b["Close_At"] || b["Close At"] || "").trim();
+    return Boolean(val && val !== "—" && val !== "-" && val !== "N/A" && val !== "NA" && val !== "null" && val !== "undefined");
+  },
+
+  getCloseAtDate(b) {
+    if (!b) return "";
+    return String(b["Close at"] || b["Close_At"] || b["Close At"] || "").trim();
+  },
+
+  setFlowupCloseFilter(filterVal, btn) {
+    Dashboard.flowupCloseFilter = filterVal;
+    document.querySelectorAll("#section-flowup .filter-tabs .filter-tab").forEach(b => b.classList.remove("active"));
+    if (btn) btn.classList.add("active");
+    Dashboard.flowupCurrentPage = 1;
+    Dashboard.renderFlowupTable();
+  },
+
+  flowupSelectedColumns: [
+    "Timestamp",
+    "A13. Invoice Number",
+    "A14. Vendor Name",
+    "A1. Billed To",
+    "B8. TDS Amount",
+    "D1. Final Payable Amt",
+    "Approval Status",
+    "Close at",
+    "Current_Stage",
+    "Rejection By",
+    "Rejection Remark",
+    "D11. Narration"
+  ],
+  flowupSelectedStages: ["New", "Account", "CFO", "Admin", "Super Admin", "Completed", "Rejected"],
+  flowupFilteredQueue: [],
+  flowupRowsPerPage: 10,
+  flowupCurrentPage: 1,
+
+  toggleFlowupFilter() {
+    const checkboxes = document.querySelectorAll("#stageFilterSelector input[type='checkbox']:not(#selectAllStages)");
+    const selected = [];
+    let allChecked = true;
+    checkboxes.forEach(cb => {
+      if (cb.checked) {
+          selected.push(cb.value);
+      } else {
+          allChecked = false;
+      }
+    });
+    
+    // Sync Select All checkbox state
+    const selectAllCb = document.getElementById("selectAllStages");
+    if (selectAllCb) selectAllCb.checked = allChecked;
+
+    Dashboard.flowupSelectedStages = selected;
+    Dashboard.flowupCurrentPage = 1;
+    Dashboard.renderFlowupTable();
+  },
+
+  toggleAllFlowupFilters(mainCb) {
+    const checkboxes = document.querySelectorAll("#stageFilterSelector input[type='checkbox']:not(#selectAllStages)");
+    checkboxes.forEach(cb => {
+      cb.checked = mainCb.checked;
+    });
+    Dashboard.toggleFlowupFilter();
+  },
+
+  exportFlowupCSV() {
+    if (!Dashboard.flowupFilteredQueue || Dashboard.flowupFilteredQueue.length === 0) {
+        Toast.warning("No data to export!");
+        return;
+    }
+    
+    // Get only checked rows
+    const dataToExport = Dashboard.flowupFilteredQueue.filter(b => b._exportChecked !== false);
+    
+    if (dataToExport.length === 0) {
+        Toast.warning("No rows selected for export!");
+        return;
+    }
+
+    const columns = Dashboard.flowupSelectedColumns;
+    let csvContent = "";
+    
+    // CSV Headers
+    csvContent += columns.map(c => `"${c.replace(/"/g, '""')}"`).join(",") + "\r\n";
+    
+    // CSV Data Rows
+    dataToExport.forEach(row => {
+        const rowData = columns.map(c => {
+            let val = (row[c] !== undefined && row[c] !== null) ? String(row[c]).trim() : "";
+            const isEmpty = !val || val === "N/A" || val === "NA" || val === "n/a" || val === "null" || val === "undefined";
+            if (isEmpty) val = "—";
+            
+            // Apply similar formatting as HTML table (currency prefix)
+            if (["D1. Final Payable Amt", "A20. Basic Amount", "B8. TDS Amount"].includes(c)) {
+                if (!isEmpty && !isNaN(parseFloat(val))) {
+                    val = "₹" + val;
+                }
+            }
+            
+            return `"${val.replace(/"/g, '""')}"`;
+        });
+        csvContent += rowData.join(",") + "\r\n";
+    });
+    
+    // Download via Blob
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Flowup_Export_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
+
+  changeFlowupLimit(val) {
+    Dashboard.flowupRowsPerPage = parseInt(val, 10);
+    Dashboard.flowupCurrentPage = 1;
+    Dashboard.renderFlowupTable();
+  },
+
+  changeFlowupPage(delta) {
+    const totalPages = Math.ceil(Dashboard.flowupFilteredQueue.length / Dashboard.flowupRowsPerPage);
+    let newPage = Dashboard.flowupCurrentPage + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+      Dashboard.flowupCurrentPage = newPage;
+      Dashboard.renderFlowupTable();
+    }
+  },
+
+  async loadFlowupSection() {
+    const el = document.getElementById("flowupTableBody");
+    if (el) el.innerHTML = `<tr><td colspan="100%" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>`;
+    
+    await Dashboard.ensureQueue();
+    
+    if (Dashboard.queue.length === 0) {
+      if (el) el.innerHTML = `<tr><td colspan="100%" class="text-center" style="padding: 32px;">No bills found.</td></tr>`;
+      return;
+    }
+
+    // Compute Rejection Virtual Columns & initialize export state
+    Dashboard.queue.forEach(b => {
+      b._uid = b._uid || Math.random().toString(36).substr(2, 9);
+      if (b._exportChecked === undefined) b._exportChecked = true;
+
+      let rBy = "", rRem = "";
+      if ((b["Account_Status"] || "").includes("Rejected")) { 
+          rBy = "Account"; rRem = b["Account_Remark"] || ""; 
+      }
+      else if ((b["CFO_Status"] || "").includes("Rejected")) { 
+          rBy = "CFO"; rRem = b["CFO_Remark"] || ""; 
+      }
+      else if ((b["Admin_Status"] || "").includes("Rejected")) { 
+          rBy = "Admin"; rRem = b["Admin_Remark"] || ""; 
+      }
+      else if ((b["SA_Status"] || "").includes("Rejected")) { 
+          rBy = "Super Admin"; rRem = b["SA_Remark"] || ""; 
+      }
+      else if (b["Approval Status"] === "Rejected") {
+          rBy = "Unknown Stage"; rRem = "—";
+      }
+      
+      b["Rejection By"] = rBy;
+      b["Rejection Remark"] = rRem;
+    });
+
+    
+    // Build column selector if not built yet
+    const colSelector = document.getElementById("columnSelector");
+    if (colSelector && colSelector.children.length === 0) {
+        // extract all keys from the first item
+        const allKeys = Object.keys(Dashboard.queue[0]).filter(k => 
+           !['queueRowIndex', 'Original_JSON'].includes(k)
+        );
+        let cbHtml = "";
+        allKeys.forEach(k => {
+            const isChecked = Dashboard.flowupSelectedColumns.includes(k) ? "checked" : "";
+            cbHtml += `<label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer;">
+                <input type="checkbox" value="${k}" onchange="Dashboard.toggleFlowupColumn(this)" ${isChecked} /> ${k}
+            </label>`;
+        });
+        colSelector.innerHTML = cbHtml;
+    }
+
+    Dashboard.renderFlowupTable();
+  },
+
+  toggleFlowupColumn(cb) {
+    if (cb.checked) {
+        if (!Dashboard.flowupSelectedColumns.includes(cb.value)) {
+            Dashboard.flowupSelectedColumns.push(cb.value);
+        }
+    } else {
+        Dashboard.flowupSelectedColumns = Dashboard.flowupSelectedColumns.filter(c => c !== cb.value);
+    }
+    Dashboard.renderFlowupTable();
+  },
+
+  updateExportCount() {
+    if (!Dashboard.flowupFilteredQueue) return;
+    const count = Dashboard.flowupFilteredQueue.filter(b => b._exportChecked !== false).length;
+    const btnText = document.getElementById("exportCsvBtnText");
+    if (btnText) {
+        btnText.innerText = `Export CSV (${count})`;
+    }
+  },
+
+  toggleFlowupMasterCb(masterCb) {
+    Dashboard.flowupFilteredQueue.forEach(b => {
+        b._exportChecked = masterCb.checked;
+    });
+    Dashboard.renderFlowupTable();
+  },
+
+  toggleFlowupRowCb(uid, cbElement) {
+    const row = Dashboard.queue.find(b => b._uid === uid);
+    if (row) {
+        row._exportChecked = cbElement.checked;
+    }
+    
+    // Update the row background instantly without full re-render
+    const tr = cbElement.closest("tr");
+    if (tr) {
+        tr.style.background = cbElement.checked ? '' : '#fff5f5';
+        tr.setAttribute("onmouseout", `this.style.background='${cbElement.checked ? 'transparent' : '#fff5f5'}'`);
+    }
+    
+    // Check if we need to update the master checkbox
+    const allChecked = Dashboard.flowupFilteredQueue.every(b => b._exportChecked);
+    const masterCb = document.getElementById("flowupMasterCb");
+    if (masterCb) masterCb.checked = allChecked;
+
+    Dashboard.updateExportCount();
+  },
+
+  renderFlowupTable() {
+    const thead = document.getElementById("flowupTableHead");
+    const tbody = document.getElementById("flowupTableBody");
+    if (!thead || !tbody) return;
+
+    // Filter queue by selected stages and close filter
+    Dashboard.flowupFilteredQueue = Dashboard.queue.filter(b => {
+        let stage = b["Current_Stage"] || "New";
+        let isRejected = b["Approval Status"] === "Rejected" || (b["Rejection By"] && b["Rejection By"] !== "");
+        
+        let stageMatch = false;
+        if (isRejected) {
+            stageMatch = Dashboard.flowupSelectedStages.includes("Rejected");
+        } else {
+            stageMatch = Dashboard.flowupSelectedStages.includes(stage) || (stage === "New" && Dashboard.flowupSelectedStages.includes("New"));
+        }
+        if (!stageMatch) return false;
+
+        const isClosed = Dashboard.isClosedBill(b);
+        if (Dashboard.flowupCloseFilter === "OPEN" && isClosed) return false;
+        if (Dashboard.flowupCloseFilter === "CLOSED" && !isClosed) return false;
+
+        return true;
+    });
+
+    // Center these columns
+    const centerCols = ["Approval Status", "Current_Stage", "Rejection By", "Close at"];
+
+    let thHtml = `<tr style="background-color: var(--gray-50); border-bottom: 2px solid var(--gray-200);">`;
+    
+    // Master checkbox in header
+    const isAllChecked = Dashboard.flowupFilteredQueue && Dashboard.flowupFilteredQueue.length > 0 && Dashboard.flowupFilteredQueue.every(b => b._exportChecked);
+    thHtml += `<th style="padding: 16px 10px; width: 40px; text-align: center;"><input type="checkbox" id="flowupMasterCb" ${isAllChecked ? 'checked' : ''} onchange="Dashboard.toggleFlowupMasterCb(this)" style="cursor: pointer;"></th>`;
+    
+    Dashboard.flowupSelectedColumns.forEach(c => {
+        const align = centerCols.includes(c) ? "center" : "left";
+        thHtml += `<th style="padding: 16px 20px; font-weight: 600; color: var(--gray-700); white-space: nowrap; text-align: ${align}; font-size: 0.85rem;">${c}</th>`;
+    });
+    thHtml += `<th style="padding: 16px 14px; font-weight: 600; color: var(--gray-700); white-space: nowrap; text-align: center; font-size: 0.85rem;">Action</th>`;
+    thHtml += `</tr>`;
+    thead.innerHTML = thHtml;
+
+    let trHtml = "";
+
+    // Pagination slicing
+    const limit = Dashboard.flowupRowsPerPage;
+    const page = Dashboard.flowupCurrentPage;
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const pagedQueue = Dashboard.flowupFilteredQueue.slice(start, end);
+
+    if (pagedQueue.length === 0) {
+        trHtml = `<tr><td colspan="100%" class="text-center" style="padding: 32px;">No bills match the selected filters.</td></tr>`;
+    }
+
+    pagedQueue.forEach(b => {
+      // Light red background if unchecked
+      const bgStyle = b._exportChecked ? '' : 'background: #fff5f5;';
+      trHtml += `<tr style="border-bottom: 1px solid var(--gray-100); transition: background 0.2s; ${bgStyle}" onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background='${b._exportChecked ? 'transparent' : '#fff5f5'}'">`;
+      
+      // Row Checkbox
+      trHtml += `<td style="padding: 16px 10px; text-align: center;"><input type="checkbox" ${b._exportChecked ? 'checked' : ''} onchange="Dashboard.toggleFlowupRowCb('${b._uid}', this)" style="cursor: pointer;"></td>`;
+      
+      Dashboard.flowupSelectedColumns.forEach(c => {
+        let rawVal = (b[c] !== undefined && b[c] !== null) ? String(b[c]).trim() : "";
+        const isEmpty = !rawVal || rawVal === "N/A" || rawVal === "NA" || rawVal === "n/a" || rawVal === "null" || rawVal === "undefined";
+        let val = isEmpty ? "—" : rawVal;
+        const align = centerCols.includes(c) ? "center" : "left";
+        
+        // format currency columns — only add ₹ if there is a real number
+        if (["D1. Final Payable Amt", "A20. Basic Amount", "B8. TDS Amount"].includes(c)) {
+            if (!isEmpty && !isNaN(parseFloat(rawVal))) {
+                val = "₹" + rawVal;
+            } else {
+                val = "—";
+            }
+        }
+        
+        if (c === "Approval Status" && !isEmpty) {
+            let statusBadge = "status-new";
+            if(val === "Approved") statusBadge = "status-approved";
+            else if(val === "Rejected") statusBadge = "status-rejected";
+            else if(val === "Reviewed" || val.startsWith("Sent")) statusBadge = "status-pending";
+            val = `<span class="${statusBadge}" style="display: inline-block; min-width: 120px; text-align: center; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.75rem;">${val}</span>`;
+        }
+        
+        if (c === "Current_Stage" && !isEmpty) {
+            val = `<span style="color: var(--primary); font-weight: 600;">${val}</span>`;
+        }
+        
+        if ((c === "Rejection By" || c === "Rejection Remark") && !isEmpty) {
+            val = `<span style="color: var(--danger); font-size: ${c === 'Rejection By' ? '0.85rem; font-weight: 600;' : '0.8rem;'}">${val}</span>`;
+        }
+
+        if (c === "Close at") {
+            const isClosed = Dashboard.isClosedBill(b);
+            if (isClosed) {
+                val = `<span style="display:inline-flex;align-items:center;gap:4px;background:#f1f3f4;color:#3c4043;padding:3px 8px;border-radius:12px;font-size:0.75rem;font-weight:600;"><i class="fa fa-lock" style="font-size:0.7rem"></i> ${rawVal}</span>`;
+            } else {
+                val = `<span style="display:inline-flex;align-items:center;gap:4px;color:#137333;font-size:0.75rem;font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block"></span> Open</span>`;
+            }
+        }
+        
+        trHtml += `<td style="padding: 16px 20px; font-size: 0.85rem; white-space: nowrap; text-align: ${align}; vertical-align: middle;">${val}</td>`;
+      });
+
+      // Action buttons column
+      const isAppr = (b["Approval Status"] || "") === "Approved";
+      const isClosedRow = Dashboard.isClosedBill(b);
+      let actBtns = `<div style="display:flex;gap:6px;justify-content:center;align-items:center">
+        <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:0.75rem" title="View details" onclick="Dashboard.openReview('${b._uid}', '${b._sourceSheet || 'Master_Invoices'}')">
+          <i class="fa fa-eye"></i>
+        </button>`;
+      if (isAppr) {
+        actBtns += `
+          <button class="btn btn-sm ${isClosedRow ? 'btn-outline' : 'btn-ghost'}" style="padding:4px 8px;font-size:0.75rem;color:${isClosedRow ? '#5f6368' : '#ea4335'};" title="${isClosedRow ? 'Reopen Bill' : 'Close Bill'}" onclick="Dashboard.toggleCloseBill(${b.queueRowIndex}, this)">
+            <i class="fa ${isClosedRow ? 'fa-lock-open' : 'fa-lock'}"></i>
+          </button>`;
+      }
+      actBtns += `</div>`;
+      trHtml += `<td style="padding: 12px 10px; text-align: center; vertical-align: middle; white-space: nowrap;">${actBtns}</td>`;
+
+      trHtml += `</tr>`;
+    });
+    tbody.innerHTML = trHtml;
+
+    // Render pagination controls
+    const totalItems = Dashboard.flowupFilteredQueue.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const pagEl = document.getElementById("flowupPagination");
+    if (pagEl) {
+        pagEl.innerHTML = `
+            <div>Showing ${totalItems === 0 ? 0 : start + 1} to ${Math.min(end, totalItems)} of ${totalItems} entries</div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline btn-sm" ${page <= 1 ? 'disabled style="opacity:0.5"' : ''} onclick="Dashboard.changeFlowupPage(-1)">Previous</button>
+                <button class="btn btn-outline btn-sm" ${page >= totalPages || totalPages === 0 ? 'disabled style="opacity:0.5"' : ''} onclick="Dashboard.changeFlowupPage(1)">Next</button>
+            </div>
+        `;
+    }
+    Dashboard.updateExportCount();
+  },
+
+  async bulkCloseFlowup(isClosing) {
+    const selected = (Dashboard.flowupFilteredQueue || []).filter(b => b._exportChecked !== false);
+    if (selected.length === 0) {
+      Toast.warning("Please select at least one bill using the checkboxes.");
+      return;
+    }
+    const rows = selected.map(b => b.queueRowIndex).filter(Boolean);
+    if (rows.length === 0) {
+      Toast.warning("No valid bill rows selected.");
+      return;
+    }
+    const actionText = isClosing ? "close" : "reopen";
+    if (!confirm(`Are you sure you want to ${actionText} ${rows.length} selected bill(s)?`)) {
+      return;
+    }
+    Loader.show(`${isClosing ? "Closing" : "Reopening"} ${rows.length} bills...`);
+    try {
+      const res = await API.biller.bulkClose(rows, isClosing);
+      Loader.hide();
+      if (!res || !res.success) {
+        throw new Error(res?.message || `Failed to ${actionText} bills`);
+      }
+      const newCloseVal = res.data?.closeAt || (isClosing ? new Date().toLocaleString() : "");
+      selected.forEach(b => {
+        b["Close at"] = newCloseVal;
+        b["Close_At"] = newCloseVal;
+        b["Close At"] = newCloseVal;
+      });
+      Toast.success(res.data?.message || `${rows.length} bills updated successfully`);
+      Dashboard.renderFlowupTable();
+      Dashboard.filterApproved(document.getElementById("approvedSearchInput")?.value || "");
+    } catch (err) {
+      Loader.hide();
+      console.error("bulkCloseFlowup error:", err);
+      Toast.error(err.message || `Failed to ${actionText} bills`);
+    }
+  },
+
+  async loadRecentBills() {
+    const res = await API.biller.getQueue();
+    if (!res?.success) return;
+    Dashboard.setQueue(res.data.queue);
+
+    const recent = [...Dashboard.queue]
+      .sort((a,b) => new Date(b["Timestamp"]) - new Date(a["Timestamp"]))
+      .slice(0,5);
+
+    const el = document.getElementById("recentBills");
+    if (el) {
+      el.innerHTML = recent.length === 0
+        ? `<div class="empty-state" style="padding:20px 0">
+            <div class="empty-icon">📭</div>
+            <div class="empty-title">No bills yet</div>
+            <div class="empty-text">Click Sync to pull bills</div>
+           </div>`
+        : recent.map(b => Dashboard.buildBillCard(b, true)).join("");
+    }
+
+    // Strictly use invoicesQueue for new bills alert
+    const newBills = Dashboard.invoicesQueue;
+    const newEl   = document.getElementById("newBillsList");
+    const alertEl = document.getElementById("newBillsAlert");
+
+    if (newBills.length === 0) {
+      if (alertEl) alertEl.style.display = "none";
+    } else {
+      if (alertEl) alertEl.style.display = "block";
+      if (newEl) {
+        newEl.innerHTML = newBills.slice(0,5).map(b => `
+          <div style="padding:8px 0;border-bottom:1px solid
+            var(--gray-100);cursor:pointer;display:flex;
+            align-items:center;justify-content:space-between"
+            onclick="Dashboard.openReview('${b._uid}', 'Invoices')">
+            <div>
+              <div style="font-size:0.82rem;font-weight:600">
+                ${b["A13. Invoice Number"]||"—"}
+              </div>
+              <div style="font-size:0.72rem;color:var(--gray-500)">
+                ${Utils.truncate(b["A14. Vendor Name"],22)}
+              </div>
+            </div>
+            <span style="font-size:0.72rem;font-weight:700;
+              color:var(--primary)">Review →</span>
+          </div>`).join("");
+      }
+    }
+  },
+
+  async loadNewSection() {
+    await Dashboard.ensureQueue();
+    // Strictly load from Invoices sheet
+    const newBills = Dashboard.invoicesQueue;
+    const el    = document.getElementById("newBillsList2");
+    const count = document.getElementById("newCount");
+    if (count) count.textContent = `(${newBills.length} bills in Invoices sheet)`;
+
+    if (!el) return;
+    if (newBills.length === 0) {
+      el.innerHTML = `<div class="empty-state" style="padding:32px">
+        <div class="empty-icon">🎉</div>
+        <div class="empty-title">No new bills in Invoices sheet!</div>
+        <div class="empty-text">All bills in Invoices sheet have been reviewed</div>
+      </div>`;
+      return;
+    }
+    el.innerHTML = newBills.map(b =>
+      Dashboard.buildBillCard(b, false)).join("");
+  },
+
+  async loadProcessSection() {
+    await Dashboard.ensureQueue();
+    Dashboard.filterBills("process");
+  },
+
+  
+  
+
+  
+  async loadApprovedSection() {
+    await Dashboard.ensureQueue();
+    const searchVal = document.getElementById("approvedSearchInput")?.value || "";
+    Dashboard.filterApproved(searchVal);
+  },
+
+  setApprovedFilter(status, btn) {
+    Dashboard.approvedFilterStatus = status;
+    document.querySelectorAll("#section-approved .filter-tab").forEach(b => b.classList.remove("active"));
+    if (btn) btn.classList.add("active");
+    const searchVal = document.getElementById("approvedSearchInput")?.value || "";
+    Dashboard.filterApproved(searchVal);
+  },
+
+  filterApproved(query) {
+    query = (query || "").trim().toLowerCase();
+    const allApproved = Dashboard.queue.filter(b => (b["Approval Status"]||"") === "Approved");
+    const openApproved = allApproved.filter(b => !Dashboard.isClosedBill(b));
+    const closedApproved = allApproved.filter(b => Dashboard.isClosedBill(b));
+
+    // Update count badges
+    const openCountEl = document.getElementById("appOpenCount");
+    const closedCountEl = document.getElementById("appClosedCount");
+    const allCountEl = document.getElementById("appAllCount");
+    if (openCountEl) openCountEl.textContent = openApproved.length;
+    if (closedCountEl) closedCountEl.textContent = closedApproved.length;
+    if (allCountEl) allCountEl.textContent = allApproved.length;
+
+    let baseList = allApproved;
+    let titleText = "Approved Bills (All)";
+    if (Dashboard.approvedFilterStatus === "OPEN") {
+      baseList = openApproved;
+      titleText = "Approved Bills (Open)";
+    } else if (Dashboard.approvedFilterStatus === "CLOSED") {
+      baseList = closedApproved;
+      titleText = "Approved Bills (Closed)";
+    }
+
+    const titleEl = document.getElementById("approvedSectionTitle");
+    if (titleEl) titleEl.textContent = titleText;
+
+    let bills = baseList;
+    if (query) {
+      bills = bills.filter(b =>
+        String(b["A13. Invoice Number"]||"").toLowerCase().includes(query) ||
+        String(b["A14. Vendor Name"]||"").toLowerCase().includes(query)
+      );
+    }
+
+    const count = document.getElementById("approvedCount");
+    if (count) count.textContent = `(${bills.length} bills)`;
+
+    const el = document.getElementById("approvedList");
+    if (!el) return;
+
+    if (bills.length === 0) {
+      el.innerHTML = query 
+        ? Dashboard.emptyState("No matching approved bills found")
+        : `<div class="empty-state" style="padding:32px">
+            <div class="empty-icon">${Dashboard.approvedFilterStatus === "CLOSED" ? "🔒" : "✅"}</div>
+            <div class="empty-title">No ${Dashboard.approvedFilterStatus === "CLOSED" ? "closed" : (Dashboard.approvedFilterStatus === "OPEN" ? "open approved" : "approved")} bills</div>
+          </div>`;
+      return;
+    }
+    el.innerHTML = bills.map(b => Dashboard.buildBillCard(b, false)).join("");
+  },
+
+  async loadCompletedSection() {
+    await Dashboard.ensureQueue();
+    const approved = Dashboard.queue.filter(
+      b => (b["Approval Status"]||"") === "Approved").length;
+    const rejected = Dashboard.queue.filter(
+      b => (b["Approval Status"]||"") === "Rejected").length;
+
+    const appEl = document.getElementById("completedApproved");
+    const rejEl = document.getElementById("completedRejected");
+    if (appEl) appEl.textContent = approved;
+    if (rejEl) rejEl.textContent = rejected;
+
+    Dashboard.filterCompleted(
+      document.querySelector(".filter-tab[data-cstatus].active"));
+  },
+
+  filterCompleted(btn) {
+    if (btn) {
+      document.querySelectorAll(".filter-tab[data-cstatus]")
+        .forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    }
+    const status  = document.querySelector(
+      ".filter-tab[data-cstatus].active")?.dataset.cstatus || "ALL";
+    const el      = document.getElementById("completedList");
+    const count   = document.getElementById("completedCount");
+    if (!el) return;
+
+    let bills = Dashboard.queue.filter(b => {
+      const s = b["Approval Status"] || "";
+      if (status === "ALL")
+        return s === "Approved" || s === "Rejected";
+      return s === status;
+    });
+
+    if (count) count.textContent = `(${bills.length} bills)`;
+
+    if (bills.length === 0) {
+      el.innerHTML = `<div class="empty-state" style="padding:32px">
+        <div class="empty-icon">📋</div>
+        <div class="empty-title">No completed bills yet</div>
+      </div>`;
+      return;
+    }
+
+    el.innerHTML = bills.map(b => {
+      const status  = b["Approval Status"] || "";
+      const isApproved = status === "Approved";
+      return `
+        <div class="completed-card ${isApproved ? 'approved':'rejected'}"
+          onclick="Dashboard.openReview('${b._uid}', '${b._sourceSheet || 'Master_Invoices'}')">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;
+              gap:10px;margin-bottom:6px">
+              <strong style="font-size:0.9rem">
+                ${b["A13. Invoice Number"]||"—"}
+              </strong>
+              ${Dashboard.buildStatusBadge(status)}
+            </div>
+            <div style="font-size:0.82rem;color:var(--gray-700);
+              margin-bottom:3px">
+              ${Utils.truncate(b["A14. Vendor Name"],30)}
+            </div>
+            <div style="font-size:0.75rem;color:var(--gray-500);
+              display:flex;gap:16px;flex-wrap:wrap">
+              <span>
+                💰 ${Utils.formatCurrency(b["A20. Basic Amount"])}
+              </span>
+              <span>
+                Sent to: ${b["Sent To Role"]||"—"}
+              </span>
+              <span>
+                ${Utils.formatDate(b["Sent At"])}
+              </span>
+              ${isApproved && b["Approved By"]
+                ? `<span style="color:var(--secondary)">
+                     ✅ By: ${b["Approved By"]}
+                   </span>` : ""}
+              ${!isApproved && b["Rejected By"]
+                ? `<span style="color:var(--danger)">
+                     ❌ By: ${b["Rejected By"]}
+                   </span>` : ""}
+            </div>
+            ${b["Rejection Reason"]
+              ? `<div style="margin-top:6px;font-size:0.75rem;
+                  color:var(--danger);background:#fff5f5;
+                  padding:6px 10px;border-radius:6px">
+                  Reason: ${b["Rejection Reason"]}
+                 </div>` : ""}
+          </div>
+          <i class="fa fa-chevron-right"
+            style="color:var(--gray-300)"></i>
+        </div>`;
+    }).join("");
+  },
+
+  filterBills(type) {
+    if (type === "new") {
+      const search = (document.getElementById("newSearchInput")
+        ?.value || "").toLowerCase();
+      // Strictly search within invoicesQueue (Invoices sheet)
+      const bills  = Dashboard.invoicesQueue
+        .filter(b => !search ||
+          String(b["A13. Invoice Number"]||"").toLowerCase().includes(search) ||
+          String(b["A14. Vendor Name"]||"").toLowerCase().includes(search));
+      const el    = document.getElementById("newBillsList2");
+      const count = document.getElementById("newCount");
+      if (count) count.textContent = `(${bills.length})`;
+      if (el) el.innerHTML = bills.length === 0
+        ? Dashboard.emptyState("No new bills found in Invoices sheet")
+        : bills.map(b => Dashboard.buildBillCard(b,false)).join("");
+      return;
+    }
+
+    if (type === "process") {
+      const pStatus = document.querySelector(
+        ".filter-tab[data-pstatus].active")?.dataset.pstatus || "ALL";
+      const search  = (document.getElementById("processSearchInput")
+        ?.value || "").toLowerCase();
+      const bills   = Dashboard.queue.filter(b => {
+        const s = (b["Approval Status"]||"");
+        const inProcess = s === "Reviewed" ||
+          s.startsWith("Sent") || s === "Pending";
+        if (!inProcess) return false;
+        if (pStatus !== "ALL") {
+          if (pStatus === "Sent") return s.startsWith("Sent");
+          return s === pStatus;
+        }
+        return true;
+      }).filter(b => !search ||
+        String(b["A13. Invoice Number"]||"").toLowerCase().includes(search)||
+        String(b["A14. Vendor Name"]||"").toLowerCase().includes(search));
+
+      const el    = document.getElementById("processBillsList");
+      const count = document.getElementById("processCount");
+      if (count) count.textContent = `(${bills.length})`;
+      if (el) el.innerHTML = bills.length === 0
+        ? Dashboard.emptyState("No bills in process")
+        : bills.map(b => Dashboard.buildBillCard(b,false)).join("");
+      return;
+    }
+
+    const status = document.querySelector(
+      ".filter-tab[data-status].active")?.dataset.status || "ALL";
+    const search = (document.getElementById("searchInput")
+      ?.value || "").toLowerCase();
+
+    let bills = [...Dashboard.queue];
+    if (status !== "ALL") {
+      bills = bills.filter(b => {
+        const s = (b["Approval Status"]||"");
+        if (status === "Sent") return s.startsWith("Sent");
+        return s === status;
+      });
+    }
+    if (search) {
+      bills = bills.filter(b =>
+        String(b["A13. Invoice Number"]||"").toLowerCase().includes(search)||
+        String(b["A14. Vendor Name"]||"").toLowerCase().includes(search));
+    }
+
+    Dashboard.filtered = bills;
+    Dashboard.billerCurrentPage = 1;
+    Dashboard.renderBills("all");
+  },
+
+  changeBillerPage(delta) {
+    const totalPages = Math.ceil(Dashboard.filtered.length / Dashboard.billerRowsPerPage);
+    let newPage = Dashboard.billerCurrentPage + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+      Dashboard.billerCurrentPage = newPage;
+      Dashboard.renderBills("all");
+    }
+  },
+
+  renderBills(type) {
+    const el    = document.getElementById("billsList");
+    const count = document.getElementById("billCount");
+    const bills = Dashboard.filtered;
+    if (!el) return;
+    if (count) count.textContent = `(${bills.length})`;
+    
+    // Pagination logic
+    const limit = Dashboard.billerRowsPerPage;
+    const page = Dashboard.billerCurrentPage;
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const pagedBills = bills.slice(start, end);
+
+    el.innerHTML = pagedBills.length === 0
+      ? Dashboard.emptyState("No bills found")
+      : pagedBills.map(b => Dashboard.buildBillCard(b,false)).join("");
+      
+    // Render pagination controls
+    const totalItems = bills.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const pagEl = document.getElementById("billerPagination");
+    if (pagEl) {
+        if (totalItems > 0) {
+            pagEl.innerHTML = `
+                <div>Showing ${start + 1} to ${Math.min(end, totalItems)} of ${totalItems} entries</div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline btn-sm" ${page <= 1 ? 'disabled style="opacity:0.5"' : ''} onclick="Dashboard.changeBillerPage(-1)">Previous</button>
+                    <button class="btn btn-outline btn-sm" ${page >= totalPages ? 'disabled style="opacity:0.5"' : ''} onclick="Dashboard.changeBillerPage(1)">Next</button>
+                </div>
+            `;
+            pagEl.style.display = 'flex';
+        } else {
+            pagEl.style.display = 'none';
+        }
+    }
+  },
+
+  emptyState(msg) {
+    return `<div class="empty-state" style="padding:32px">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">${msg}</div>
+    </div>`;
+  },
+
+  buildBillCard(b, compact) {
+    const status   = b["Approval Status"] || "New";
+    const invNo    = b["A13. Invoice Number"] || "—";
+    const vendor   = b["A14. Vendor Name"]    || "—";
+    const amount   = Utils.formatCurrency(b["A20. Basic Amount"]);
+    const payable  = Utils.formatCurrency(b["D1. Final Payable Amt"]);
+    const date     = Utils.formatDate(b["Timestamp"]);
+    const flags    = b["🚩 Red Flags"] || "";
+    const flagCnt  = flags ? flags.split("|").length : 0;
+    const sheet    = b._sourceSheet || (status === "New" ? "Invoices" : "Master_Invoices");
+    const rowIndex = (b._sheetRowIndex !== undefined && b._sheetRowIndex !== null && b._sheetRowIndex !== "")
+      ? b._sheetRowIndex
+      : ((b.queueRowIndex !== undefined && b.queueRowIndex !== null && b.queueRowIndex !== "") ? b.queueRowIndex : (b.rowIndex !== undefined ? b.rowIndex : b["A13. Invoice Number"]));
+    const cardId   = b._uid || `${sheet}_row_${rowIndex}`;
+    const isClosed = Dashboard.isClosedBill(b);
+    const closeAtDate = Dashboard.getCloseAtDate(b);
+
+    const cls = status==="New"      ? "new-bill"      :
+                status==="Reviewed" ? "reviewed-bill" :
+                status.startsWith("Sent") ? "sent-bill" :
+                status==="Approved" ? "approved-bill" :
+                status==="Rejected" ? "rejected-bill" : "";
+
+    const badge = Dashboard.buildStatusBadge(status);
+
+    if (compact) return `
+      <div class="bill-card ${cls}"
+        onclick="Dashboard.openReview('${cardId}', '${sheet}')">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;
+            gap:6px;margin-bottom:2px">
+            <strong style="font-size:0.84rem">${invNo}</strong>
+            ${badge}
+            ${status === "Approved" ? (isClosed 
+              ? `<span style="background:#e8eaed;color:#3c4043;font-size:0.68rem;padding:2px 6px;border-radius:10px;"><i class="fa fa-lock"></i> Closed</span>` 
+              : `<span style="background:#e6f4ea;color:#137333;font-size:0.68rem;padding:2px 6px;border-radius:10px;">🟢 Open</span>`) : ""}
+          </div>
+          <div style="font-size:0.77rem;color:var(--gray-600)">
+            ${Utils.truncate(vendor,22)} •
+            <strong>${amount}</strong>
+          </div>
+          ${status === "Rejected" ? (() => {
+              let rBy = "Unknown", rRem = "No remark provided";
+              if ((b["Account_Status"] || "").includes("Rejected")) { rBy = "Account"; rRem = b["Account_Remark"] || rRem; }
+              else if ((b["CFO_Status"] || "").includes("Rejected")) { rBy = "CFO"; rRem = b["CFO_Remark"] || rRem; }
+              else if ((b["Admin_Status"] || "").includes("Rejected")) { rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; }
+              else if ((b["SA_Status"] || "").includes("Rejected")) { rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; }
+              return `<div style="margin-top:6px;font-size:0.72rem;color:#d32f2f;">
+                <strong>Rejected by ${rBy}:</strong> ${Utils.truncate(rRem, 40)}
+              </div>`;
+          })() : ""}
+        </div>
+        <i class="fa fa-chevron-right"
+          style="color:var(--gray-300)"></i>
+      </div>`;
+
+    return `
+      <div class="bill-card ${cls}"
+        onclick="Dashboard.openReview('${cardId}', '${sheet}')">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;
+            gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            <strong style="font-size:0.9rem">${invNo}</strong>
+            ${badge}
+            ${status === "Approved" ? (isClosed 
+              ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8eaed;color:#3c4043;font-size:0.72rem;padding:3px 8px;border-radius:12px;font-weight:600;"><i class="fa fa-lock" style="font-size:0.7rem"></i> Closed: ${closeAtDate}</span>` 
+              : `<span style="display:inline-flex;align-items:center;gap:4px;background:#e6f4ea;color:#137333;font-size:0.72rem;padding:3px 8px;border-radius:12px;font-weight:600;"><span style="width:7px;height:7px;border-radius:50%;background:#10b981;display:inline-block"></span> Open</span>`) : ""}
+            ${flagCnt > 0
+              ? `<span class="flag-count">🚩 ${flagCnt}</span>` : ""}
+          </div>
+          <div style="font-size:0.83rem;color:var(--gray-700);
+            margin-bottom:4px">
+            <i class="fa fa-building"
+              style="color:var(--gray-400);width:14px"></i>
+            ${Utils.truncate(vendor,32)}
+          </div>
+          <div style="font-size:0.76rem;color:var(--gray-500);
+            display:flex;gap:14px;flex-wrap:wrap">
+            <span><i class="fa fa-calendar"
+              style="width:12px"></i> ${date}</span>
+            <span>Basic: ${amount}</span>
+            <span>Payable: <strong>${payable}</strong></span>
+            ${b["Sent To Role"]
+              ? `<span style="color:var(--secondary)">
+                   📤 → ${b["Sent To Role"]}
+                 </span>` : ""}
+          </div>
+          ${status === "Rejected" ? (() => {
+              let rBy = "Unknown", rRem = "No remark provided";
+              if ((b["Account_Status"] || "").includes("Rejected")) { rBy = "Account"; rRem = b["Account_Remark"] || rRem; }
+              else if ((b["CFO_Status"] || "").includes("Rejected")) { rBy = "CFO"; rRem = b["CFO_Remark"] || rRem; }
+              else if ((b["Admin_Status"] || "").includes("Rejected")) { rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; }
+              else if ((b["SA_Status"] || "").includes("Rejected")) { rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; }
+              return `<div style="margin-top:8px;background:#fff0f0;border-left:3px solid #ea4335;border-radius:4px;padding:6px 10px;font-size:0.75rem;">
+                <div style="color:#d32f2f;font-weight:700;margin-bottom:2px">❌ Rejected by ${rBy}</div>
+                <div style="color:#5f6368">${rRem}</div>
+              </div>`;
+          })() : ""}
+        </div>
+        <div style="flex-shrink:0; display:flex; gap:6px; align-items:center">
+          ${status === "Approved" ? `
+            <button class="btn btn-sm ${isClosed ? 'btn-outline' : 'btn-danger'}"
+              style="${isClosed ? 'border-color:#5f6368;color:#5f6368;' : 'background:#ea4335;border-color:#ea4335;color:#fff;'}"
+              title="${isClosed ? 'Reopen Bill' : 'Mark Bill as Closed'}"
+              onclick="event.stopPropagation(); Dashboard.toggleCloseBill(${rowIndex}, this)">
+              <i class="fa ${isClosed ? 'fa-lock-open' : 'fa-lock'}"></i> ${isClosed ? 'Reopen' : 'Close'}
+            </button>
+          ` : ''}
+          ${status==="New" || status==="Reviewed"
+            ? `<button class="btn btn-primary btn-sm"
+                onclick="event.stopPropagation();
+                  Dashboard.openReview('${cardId}', '${sheet}')">
+                <i class="fa fa-eye"></i> Review
+               </button>`
+            : `<button class="btn btn-ghost btn-sm"
+                onclick="event.stopPropagation();
+                  Dashboard.openReview('${cardId}', '${sheet}')">
+                <i class="fa fa-eye"></i> Read View
+               </button>`}
+        </div>
+      </div>`;
+  },
+
+  buildStatusBadge(status) {
+    if (!status) return "";
+    if (status.startsWith("Sent"))
+      return `<span class="status-sent">📤 ${status}</span>`;
+    const map = {
+      "New"     : `<span class="status-new">🆕 New</span>`,
+      "Reviewed": `<span class="status-reviewed">👁️ Reviewed</span>`,
+      "Approved": `<span class="status-approved">✅ Approved</span>`,
+      "Rejected": `<span class="status-rejected">❌ Rejected</span>`,
+      "Pending" : `<span class="status-pending">⏳ Pending</span>`
+    };
+    return map[status] || `<span class="status-new">${status}</span>`;
+  },
+
+  async toggleCloseBill(rowIndex, btnEl) {
+    if (rowIndex === undefined || rowIndex === null || rowIndex === "undefined" || rowIndex === "") {
+      Toast.error("Bill not found!");
+      return;
+    }
+    const bill = Dashboard.queue.find(b => 
+      (b.queueRowIndex !== undefined && b.queueRowIndex !== null && String(b.queueRowIndex) === String(rowIndex)) ||
+      (b.rowIndex !== undefined && b.rowIndex !== null && String(b.rowIndex) === String(rowIndex)) ||
+      (b["A13. Invoice Number"] && String(b["A13. Invoice Number"]) === String(rowIndex))
+    );
+    if (!bill) {
+      Toast.error("Bill not found!");
+      return;
+    }
+    const wasClosed = Dashboard.isClosedBill(bill);
+    let origHtml = "";
+    if (btnEl) {
+      origHtml = btnEl.innerHTML;
+      btnEl.disabled = true;
+      btnEl.innerHTML = `<i class="fa fa-spinner fa-spin"></i>`;
+    }
+    try {
+      const res = await API.biller.toggleClose(rowIndex);
+      if (!res || !res.success) {
+        throw new Error(res?.message || "Failed to update bill close status");
+      }
+      const newCloseVal = res.data?.closeAt || (res.data?.isClosed ? new Date().toLocaleString() : "");
+      bill["Close at"] = newCloseVal;
+      bill["Close_At"] = newCloseVal;
+      bill["Close At"] = newCloseVal;
+
+      Toast.success(res.data?.message || (res.data?.isClosed ? "Bill closed successfully" : "Bill reopened successfully"));
+
+      if (Dashboard.currentBill && Dashboard.currentBill.queueRowIndex === rowIndex) {
+        Dashboard.currentBill["Close at"] = newCloseVal;
+        Dashboard.currentBill["Close_At"] = newCloseVal;
+        Dashboard.currentBill["Close At"] = newCloseVal;
+        Dashboard.updateModalCloseState();
+      }
+
+      // Re-filter views
+      Dashboard.filterApproved(document.getElementById("approvedSearchInput")?.value || "");
+      if (document.getElementById("section-flowup")?.classList.contains("active")) {
+        Dashboard.renderFlowupTable();
+      }
+      if (document.getElementById("section-completed")?.classList.contains("active")) {
+        Dashboard.loadCompletedSection();
+      }
+    } catch (err) {
+      console.error("toggleCloseBill error:", err);
+      Toast.error(err.message || "Failed to update bill close status");
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = origHtml;
+      }
+    }
+  },
+
+  async toggleCloseCurrentBill(btnEl) {
+    if (!Dashboard.currentBill) return;
+    await Dashboard.toggleCloseBill(Dashboard.currentBill.queueRowIndex, btnEl);
+  },
+
+  updateModalCloseState() {
+    const bill = Dashboard.currentBill;
+    const btn = document.getElementById("modalCloseBillBtn");
+    if (!bill || !btn) return;
+    const status = bill["Approval Status"] || "New";
+    if (status !== "Approved") {
+      btn.style.display = "none";
+      return;
+    }
+    const isClosed = Dashboard.isClosedBill(bill);
+    btn.style.display = "inline-flex";
+    if (isClosed) {
+      btn.className = "btn btn-outline btn-sm";
+      btn.style.borderColor = "#5f6368";
+      btn.style.color = "#5f6368";
+      btn.style.background = "transparent";
+      btn.innerHTML = `<i class="fa fa-lock-open"></i> Reopen Bill`;
+    } else {
+      btn.className = "btn btn-danger btn-sm";
+      btn.style.background = "#ea4335";
+      btn.style.borderColor = "#ea4335";
+      btn.style.color = "#fff";
+      btn.innerHTML = `<i class="fa fa-lock"></i> Close Bill`;
+    }
+  },
+
+  switchTab(btn, tabId) {
+    document.querySelectorAll(".rev-tab")
+      .forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".rev-tab-content")
+      .forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(tabId)?.classList.add("active");
+  },
+
+  openReview(rowIndex, sourceSheetHint) {
+    if (rowIndex === undefined || rowIndex === null || rowIndex === "undefined" || rowIndex === "") {
+      console.error("openReview called with invalid rowIndex:", rowIndex);
+      Toast.error("Bill not found!");
+      return;
+    }
+
+    let bill = null;
+
+    // 1. If explicit hint is Invoices, search ONLY in invoicesQueue (Invoices sheet)
+    if (sourceSheetHint === "Invoices" || String(rowIndex).startsWith("Invoices_")) {
+      bill = Dashboard.invoicesQueue.find(b => 
+        (b._uid && String(b._uid) === String(rowIndex)) ||
+        (b._sheetRowIndex !== undefined && String(b._sheetRowIndex) === String(rowIndex)) ||
+        (b.queueRowIndex !== undefined && String(b.queueRowIndex) === String(rowIndex)) ||
+        (b.rowIndex !== undefined && String(b.rowIndex) === String(rowIndex)) ||
+        (b["A13. Invoice Number"] && String(b["A13. Invoice Number"]) === String(rowIndex))
+      );
+    } 
+    // 2. If explicit hint is Master_Invoices, search ONLY in masterQueue (Master_Invoices sheet)
+    else if (sourceSheetHint === "Master_Invoices" || String(rowIndex).startsWith("Master_")) {
+      bill = Dashboard.masterQueue.find(b => 
+        (b._uid && String(b._uid) === String(rowIndex)) ||
+        (b._sheetRowIndex !== undefined && String(b._sheetRowIndex) === String(rowIndex)) ||
+        (b.queueRowIndex !== undefined && String(b.queueRowIndex) === String(rowIndex)) ||
+        (b.rowIndex !== undefined && String(b.rowIndex) === String(rowIndex)) ||
+        (b["A13. Invoice Number"] && String(b["A13. Invoice Number"]) === String(rowIndex))
+      );
+    } 
+    // 3. Fallback: match by unique _uid or queue
+    else {
+      bill = Dashboard.queue.find(b => b._uid && String(b._uid) === String(rowIndex)) ||
+             Dashboard.invoicesQueue.find(b => String(b.queueRowIndex) === String(rowIndex) || String(b["A13. Invoice Number"]) === String(rowIndex)) ||
+             Dashboard.masterQueue.find(b => String(b.queueRowIndex) === String(rowIndex) || String(b["A13. Invoice Number"]) === String(rowIndex));
+    }
+
+    if (!bill) { 
+      console.error("openReview: Bill not found for key:", rowIndex, "hint:", sourceSheetHint);
+      Toast.error("Bill not found!"); 
+      return; 
+    }
+
+    Dashboard.currentBill  = bill;
+    Dashboard.pendingEdits = {};
+
+    const status   = bill["Approval Status"] || "New";
+    const invNo    = bill["A13. Invoice Number"] || "N/A";
+    const vendor   = bill["A14. Vendor Name"]    || "N/A";
+    const amount   = Utils.formatCurrency(bill["A20. Basic Amount"]);
+    const payable  = Utils.formatCurrency(bill["D1. Final Payable Amt"]);
+    const redFlags = bill["🚩 Red Flags"] || "";
+    const driveUrl = bill["Drive URL"];
+    const sheet    = bill._sourceSheet || "Invoices";
+    const rowNum   = bill._sheetRowIndex || bill.queueRowIndex || bill.rowIndex;
+
+    document.getElementById("modalInvoiceNo").textContent = invNo;
+
+    const sheetBadge = sheet === "Invoices"
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f0fe;color:#1a73e8;border:1px solid #c2e7ff;font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:600;"><i class="fa fa-file-invoice"></i> Sheet: Invoices (Row #${rowNum})</span>`
+      : `<span style="display:inline-flex;align-items:center;gap:4px;background:#f1f3f4;color:#3c4043;border:1px solid #dadce0;font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:600;"><i class="fa fa-database"></i> Sheet: Master_Invoices (Row #${rowNum})</span>`;
+
+    document.getElementById("modalBillBanner").innerHTML = `
+      <div style="display:flex;align-items:center;
+        justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <span style="font-size:1rem;font-weight:700">${vendor}</span>
+            ${sheetBadge}
+          </div>
+          <div style="font-size:0.78rem;color:var(--gray-600)">
+            Invoice: ${invNo} •
+            Date: ${bill["A12. Invoice Date"]||"N/A"} •
+            From: ${Utils.truncate(bill["Email From"]||"",30)}
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:center">
+          <div style="text-align:right">
+            <div style="font-size:0.68rem;color:var(--gray-500)">
+              Basic Amount
+            </div>
+            <div style="font-size:1rem;font-weight:700">
+              ${amount}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:0.68rem;color:var(--gray-500)">
+              Final Payable
+            </div>
+            <div style="font-size:1.2rem;font-weight:800;
+              color:var(--primary)">${payable}</div>
+          </div>
+          ${Dashboard.buildStatusBadge(status)}
+        </div>
+      </div>`;
+
+    const trackingBox = document.getElementById("modalTrackingTimeline");
+    if(trackingBox) {
+      trackingBox.innerHTML = Dashboard.generateTrackingTimeline(bill);
+    }
+
+    const attEl = document.getElementById("attachmentPreview");
+    if (driveUrl && driveUrl !== "N/A" &&
+        driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
+      const name    = (bill["Attachment Name"] || "").toLowerCase();
+      const isImage = name.endsWith(".jpg") ||
+                      name.endsWith(".jpeg") ||
+                      name.endsWith(".png");
+      attEl.innerHTML = `
+        <div style="display:flex;align-items:center;
+          justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="font-weight:600;font-size:0.9rem">
+              📎 ${bill["Attachment Name"]||"Invoice File"}
+            </div>
+            <div style="font-size:0.72rem;color:var(--gray-500)">
+              Click button to open full size
+            </div>
+          </div>
+          <a href="${driveUrl}" target="_blank"
+            class="btn btn-primary btn-sm">
+            <i class="fa fa-external-link"></i> Open Full Size
+          </a>
+        </div>
+        <div style="border:2px solid var(--gray-200);
+          border-radius:12px;overflow:hidden;
+          background:#f8f9fa;min-height:320px;
+          display:flex;align-items:center;
+          justify-content:center">
+          ${isImage
+            ? `<img src="${driveUrl}" alt="Invoice"
+                 style="max-width:100%;max-height:500px;
+                 object-fit:contain"/>`
+            : `<div style="text-align:center;padding:48px 24px">
+                 <div style="font-size:5rem;margin-bottom:16px">
+                   📄
+                 </div>
+                 <div style="font-weight:600;font-size:1rem;
+                   margin-bottom:6px">
+                   ${bill["Attachment Name"]||"Invoice PDF"}
+                 </div>
+                 <div style="color:var(--gray-500);font-size:0.82rem;
+                   margin-bottom:20px">
+                   PDF preview not available here
+                 </div>
+                 <a href="${driveUrl}" target="_blank"
+                   class="btn btn-primary">
+                   <i class="fa fa-eye"></i> View Invoice PDF
+                 </a>
+               </div>`}
+        </div>`;
+    } else {
+      attEl.innerHTML = `<div class="empty-state" style="padding:40px">
+        <div class="empty-icon">📎</div>
+        <div class="empty-title">No attachment</div>
+        <div class="empty-text">File not uploaded to Drive</div>
+      </div>`;
+    }
+
+    document.getElementById("accountingFields").innerHTML = [
+      {key:"a1", label:"A1. Billed To",         field:"A1. Billed To",          val:bill["A1. Billed To"]         },
+      {key:"a2", label:"A2. Our Name Correct",   field:"A2. Our Name Correct",   val:bill["A2. Our Name Correct"],
+        type:"select",options:["","Yes","No","Cannot Determine"]},
+      {key:"a3", label:"A3. Address Present",    field:"A3. Address Present",    val:bill["A3. Address Present"],
+        type:"select",options:["","Yes","No"]},
+      {key:"a4", label:"A4. Our Address",        field:"A4. Our Address",        val:bill["A4. Our Address"],       wide:true},
+      {key:"a5", label:"A5. Address Correct",    field:"A5. Address Correct",    val:bill["A5. Address Correct"],
+        type:"select",options:["","Yes","No","Cannot Determine"]},
+      {key:"a6", label:"A6. PAN Present",        field:"A6. PAN Present",        val:bill["A6. PAN Present"],
+        type:"select",options:["","Yes","No"]},
+      {key:"a7", label:"A7. Our PAN",            field:"A7. Our PAN",            val:bill["A7. Our PAN"]            },
+      {key:"a8", label:"A8. PAN Correct",        field:"A8. PAN Correct",        val:bill["A8. PAN Correct"],
+        type:"select",options:["","Yes","No","Cannot Determine"]},
+      {key:"a9", label:"A9. GST Present",        field:"A9. GST Present",        val:bill["A9. GST Present"],
+        type:"select",options:["","Yes","No"]},
+      {key:"a10",label:"A10. Our GST No",        field:"A10. Our GST",           val:bill["A10. Our GST"]           },
+      {key:"a11",label:"A11. GST Correct",       field:"A11. GST Correct",       val:bill["A11. GST Correct"],
+        type:"select",options:["","Yes","No","Cannot Determine"]},
+      {key:"a12",label:"A12. Invoice Date",      field:"A12. Invoice Date",      val:bill["A12. Invoice Date"]      },
+      {key:"a13",label:"A13. Invoice Number",    field:"A13. Invoice Number",    val:bill["A13. Invoice Number"]    },
+      {key:"a14",label:"A14. Vendor Name",       field:"A14. Vendor Name",       val:bill["A14. Vendor Name"]       },
+      {key:"a15",label:"A15. Vendor Address",    field:"A15. Vendor Address",    val:bill["A15. Vendor Address"],   wide:true},
+      {key:"a16",label:"A16. Bill Description",  field:"A16. Bill Description",  val:bill["A16. Bill Description"], wide:true},
+      {key:"a17",label:"A17. Notes",             field:"A17. Notes",             val:bill["A17. Notes"],            wide:true,type:"textarea"},
+      {key:"a18",label:"A18. Rev / Capital",     field:"A18. Rev/Capital",       val:bill["A18. Rev/Capital"],
+        type:"select",options:["","Revenue","Capital","Cannot Determine"]},
+      {key:"a19",label:"A19. Ledger Name",       field:"A19. Ledger Name",       val:bill["A19. Ledger Name"]       },
+      {key:"a20",label:"A20. Basic Amount",      field:"A20. Basic Amount",      val:bill["A20. Basic Amount"],     type:"number"},
+      {key:"a21",label:"A21. Invoice Type",      field:"A21. Invoice Type",      val:bill["A21. Invoice Type"],
+        type:"select",options:["","Proforma","Final Tax Invoice"]},
+      {key:"a22",label:"A22. Final Invoice By",  field:"A22. Final Invoice By",  val:bill["A22. Final Invoice By"]  },
+      {key:"a23",label:"A23. First Time Vendor", field:"A23. First Time Vendor", val:bill["A23. First Time Vendor"],
+        type:"select",options:["","Yes","No","Cannot Determine"]},
+      {key:"a24",label:"A24. Amount Justified",  field:"A24. Amount Justified",  val:bill["A24. Amount Justified"],
+        type:"select",options:["","Yes","No","Cannot Determine"]}
+    ].map(f => Dashboard.buildEditField(f)).join("");
+
+    document.getElementById("tdsFields").innerHTML = [
+      {key:"b1",label:"B1. TDS Applicable",    field:"B1. TDS Applicable",    val:bill["B1. TDS Applicable"],
+        type:"select",options:["","Yes","No"]},
+      {key:"b2",label:"B2. Vendor PAN Avail",  field:"B2. Vendor PAN Avail",  val:bill["B2. Vendor PAN Avail"],
+        type:"select",options:["","Yes","No"]},
+      {key:"b3",label:"B3. Vendor PAN",        field:"B3. Vendor PAN",        val:bill["B3. Vendor PAN"]        },
+      {key:"b4",label:"B4. PAN Inoperative",   field:"B4. PAN Inoperative",   val:bill["B4. PAN Inoperative"],
+        type:"select",options:["","Yes","No","Cannot Determine"]},
+      {key:"b5",label:"B5. Entity Type",       field:"B5. Vendor Entity Type",val:bill["B5. Vendor Entity Type"],
+        type:"select",options:["","Individual","HUF","LLP","Partnership Firm",
+          "Sole Proprietorship","Company","Trust","AOP","BOI"]},
+      {key:"b6",label:"B6. TDS Section",       field:"B6. TDS Section",       val:bill["B6. TDS Section"],
+        type:"select",options:["","194A","194B","194C","194J","194H","194I","Other","NA"]},
+      {key:"b7",label:"B7. TDS Rate",          field:"B7. TDS Rate",          val:bill["B7. TDS Rate"],
+        type:"select",options:["","0.20%","0.50%","1%","2%","5%","10%","30%","NA"]},
+      {key:"b8",label:"B8. TDS Amount",        field:"B8. TDS Amount",        val:bill["B8. TDS Amount"],        type:"number"}
+    ].map(f => Dashboard.buildEditField(f)).join("");
+
+    document.getElementById("gstFields").innerHTML = [
+      {key:"c1", label:"C1. GST Charged",        field:"C1. GST Charged",
+        val:bill["C1. GST Charged"],type:"select",options:["","Yes","No"]},
+      {key:"c2", label:"C2. Vendor GST Avail",   field:"C2. Vendor GST Avail",
+        val:bill["C2. Vendor GST Avail"],type:"select",options:["","Yes","No"]},
+      {key:"c3", label:"C3. Vendor GST No",      field:"C3. Vendor GST No",
+        val:bill["C3. Vendor GST No"]},
+      {key:"c4", label:"C4. Taxpayer Type",      field:"C4. Taxpayer Type",
+        val:bill["C4. Taxpayer Type"],type:"select",
+        options:["","Regular","Composition","Cannot Determine"]},
+      {key:"c5", label:"C5. Comp GST Wrong",     field:"C5. Comp GST Wrong",
+        val:bill["C5. Comp GST Wrong"],type:"select",options:["","Yes","No","NA"]},
+      {key:"c6", label:"C6. GST Returns Filed",  field:"C6. GST Returns Filed",
+        val:bill["C6. GST Returns Filed"],type:"select",
+        options:["","Yes","No","Cannot Determine"]},
+      {key:"c7", label:"C7. Our GST Correct",    field:"C7. Our GST Correct",
+        val:bill["C7. Our GST Correct"],type:"select",
+        options:["","Yes","No","Cannot Determine"]},
+      {key:"c8", label:"C8. Place of Supply",    field:"C8. Place of Supply",
+        val:bill["C8. Place of Supply"]},
+      {key:"c9", label:"C9. Correct GST Type",   field:"C9. Correct GST Type",
+        val:bill["C9. Correct GST Type"],type:"select",
+        options:["","Yes","No","Cannot Determine"]},
+      {key:"c10",label:"C10. Prior GST Pending", field:"C10. Prior GST Pending",
+        val:bill["C10. Prior GST Pending"],type:"select",
+        options:["","Yes","No","Cannot Determine"]},
+      {key:"c11",label:"C11. Blocked Credit",    field:"C11. Blocked Credit",
+        val:bill["C11. Blocked Credit"],type:"select",
+        options:["","Yes","No","Cannot Determine"]}
+    ].map(f => Dashboard.buildEditField(f)).join("");
+
+    document.getElementById("processFields").innerHTML = [
+      {key:"d1", label:"D1. Final Payable",       field:"D1. Final Payable Amt",
+        val:bill["D1. Final Payable Amt"],type:"number"},
+      {key:"d2", label:"D2. Invoice By",          field:"D2. Invoice By",
+        val:bill["D2. Invoice By"]},
+      {key:"d3", label:"D3. Received Via",        field:"D3. Received Via",
+        val:bill["D3. Received Via"],type:"select",
+        options:["","Email","Hardcopy","Whatsapp"]},
+      {key:"d4", label:"D4. HOD Name",            field:"D4. HOD Name",
+        val:bill["D4. HOD Name"],wide:true},
+      {key:"d5", label:"D5. HOD Approval",        field:"D5. HOD Approval",
+        val:bill["D5. HOD Approval"],type:"select",
+        options:["","Yes","No","Cannot Determine"]},
+      {key:"d6", label:"D6. HOD Screenshot",      field:"D6. HOD Screenshot",
+        val:bill["D6. HOD Screenshot"]},
+      {key:"d7", label:"D7. Arvind/Alok Apprvl",  field:"D7. Arvind/Alok Apprvl",
+        val:bill["D7. Arvind/Alok Apprvl"],type:"select",
+        options:["","Yes","No","Cannot Determine"]},
+      {key:"d8", label:"D8. Arvind/Alok SS",      field:"D8. Arvind/Alok SS",
+        val:bill["D8. Arvind/Alok SS"]},
+      {key:"d9", label:"D9. Update Person",       field:"D9. Update Person",
+        val:bill["D9. Update Person"]},
+      {key:"d10",label:"D10. Update Email",       field:"D10. Update Email",
+        val:bill["D10. Update Email"]},
+      {key:"d11",label:"D11. Narration",          field:"D11. Narration",
+        val:bill["D11. Narration"],wide:true,type:"textarea"}
+    ].map(f => Dashboard.buildEditField(f)).join("");
+
+    const flagsEl = document.getElementById("flagsContent");
+    if (redFlags && redFlags.trim() !== "") {
+      flagsEl.innerHTML = `
+        <div style="background:#fff5f5;border:1px solid #fecaca;
+          border-radius:12px;padding:16px 20px;margin-bottom:16px">
+          <div style="font-weight:700;color:var(--danger);
+            margin-bottom:10px">
+            🚩 ${redFlags.split("|").length} Red Flag(s) Detected
+          </div>
+          ${redFlags.split("|").map(f => `
+            <div style="display:flex;align-items:center;gap:8px;
+              padding:8px 12px;background:white;border-radius:8px;
+              margin-bottom:6px;border-left:3px solid var(--danger)">
+              <span style="color:var(--danger)">⚠️</span>
+              <span style="font-size:0.83rem;color:#7f1d1d">
+                ${f.trim()}
+              </span>
+            </div>`).join("")}
+        </div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;
+          border-radius:10px;padding:14px 16px;font-size:0.83rem;
+          color:#78350f">
+          <strong>💡 Tip:</strong> Review all flags before sending
+          for approval. Attach supporting documents if needed.
+        </div>`;
+    } else {
+      flagsEl.innerHTML = `
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;
+          border-radius:12px;padding:32px;text-align:center">
+          <div style="font-size:3rem;margin-bottom:10px">✅</div>
+          <div style="font-weight:700;color:#166534;font-size:1rem">
+            No Red Flags Detected!
+          </div>
+          <div style="color:#15803d;font-size:0.83rem;margin-top:6px">
+            AI validation passed all checks for this invoice
+          </div>
+        </div>`;
+    }
+
+    document.getElementById("editReviewNotes").value =
+      bill["Review Notes"] || "";
+    document.getElementById("sendNotes").value   = "";
+    document.getElementById("sendToRole").value  = "";
+    document.getElementById("sendToPerson").innerHTML =
+      "<option value=''>-- Select Role First --</option>";
+
+    const dBtn = document.getElementById("modalDriveLink");
+    if (driveUrl && driveUrl !== "N/A" &&
+        driveUrl !== "Upload Failed") {
+      dBtn.href          = driveUrl;
+      dBtn.style.display = "inline-flex";
+    } else {
+      dBtn.style.display = "none";
+    }
+
+    const sendTab = document.getElementById("sendApprovalTab");
+    if (status === "Approved" || status === "Rejected" || status.startsWith("Sent")) {
+      if (sendTab) sendTab.style.display = "none";
+    } else {
+      if (sendTab) sendTab.style.display = "inline-block";
+    }
+
+    document.querySelectorAll(".rev-tab")
+      .forEach((t,i) => t.classList.toggle("active", i === 0));
+    document.querySelectorAll(".rev-tab-content")
+      .forEach((c,i) => c.classList.toggle("active", i === 0));
+
+    document.getElementById("editIndicator").style.display = "none";
+    document.getElementById("editCount").textContent = "0";
+
+    // --- DELETE BUTTON VISIBILITY LOGIC ---
+    const delBtn = document.getElementById("modalDeleteBtn");
+    if (status === "New") {
+      if (delBtn) delBtn.style.display = "inline-flex";
+    } else {
+      if (delBtn) delBtn.style.display = "none";
+    }
+    // --------------------------------------
+
+    // --- CLOSE / REOPEN BUTTON VISIBILITY LOGIC ---
+    Dashboard.updateModalCloseState();
+    // ----------------------------------------------
+
+    document.getElementById("reviewModal").classList.add("active");
+  },
+
+  buildEditField(f) {
+    const val  = (f.val !== undefined && f.val !== null &&
+      f.val !== "") ? String(f.val) : "";
+    const wide = f.wide ? "grid-column:1/-1" : "";
+
+    let input = "";
+    if (f.type === "select") {
+      input = `<select data-field="${f.field}" data-key="${f.key}"
+        onchange="Dashboard.onFieldChange(this)"
+        style="width:100%;border:none;outline:none;font-size:0.83rem;
+          color:var(--gray-900);background:transparent;
+          font-family:'Inter',sans-serif;padding:0;cursor:pointer">
+        ${(f.options||[]).map(o =>
+          `<option value="${o}" ${val===o?"selected":""}>
+            ${o||"-- Select --"}
+          </option>`).join("")}
+      </select>`;
+    } else if (f.type === "textarea") {
+      input = `<textarea data-field="${f.field}" data-key="${f.key}"
+        onchange="Dashboard.onFieldChange(this)"
+        rows="3"
+        style="width:100%;border:none;outline:none;font-size:0.83rem;
+          color:var(--gray-900);background:transparent;
+          font-family:'Inter',sans-serif;padding:0;resize:vertical"
+      >${val}</textarea>`;
+    } else {
+      input = `<input type="${f.type||'text'}"
+        data-field="${f.field}" data-key="${f.key}"
+        value="${val}"
+        onchange="Dashboard.onFieldChange(this)"
+        style="width:100%;border:none;outline:none;font-size:0.83rem;
+          color:var(--gray-900);background:transparent;
+          font-family:'Inter',sans-serif;padding:0"/>`;
+    }
+
+    return `<div class="edit-field" id="ef-${f.key}"
+      style="${wide}">
+      <label>${f.label}
+        <span style="color:var(--primary);font-size:0.6rem;
+          opacity:0.6">✏️</span>
+      </label>
+      ${input}
+    </div>`;
+  },
+
+  onFieldChange(el) {
+    Dashboard.pendingEdits[el.dataset.field] = el.value;
+    const fieldDiv = document.getElementById("ef-" + el.dataset.key);
+    if (fieldDiv) fieldDiv.classList.add("changed");
+
+    const count = Object.keys(Dashboard.pendingEdits).length;
+    const indEl = document.getElementById("editIndicator");
+    const cntEl = document.getElementById("editCount");
+    if (indEl) indEl.style.display = "flex";
+    if (cntEl) cntEl.textContent   = count;
+  },
+
+  async onRoleChange() {
+    const role   = document.getElementById("sendToRole").value;
+    const select = document.getElementById("sendToPerson");
+
+    if (!role) {
+      select.innerHTML = "<option value=''>-- Select Role First --</option>";
+      return;
+    }
+
+    select.innerHTML = "<option value=''>Loading...</option>";
+
+    try {
+      const res = await API.users.getByRole(role);
+      
+      if (!res?.success) {
+        select.innerHTML = `<option value="">-- No active ${role} users --</option>`;
+        return;
+      }
+
+      let usersArray = [];
+      if (Array.isArray(res.data)) {
+          usersArray = res.data;
+      } else if (res.data && Array.isArray(res.data.users)) {
+          usersArray = res.data.users;
+      } else if (res.data && Array.isArray(res.data.data)) {
+          usersArray = res.data.data;
+      }
+
+      if (usersArray.length === 0) {
+        select.innerHTML = `<option value="">-- No active ${role} users --</option>`;
+        return;
+      }
+
+      select.innerHTML = usersArray.map(u =>
+        `<option value="${u.email}">${u.name} (${u.email})</option>`
+      ).join("");
+      
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      select.innerHTML = `<option value="">-- Error loading users --</option>`;
+    }
+  },
+
+  async saveReviewOnly() {
+    const bill = Dashboard.currentBill;
+    if (!bill) return;
+
+    const notes = document.getElementById("editReviewNotes").value;
+    
+    if (Object.keys(Dashboard.pendingEdits).length === 0 && !notes) {
+      Toast.info("No changes to save.");
+      return;
+    }
+
+    Loader.show("Saving all fields...");
+    
+    const res = await API.biller.updateReview(bill.queueRowIndex, {
+      queueRowIndex: bill.queueRowIndex,
+      fields: Dashboard.pendingEdits,
+      reviewNotes: notes
+    });
+
+    Loader.hide();
+
+    if (res?.success) {
+      Toast.success("Data saved in Biller Queue! ✅");
+      
+      Dashboard.pendingEdits = {};
+      document.getElementById("editIndicator").style.display = "none";
+      
+      bill["Approval Status"] = "Reviewed";
+      Dashboard.closeReviewModal();
+      await Dashboard.loadStats();
+      await Dashboard.loadRecentBills();
+    } else {
+      Toast.error(res?.message || "Failed to save data");
+    }
+  },
+
+  async sendForApproval() {
+    const bill = Dashboard.currentBill;
+    const targetRole = document.getElementById("sendToRole").value || "HOD";
+    const deptElem = document.getElementById("sendDepartment");
+    const department = deptElem ? deptElem.value : "General";
+    const targetPerson = document.getElementById("sendToPerson").value;
+    const notes = document.getElementById("sendNotes").value;
+    const reviewNotes = document.getElementById("editReviewNotes").value;
+
+    const ok = await Utils.confirm(
+      `Send this bill to <strong>${targetRole}</strong> (${department})?`,
+      "Send for Approval"
+    );
+    if (!ok) return;
+
+    Loader.show("Saving and sending...");
+
+    const res = await API.biller.sendForApproval(
+      bill.queueRowIndex, department,
+      targetPerson, targetPerson, notes, Dashboard.pendingEdits
+    );
+    
+    Loader.hide();
+
+    if (res?.success) {
+      Toast.success(`Bill sent to ${targetRole} (${department})! 🎉`);
+      
+      // Move bill from Invoices sheet to Master_Invoices sheet in local state
+      Dashboard.invoicesQueue = Dashboard.invoicesQueue.filter(b => b._uid !== bill._uid && b._sheetRowIndex !== bill._sheetRowIndex);
+      bill["Approval Status"] = "Sent to " + targetRole;
+      bill["Sent To Role"]    = targetRole;
+      bill._sourceSheet       = "Master_Invoices";
+      bill._uid               = `Master_row_${bill.queueRowIndex}_${String(bill["A13. Invoice Number"] || "").replace(/[^a-zA-Z0-9]/g, "")}`;
+      Dashboard.masterQueue.unshift(bill);
+      Dashboard.queue = [...Dashboard.invoicesQueue, ...Dashboard.masterQueue];
+      Dashboard.saveToLocalStorage();
+
+      Dashboard.pendingEdits  = {};
+      Dashboard.closeReviewModal();
+      await Dashboard.loadStats();
+      await Dashboard.loadRecentBills();
+      if (document.getElementById("section-new")?.classList.contains("active")) {
+        Dashboard.loadNewSection();
+      }
+    } else {
+      Toast.error("Failed to send");
+    }
+  },
+
+  closeReviewModal() {
+    document.getElementById("reviewModal").classList.remove("active");
+    Dashboard.currentBill  = null;
+    Dashboard.pendingEdits = {};
+  },
+
+  async syncBills() {
+    const btn = document.getElementById("syncBtn");
+    if (btn) {
+      btn.disabled  = true;
+      btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i> Syncing...`;
+    }
+    Toast.info("Syncing invoices...");
+    const res = await API.biller.sync();
+    if (btn) {
+      btn.disabled  = false;
+      btn.innerHTML = `<i class="fa fa-rotate"></i> Sync Now`;
+    }
+    if (res?.success) {
+      const count = res.data.count || 0;
+      Toast.success(count > 0
+        ? `${count} new bill(s) synced! 🎉`
+        : "Already up to date ✅");
+      Dashboard.queue = [];
+      await Dashboard.loadStats();
+      await Dashboard.loadRecentBills();
+      const active = document.querySelector(".section.active");
+      if (active) {
+        const id = active.id.replace("section-","");
+        if (id !== "dashboard") Dashboard.showSection(id);
+      }
+    } else {
+      Toast.error("Sync failed");
+    }
+  },
+
+  async trackBill() {
+    const invNo = document.getElementById("trackSearch").value.trim();
+    if (!invNo) { Toast.warning("Enter invoice number"); return; }
+    Loader.show("Tracking...");
+    const res = await API.biller.getStatusHistory(invNo);
+    Loader.hide();
+    const el = document.getElementById("trackResult");
+    if (!res?.success || res.data.history.length === 0) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">Not found</div>
+        <div class="empty-text">"${invNo}" not in any queue</div>
+      </div>`;
+      return;
+    }
+    const history = res.data.history;
+    el.innerHTML = `
+      <div style="background:var(--primary-light);border-radius:10px;
+        padding:14px 16px;margin-bottom:20px">
+        <div style="font-size:0.72rem;color:var(--gray-600);
+          margin-bottom:3px">Tracking Invoice:</div>
+        <div style="font-size:1.1rem;font-weight:700;
+          color:var(--primary)">${invNo}</div>
+      </div>
+      <div>
+        ${history.map((h,i) => {
+          const st  = h["Approval Status"] || "Unknown";
+          const dot = st==="Approved" ? "#34a853" :
+                      st==="Rejected" ? "#ea4335" :
+                      st.startsWith("Sent") ? "#1a73e8" :
+                      st==="Reviewed" ? "#f9ab00" : "#9aa0a6";
+          const ico = st==="Approved" ? "✅" :
+                      st==="Rejected" ? "❌" :
+                      st.startsWith("Sent") ? "📤" :
+                      st==="Reviewed" ? "👁️" : "🆕";
+          return `
+            <div class="timeline-item">
+              <div class="timeline-dot"
+                style="background:${dot}20;color:${dot}">
+                ${ico}
+              </div>
+              <div class="timeline-content">
+                <div style="font-size:0.85rem;font-weight:600;
+                  margin-bottom:3px">
+                  ${h.queue.replace("Queue"," Queue")} — ${st}
+                </div>
+                <div style="font-size:0.75rem;color:var(--gray-500)">
+                  ${h["Sent By"] ? `By: ${h["Sent By"]} → ` : ""}
+                  ${h["Sent To Role"] ? `To: ${h["Sent To Role"]}` : ""}
+                  ${h["Sent At"]
+                    ? ` • ${Utils.formatDateTime(h["Sent At"])}` : ""}
+                </div>
+                ${h["Review Notes"]
+                  ? `<div style="margin-top:6px;font-size:0.75rem;
+                      color:var(--gray-600);background:white;
+                      padding:6px 8px;border-radius:6px;
+                      border:1px solid var(--gray-200)">
+                      📝 ${h["Review Notes"]}
+                    </div>` : ""}
+                ${h["Rejection Reason"]
+                  ? `<div style="margin-top:6px;font-size:0.75rem;
+                      color:var(--danger);background:#fff5f5;
+                      padding:6px 8px;border-radius:6px">
+                      ❌ ${h["Rejection Reason"]}
+                    </div>` : ""}
+              </div>
+            </div>`;
+        }).join("")}
+      </div>`;
+  },
+
+  loadProfile() {
+    const user  = Auth.getUser();
+    const color = Utils.getRoleColor(user?.role||"");
+    document.getElementById("profileBody").innerHTML = `
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="width:80px;height:80px;border-radius:50%;
+          background:${color};display:inline-flex;align-items:center;
+          justify-content:center;font-size:30px;font-weight:700;
+          color:#fff;margin-bottom:14px;
+          box-shadow:0 4px 12px rgba(0,0,0,0.15)">
+          ${Utils.getInitials(user?.name||"")}
+        </div>
+        <div style="font-size:1.1rem;font-weight:700">
+          ${user?.name||""}
+        </div>
+        <div style="margin-top:8px">
+          ${Utils.roleBadge(user?.role||"")}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="detail-item">
+          <label>Email</label>
+          <p>${user?.email||"—"}</p>
+        </div>
+        <div class="detail-item">
+          <label>Role</label>
+          <p>${user?.role||"—"}</p>
+        </div>
+      </div>`;
+  },
+
+  async changePassword() {
+    const o = document.getElementById("oldPassword").value;
+    const n = document.getElementById("newPassword").value;
+    const c = document.getElementById("confirmPassword").value;
+    if (!o||!n||!c) { Toast.warning("Fill all fields"); return; }
+    if (n!==c)      { Toast.error("Passwords don't match"); return; }
+    if (n.length<6) { Toast.error("Min 6 characters"); return; }
+    Loader.show("Updating...");
+    const res = await API.auth.changePassword(o,n);
+    Loader.hide();
+    res?.success
+      ? Toast.success("Password updated!")
+      : Toast.error(res?.message||"Failed");
+  },
+
+  async loadCurrentSection() {
+    await Dashboard.loadStats();
+    await Dashboard.loadRecentBills();
+  },
+
+  // ─────────────────────────────────────────────
+  // 🗑️ DELETE NEW BILL
+  // ─────────────────────────────────────────────
+  async deleteNewBill() {
+    const bill = Dashboard.currentBill;
+    if (!bill) return;
+
+    const ok = await Utils.confirm(
+      "Are you sure you want to permanently delete this invoice?<br>This action cannot be undone.", 
+      "Delete Invoice 🗑️"
+    );
+    if (!ok) return;
+
+    Loader.show("Deleting invoice...");
+    const res = await API.biller.deleteNewBill(bill.queueRowIndex);
+    Loader.hide();
+
+    if (res?.success) {
+      Toast.success(res.message);
+      Dashboard.closeReviewModal();
+      await Dashboard.loadCurrentSection(); // Refresh UI
+    } else {
+      Toast.error(res?.message || "Failed to delete invoice");
+    }
+  }
+
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUBMIT INVOICE OBJECT
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SubmitInvoice = {
+
+  selectedFile: null,
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbybJBvh412l4I32UmZVums6KiX16ckQiYHppHF0-FEwlqDF-tpyMFms0BQy7kzysX04/exec",
+  
+
+  init() {
+    const uploadArea = document.getElementById("fileUploadArea");
+    if (!uploadArea) return;
+
+    uploadArea.addEventListener("click", () => {
+      document.getElementById("invoiceFile").click();
+    });
+
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.style.background = "var(--primary)";
+      uploadArea.style.color = "#fff";
+    });
+
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.style.background = "var(--primary-light)";
+      uploadArea.style.color = "inherit";
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.style.background = "var(--primary-light)";
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        SubmitInvoice.handleFileSelect({ target: { files } });
+      }
+    });
+
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(now - offset).toISOString().slice(0, 16);
+    document.getElementById("receivedDate").value = localISOTime;
+  },
+
+  handleFileSelect(e) {
+    const files = e.target.files;
+    if (files.length === 0) return;
+
+    const file = files[0];
+    const validTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+
+    if (!validTypes.includes(file.type)) {
+      Toast.error("Only PDF or Image files allowed!");
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      Toast.error("File too large! Max 20MB");
+      return;
+    }
+
+    SubmitInvoice.selectedFile = file;
+
+    document.getElementById("fileName").style.display = "block";
+    document.getElementById("fileNameText").textContent = 
+      file.name + " (" + (file.size / 1024 / 1024).toFixed(2) + "MB)";
+  },
+
+  validateForm() {
+    if (!SubmitInvoice.selectedFile) {
+      Toast.error("Please upload an invoice file");
+      return false;
+    }
+
+    const receivedFrom = document.getElementById("receivedFrom").value;
+    if (!receivedFrom) {
+      Toast.error("Please select where you received the bill");
+      return false;
+    }
+
+    const receivedDate = document.getElementById("receivedDate").value;
+    if (!receivedDate) {
+      Toast.error("Please select when you received the bill");
+      return false;
+    }
+
+    return true;
+  },
+
+/* DEPRECATED_SUBMIT_HANDLERS
+//     // Basic form validation
+//     if (!SubmitInvoice.validateForm()) {
+//       console.error("Validation failed: Required fields missing");
+//       return;
+//     }
+
+//     console.log("🚀 Starting invoice submission process...");
+
+//     try {
+//       const file = SubmitInvoice.selectedFile;
+      
+//       // STEP 1: File ko Base64 mein convert karna
+//       showProcessingScreen("Reading invoice file...", 10);
+//       const fileContent = await readFileAsBase64(file);
+//       console.log("✅ File encoded successfully");
+
+//       // STEP 2: Payload taiyar karna (Sheet headers aur Gemini prompt ke hisaab se)
+//       showProcessingScreen("Preparing data for AI...", 30);
+//       const payload = {
+//         fileName: file.name,
+//         fileType: file.type,
+//         fileContent: fileContent,
+//         receivedFrom: document.getElementById("receivedFrom").value,
+//         receivedDate: document.getElementById("receivedDate").value,
+//         senderName: document.getElementById("senderName").value || "Manual Upload",
+//         notes: document.getElementById("invoiceNotes").value || "",
+//         billerEmail: (typeof Auth !== 'undefined' && Auth.getUser()) ? Auth.getUser().email : "unknown@gretex.com"
+//       };
+
+//       // STEP 3: Google Apps Script ko hit karna
+//       showProcessingScreen("Gemini AI is analyzing 54 points...", 60);
+//       console.log("Sending request to Google Apps Script...");
+
+//       // Note: Hum explicitly 'no-cors' use kar rahe hain taaki redirect block na ho
+//       await fetch(SubmitInvoice.APPS_SCRIPT_URL, {
+//         method: "POST",
+//         mode: "no-cors", 
+//         headers: {
+//           "Content-Type": "text/plain;charset=utf-8"
+//         },
+//         body: JSON.stringify(payload)
+//       });
+
+//       // 'no-cors' mode mein response status read nahi hota, 
+//       // par agar fetch crash nahi hua toh request deliver ho jati hai.
+//       console.log("✅ Request sent successfully (no-cors mode)");
+
+//       // STEP 4: Success UI Handling
+//       showProcessingScreen("Finalizing database entry...", 90);
+      
+//       showProcessingSuccess();
+//       Toast.success("Invoice submitted! AI is processing it in the background. 🎉");
+      
+//       // Form fields clear karna
+//       SubmitInvoice.resetForm();
+      
+//       // 3 seconds ka delay taaki user success message dekh sake
+//       setTimeout(() => {
+//         hideProcessingScreen();
+//         // Dashboard section par wapas bhejna aur list refresh karna
+//         if (typeof Dashboard !== 'undefined' && Dashboard.showSection) {
+//           Dashboard.showSection("invoices");
+//  
+//         }
+//       }, 3000);
+
+//     } catch (error) {
+//       // Error handling agar fetch bilkul hi fail ho jaye (Internet issue etc.)
+//       hideProcessingScreen();
+//       console.error("❌ Submission Fatal Error:", error);
+//       Toast.error("Network issue: Please check your connection.");
+//       SubmitInvoice.showStatus("error", "Fatal Error: " + error.message);
+//     }
+*/
+
+/* DEPRECATED_SUBMIT_HANDLERS
+//     // Validate form inputs before submission
+//     if (!SubmitInvoice.validateForm()) {
+//       console.error("Validation Error: Mandatory fields are missing.");
+// submitBtn reset removed
+//       return;
+//     }
+
+//     console.log("Initiating invoice submission sequence...");
+
+//     try {
+//       const file = SubmitInvoice.selectedFile;
+      
+//       // STEP 1: Convert the selected file to a Base64 encoded string
+//       showProcessingScreen("Reading the invoice file...", 15);
+//       const fileContent = await readFileAsBase64(file);
+//       console.log("File successfully encoded to Base64.");
+
+//       // STEP 2: Prepare the data payload for the AI processing engine
+//       showProcessingScreen("Preparing data payload for AI analysis...", 35);
+//       const payload = {
+//         fileName: file.name,
+//         fileType: file.type,
+//         fileContent: fileContent,
+//         receivedFrom: document.getElementById("receivedFrom").value,
+//         receivedDate: document.getElementById("receivedDate").value,
+//         senderName: document.getElementById("senderName").value || "Manual Upload",
+//         notes: document.getElementById("invoiceNotes").value || "",
+//         billerEmail: (typeof Auth !== 'undefined' && Auth.getUser()) ? Auth.getUser().email : "unknown@gretex.com"
+//       };
+
+//       // STEP 3: Transmit the payload to Google Apps Script
+//       showProcessingScreen("AI engine is currently analyzing the document...", 65);
+//       console.log("Transmitting request to the backend server...");
+
+//       const response = await fetch(SubmitInvoice.APPS_SCRIPT_URL, {
+//         method: "POST",
+//         // mode: "no-cors" is REMOVED so the frontend can read the response data
+//         headers: {
+//           "Content-Type": "text/plain;charset=utf-8" // Keeps Google Apps Script happy
+//         },
+//         body: JSON.stringify(payload)
+//       });
+
+//       // Parse the real response from the backend
+//       const result = await response.json();
+
+//       // If the backend caught an error and sent { success: false, message: "..." }
+//       if (!result.success) {
+//         throw new Error(result.message || "Backend processing failed");
+//       }
+
+//       // STEP 4: Handle successful dispatch and database entry
+//       showProcessingScreen("Finalizing database entry...", 90);
+//       showProcessingSuccess();
+//       Toast.success(`Invoice ${result.invoiceNumber || ""} successfully submitted! 🎉`);
+      
+//       // Clear the form inputs
+//       SubmitInvoice.resetForm();
+      
+//       // Redirect to the invoices list after a brief delay to show success animation
+//       setTimeout(() => {
+//         hideProcessingScreen();
+//         if (typeof Dashboard !== 'undefined' && Dashboard.showSection) {
+//           Dashboard.showSection("invoices");
+//  
+//         }
+//       }, 2500);
+
+//     } catch (error) {
+//       // Handle network connectivity or unexpected runtime failures from the backend
+//       hideProcessingScreen();
+//       console.error("Critical Submission Error:", error);
+//       Toast.error(error.message || "Unable to connect to the processing server.");
+//       SubmitInvoice.showStatus("error", "System Error: " + (error.message || "Network issue"));
+//     }
+*/
+
+  isSubmitting: false,
+
+  async submitForm() {
+    if (SubmitInvoice.isSubmitting) {
+      console.warn("Submission already in progress. Ignoring duplicate click.");
+      return;
+    }
+    const submitBtn = document.querySelector("#section-submit button.btn-primary");
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Submitting...';
+    }
+    SubmitInvoice.isSubmitting = true;
+    // Validate form inputs before submission
+    if (!SubmitInvoice.validateForm()) {
+      console.error("Validation Error: Mandatory fields are missing.");
+      SubmitInvoice.isSubmitting = false;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa fa-paper-plane"></i> Submit & Process';
+      }
+      return;
+    }
+
+    console.log("Initiating invoice submission sequence...");
+
+    try {
+      const file = SubmitInvoice.selectedFile;
+      
+      // STEP 1: Convert the selected file to a Base64 encoded string
+      showProcessingScreen("Reading the invoice file...", 15);
+      const fileContent = await readFileAsBase64(file);
+      console.log("File successfully encoded to Base64.");
+
+      // STEP 2: Prepare the data payload for the AI processing engine
+      showProcessingScreen("Preparing data payload for AI analysis...", 35);
+      const payload = {
+        fileName: file.name,
+        fileType: file.type,
+        fileContent: fileContent,
+        receivedFrom: document.getElementById("receivedFrom").value,
+        receivedDate: document.getElementById("receivedDate").value,
+        senderName: document.getElementById("senderName").value || "Manual Upload",
+        notes: document.getElementById("invoiceNotes").value || "",
+        billerEmail: (typeof Auth !== 'undefined' && Auth.getUser()) ? Auth.getUser().email : "unknown@gretex.com"
+      };
+
+      // STEP 3: Transmit the payload to Supabase AI Intake Serverless Function (/api/submit-invoice)
+      showProcessingScreen("Gemini AI is analyzing 54 points & uploading...", 65);
+      console.log("Transmitting request to /api/submit-invoice...");
+
+      const response = await fetch("/api/submit-invoice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      // Parse response safely from backend
+      const rawText = await response.text();
+      let result = {};
+      try {
+        result = JSON.parse(rawText);
+      } catch (jsonErr) {
+        console.warn("Non-JSON response from server:", rawText);
+        if (rawText && (rawText.toLowerCase().includes("success") || rawText.toLowerCase().includes("http") || rawText.toLowerCase().includes("drive"))) {
+          result = { success: true, message: rawText };
+        } else {
+          result = { success: true };
+        }
+      }
+
+      if (result && result.success === false) {
+        throw new Error(result.message || "Backend processing failed. Please try again.");
+      }
+
+      // STEP 4: Handle successful submission
+      showProcessingScreen("Finalizing database entry...", 90);
+      showProcessingSuccess();
+      Toast.success("Invoice " + (result.invoiceNumber || "") + " successfully submitted! 🎉");
+      
+      // Clear the form inputs
+      SubmitInvoice.resetForm();
+      
+      // Redirect to the invoices list after a brief delay
+      setTimeout(() => {
+        hideProcessingScreen();
+        if (typeof Dashboard !== 'undefined' && Dashboard.showSection) {
+          Dashboard.showSection("invoices");
+ 
+        }
+      }, 2500);
+
+    } catch (error) {
+      hideProcessingScreen();
+      console.error("Submission Error:", error);
+      Toast.error(error.message || "Failed to process invoice. Please try again.");
+      SubmitInvoice.showStatus("error", "Error: " + (error.message || "Network issue"));
+    } finally {
+      SubmitInvoice.isSubmitting = false;
+      const submitBtn = document.querySelector("#section-submit button.btn-primary");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa fa-paper-plane"></i> Submit & Process';
+      }
+    }
+  },
+
+showStatus(type, message) {
+    const statusEl = document.getElementById("submitStatus");
+    if (!statusEl) return;
+
+    statusEl.style.display = "block";
+    
+    if (type === "error") {
+      statusEl.style.background = "#fff5f5";
+      statusEl.style.borderLeft = "4px solid var(--danger)";
+      statusEl.style.color = "var(--danger)";
+      statusEl.innerHTML = `<i class="fa fa-exclamation-circle"></i> ${message}`;
+    } else if (type === "success") {
+      statusEl.style.background = "#f0fdf4";
+      statusEl.style.borderLeft = "4px solid var(--secondary)";
+      statusEl.style.color = "var(--secondary)";
+      statusEl.innerHTML = `<i class="fa fa-check-circle"></i> ${message}`;
+    }
+  },
+
+  resetForm() {
+    document.getElementById("invoiceFile").value = "";
+    document.getElementById("receivedFrom").value = "";
+    document.getElementById("senderName").value = "";
+    document.getElementById("invoiceNotes").value = "";
+    document.getElementById("fileName").style.display = "none";
+    document.getElementById("submitStatus").style.display = "none";
+    
+    SubmitInvoice.selectedFile = null;
+
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(now - offset).toISOString().slice(0, 16);
+    document.getElementById("receivedDate").value = localISOTime;
+
+    Toast.info("Form cleared ✓");
+  }
+
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  Dashboard.init();
+});
+</script>
+</body>
+</html>
