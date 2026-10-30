@@ -1477,88 +1477,161 @@ const Dashboard = {
       if (!d) return "";
       try {
         const dt = new Date(d);
-        if (isNaN(dt.getTime())) return d;
-        return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+        if (isNaN(dt.getTime())) return String(d);
+        return dt.toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        });
       } catch (e) {
-        return d;
+        return String(d);
       }
     };
+
+    const formatDurationHms = (ms) => {
+      if (ms == null || isNaN(ms) || ms < 0) return "";
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    };
+
+    const history = inv.approval_history || [];
+    const getHistoryTime = (stageName) => {
+      const item = history.find(a => (a.stage || "").toLowerCase() === stageName.toLowerCase());
+      return item ? item.action_taken_at : null;
+    };
+
+    const receivedDate = inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || null;
+    const billerDate = inv["Biller_Send_At"] || inv["biller_sent_at"] || inv["biller_send_at"] || getHistoryTime("Biller") || (currIdx > 1 ? (inv["created_at"] || inv["timestamp"]) : null);
+    const hodDate = inv["HOD_Send_At"] || inv["hod_send_at"] || getHistoryTime("HOD") || null;
+    const accountDate = inv["Account_Send_At"] || inv["account_send_at"] || getHistoryTime("Account") || null;
+    const financeDate = inv["Finance_Send_At"] || inv["finance_send_at"] || getHistoryTime("Finance") || null;
+    const cfoDate = inv["CFO_Send_At"] || inv["cfo_send_at"] || getHistoryTime("CFO") || null;
+    const saDate = inv["SA_Approved_At"] || inv["close_at"] || inv["send_for_billing_at"] || getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || null;
 
     const steps = [
       {
         key: "Received",
         label: "Received",
         icon: "fa-envelope",
-        date: formatDt(inv["Timestamp"] || inv["created_at"]) || "Done",
+        rawDate: receivedDate,
         stageIdx: 0
       },
       {
         key: "Biller",
         label: "Biller",
         icon: "fa-user-check",
-        date: currIdx > 1 ? (formatDt(inv["Biller_Send_At"] || inv["biller_sent_at"]) || "Done") : "In Review",
+        rawDate: billerDate,
         stageIdx: 1
       },
       {
         key: "HOD",
         label: inv.department && inv.department !== "General" ? `HOD (${inv.department})` : "HOD",
         icon: "fa-user-tie",
-        date: currIdx > 2 ? (formatDt(inv["HOD_Send_At"]) || "Approved") : (currIdx === 2 ? "In Review" : "Pending..."),
+        rawDate: hodDate,
         stageIdx: 2
       },
       {
         key: "Account",
         label: "Account",
         icon: "fa-calculator",
-        date: currIdx > 3 ? (formatDt(inv["Account_Send_At"]) || "Approved") : (currIdx === 3 ? "In Review" : "Pending..."),
+        rawDate: accountDate,
         stageIdx: 3
       },
       {
         key: "Finance",
         label: "Finance",
         icon: "fa-coins",
-        date: currIdx > 4 ? (formatDt(inv["Finance_Send_At"]) || "Approved") : (currIdx === 4 ? "In Review" : "Pending..."),
+        rawDate: financeDate,
         stageIdx: 4
       },
       {
         key: "CFO",
         label: "CFO",
         icon: "fa-briefcase",
-        date: currIdx > 5 ? (formatDt(inv["CFO_Send_At"]) || "Approved") : (currIdx === 5 ? "In Review" : "Pending..."),
+        rawDate: cfoDate,
         stageIdx: 5
       },
       {
         key: "SuperAdmin",
         label: "Super Admin",
         icon: "fa-crown",
-        date: currentStage === "Completed" ? (formatDt(inv["close_at"] || inv["send_for_billing_at"]) || "Final Approved") : (currIdx === 6 ? "In Review" : "Pending..."),
+        rawDate: saDate,
         stageIdx: 6
       }
     ];
 
     let html = `<div class="tracking-wrapper"><div class="tracking-container">`;
 
-    steps.forEach((step) => {
+    steps.forEach((step, idx) => {
       let statusClass = "";
       let iconHtml = `<i class="fa ${step.icon}"></i>`;
-      let dateText = step.date;
+      let dateText = "";
 
-      if (rejectedAt && (step.key === rejectedAt || (rejectedAt === "Super Admin" && step.key === "SuperAdmin"))) {
+      const isCurrentRejected = rejectedAt && (step.key === rejectedAt || (rejectedAt === "Super Admin" && step.key === "SuperAdmin"));
+      const isPastRejection = rejectedAt && step.stageIdx > stagesOrder.indexOf(rejectedAt);
+
+      if (isCurrentRejected) {
         statusClass = "rejected";
         iconHtml = `<i class="fa fa-times"></i>`;
-        dateText = "Rejected";
-      } else if (rejectedAt && step.stageIdx > stagesOrder.indexOf(rejectedAt)) {
+        dateText = step.rawDate ? formatDt(step.rawDate) : "Rejected";
+      } else if (isPastRejection) {
         statusClass = "";
         dateText = "Cancelled";
       } else if (currentStage === "Completed" || step.stageIdx < currIdx) {
         statusClass = "completed";
         iconHtml = `<i class="fa fa-check"></i>`;
+        dateText = step.rawDate ? formatDt(step.rawDate) : (step.stageIdx === 0 ? "Done" : "Approved");
       } else if (step.stageIdx === currIdx) {
         statusClass = "active";
+        dateText = "In Review";
+      } else {
+        dateText = "Pending...";
+      }
+
+      // Compute turnaround duration between previous step and this step
+      let durationHtml = "";
+      if (idx > 0) {
+        const prevStep = steps[idx - 1];
+        let durationHms = "";
+
+        if (prevStep.rawDate) {
+          const tPrev = new Date(prevStep.rawDate).getTime();
+          if (!isNaN(tPrev)) {
+            if (step.rawDate) {
+              const tCurr = new Date(step.rawDate).getTime();
+              if (!isNaN(tCurr) && tCurr >= tPrev) {
+                durationHms = formatDurationHms(tCurr - tPrev);
+              }
+            } else if (step.stageIdx === currIdx) {
+              // Current active stage - elapsed time up to now
+              const tNow = Date.now();
+              if (tNow >= tPrev) {
+                durationHms = formatDurationHms(tNow - tPrev);
+              }
+            }
+          }
+        }
+
+        if (durationHms) {
+          durationHtml = `
+            <div class="track-duration-pill" style="position: absolute; top: 4px; left: -50%; width: 100%; display: flex; justify-content: center; align-items: center; z-index: 2; pointer-events: none;">
+              <span style="background: #ffffff; border: 1px solid #cbd5e1; font-size: 0.62rem; font-weight: 700; padding: 1px 7px; border-radius: 12px; font-family: monospace; color: #334155; box-shadow: 0 1px 3px rgba(0,0,0,0.08); white-space: nowrap; line-height: 1.4;">
+                <i class="fa fa-clock" style="font-size: 0.55rem; margin-right: 3px; color: #64748b;"></i>${durationHms}
+              </span>
+            </div>
+          `;
+        }
       }
 
       html += `
         <div class="track-step ${statusClass}">
+          ${durationHtml}
           <div class="track-icon">${iconHtml}</div>
           <div class="track-text">
             <h6>${step.label}</h6>
@@ -2921,6 +2994,22 @@ const Dashboard = {
     const trackingBox = document.getElementById("modalTrackingTimeline");
     if(trackingBox) {
       trackingBox.innerHTML = Dashboard.generateTrackingTimeline(bill);
+      if ((!bill.approval_history || bill.approval_history.length === 0) && (bill.invoice_unique_id || bill["A13. Invoice Number"])) {
+        API.biller.getStatusHistory(bill.invoice_unique_id || bill["A13. Invoice Number"]).then(res => {
+          if (res && res.success && res.data && res.data.timeline && res.data.timeline.length > 0) {
+            bill.approval_history = res.data.timeline;
+            res.data.timeline.forEach(a => {
+              if (a.stage === "Biller") bill["Biller_Send_At"] = a.action_taken_at;
+              if (a.stage === "HOD") bill["HOD_Send_At"] = a.action_taken_at;
+              if (a.stage === "Account") bill["Account_Send_At"] = a.action_taken_at;
+              if (a.stage === "Finance") bill["Finance_Send_At"] = a.action_taken_at;
+              if (a.stage === "CFO") bill["CFO_Send_At"] = a.action_taken_at;
+              if (a.stage === "SuperAdmin") bill["SA_Approved_At"] = a.action_taken_at;
+            });
+            trackingBox.innerHTML = Dashboard.generateTrackingTimeline(bill);
+          }
+        }).catch(e => console.warn("Live timeline fetch error:", e));
+      }
     }
 
     const attEl = document.getElementById("attachmentPreview");
