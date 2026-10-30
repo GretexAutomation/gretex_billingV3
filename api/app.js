@@ -519,9 +519,12 @@ module.exports = async function handler(req, res) {
           filteredMaster = filteredMaster.filter(b => b.assigned_hod_email === user.email || b.department === user.department);
         }
 
-        let sent = 0, approved = 0, rejected = 0, totalAmount = 0;
+        let sent = 0, approved = 0, rejected = 0, totalAmount = 0, actionNeeded = 0;
         filteredMaster.forEach(b => {
           totalAmount += Number(b.a20_basic_amount) || 0;
+          if (b.current_stage === "Account") {
+            actionNeeded++;
+          }
           if (b.current_stage !== "Completed") {
             sent++;
           } else {
@@ -539,6 +542,10 @@ module.exports = async function handler(req, res) {
           pending: sent,
           sent: sent,
           approved: approved,
+          pass: approved,
+          review: user.role === "Account" ? actionNeeded : sent,
+          actionNeeded: actionNeeded,
+          fail: rejected,
           rejected: rejected,
           totalAmount: totalAmount
         });
@@ -856,7 +863,7 @@ module.exports = async function handler(req, res) {
         // Format all 54 fields for frontend tables and review modals
         const formatted = (queue || []).map(b => formatInvoiceForUI(b, false, approvalsMap[b.invoice_unique_id] || []));
 
-        return Response.success(res, { queue: formatted, total: formatted.length });
+        return Response.success(res, { invoices: formatted, queue: formatted, total: formatted.length });
       }
 
       // ── Approval Decision (Approve / Reject / Bypass) ──
