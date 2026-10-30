@@ -36,14 +36,17 @@ const API = {
         body   : JSON.stringify(body)
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        // Non-JSON response
       }
 
-      const data = await response.json();
+      if (!response.ok || (data && data.success === false)) {
+        const errorMsg = data?.message || `HTTP error: ${response.status}`;
 
-      if (!data.success) {
-        if (data.code === 401) {
+        if (response.status === 401 || data?.code === 401) {
           // Do not kick user out on background sync or analytics actions
           const backgroundActions = [
             "getDashboardStats", "getBillerStats", "getQueueStats",
@@ -66,8 +69,9 @@ const API = {
           }
           return null;
         }
+
         API._consecutive401 = 0;
-        throw new Error(data.message || "Request failed");
+        throw new Error(errorMsg);
       }
       API._consecutive401 = 0;
 
@@ -125,10 +129,14 @@ const API = {
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body   : JSON.stringify({ action: "login", email, password })
         });
-        if (!response.ok) {
-          return { success: false, message: `Server error: ${response.status}` };
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (_) {}
+        if (!response.ok || (data && data.success === false)) {
+          return { success: false, message: data?.message || `Server error: ${response.status}` };
         }
-        return await response.json();
+        return data || { success: false, message: "Empty response from server" };
       } catch (err) {
         console.error("Login error:", err);
         return { success: false, message: "Connection failed. Check API URL." };
