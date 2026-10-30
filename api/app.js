@@ -807,7 +807,9 @@ module.exports = async function handler(req, res) {
         // Role-based Queue Filters:
         if (user.role === "HOD") {
           // 🛡️ CRITICAL: HOD ONLY sees bills assigned to them or their department
-          query = query.eq("current_stage", "HOD");
+          if (params.stage && params.stage !== "All") {
+            query = query.eq("current_stage", params.stage);
+          }
           if (user.department && user.department !== "All") {
             query = query.or(`assigned_hod_email.eq.${user.email},department.eq.${user.department}`);
           } else {
