@@ -1982,7 +1982,7 @@ const Dashboard = {
     try {
       const bRes = await API.biller.getQueue();
       if (bRes?.success && bRes.data) {
-        billerList = bRes.data.queue || bRes.data.invoices || [];
+        billerList = bRes.data.invoices || [];
         Dashboard.billerInvoicesData = billerList;
       }
     } catch(e) {

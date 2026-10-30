@@ -2056,13 +2056,13 @@ const Dashboard = {
   initLocalStorage() {
     try {
       const invSaved = localStorage.getItem("billing_invoices_sheet_data");
-      if (invSaved) {
-        Dashboard.invoicesQueue = JSON.parse(invSaved);
-        Dashboard.queue = [...Dashboard.invoicesQueue];
+      const mstSaved = localStorage.getItem("billing_master_sheet_data");
+      if (invSaved) Dashboard.invoicesQueue = JSON.parse(invSaved);
+      if (mstSaved) Dashboard.masterQueue = JSON.parse(mstSaved);
+      if (Dashboard.invoicesQueue.length || Dashboard.masterQueue.length) {
+        Dashboard.queue = [...Dashboard.invoicesQueue, ...Dashboard.masterQueue];
         Dashboard.filtered = [...Dashboard.queue];
       }
-      Dashboard.masterQueue = [];
-      localStorage.removeItem("billing_master_sheet_data");
     } catch (e) {
       console.warn("Could not load from localStorage:", e);
     }
@@ -2071,7 +2071,7 @@ const Dashboard = {
   saveToLocalStorage() {
     try {
       localStorage.setItem("billing_invoices_sheet_data", JSON.stringify(Dashboard.invoicesQueue || []));
-      localStorage.removeItem("billing_master_sheet_data");
+      localStorage.setItem("billing_master_sheet_data", JSON.stringify(Dashboard.masterQueue || []));
       localStorage.setItem("billing_last_sync", new Date().toISOString());
     } catch (e) {
       console.warn("Could not save to localStorage:", e);
@@ -2082,8 +2082,12 @@ const Dashboard = {
     const rawList = list || [];
     
     Dashboard.queue = rawList.map((b, idx) => {
-      // Biller only manages new intake bills
-      const sheet = "Invoices";
+      // Determine source sheet strictly:
+      const isNew = (b._sourceSheet === "Invoices") || 
+                    (b["Approval Status"] === "New") || 
+                    (!b["Current_Stage"] && (!b["Approval Status"] || b["Approval Status"] === "New"));
+      
+      const sheet = isNew ? "Invoices" : "Master_Invoices";
       const validRowIdx = (b._sheetRowIndex !== undefined && b._sheetRowIndex !== null && b._sheetRowIndex !== "")
         ? b._sheetRowIndex
         : ((b.queueRowIndex !== undefined && b.queueRowIndex !== null && b.queueRowIndex !== "")
@@ -2098,8 +2102,8 @@ const Dashboard = {
       return b;
     });
 
-    Dashboard.invoicesQueue = [...Dashboard.queue];
-    Dashboard.masterQueue   = [];
+    Dashboard.invoicesQueue = Dashboard.queue.filter(b => b._sourceSheet === "Invoices");
+    Dashboard.masterQueue   = Dashboard.queue.filter(b => b._sourceSheet === "Master_Invoices");
 
     Dashboard.saveToLocalStorage();
   },

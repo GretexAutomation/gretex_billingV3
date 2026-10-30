@@ -2150,7 +2150,7 @@ const Dashboard = {
     try {
       const bRes = await API.biller.getQueue();
       if (bRes?.success && bRes.data) {
-        Dashboard.billerInvoicesData = bRes.data.queue || [];
+        Dashboard.billerInvoicesData = bRes.data.invoices || [];
       }
     } catch(e) {
       console.warn("Could not fetch biller queue:", e);
