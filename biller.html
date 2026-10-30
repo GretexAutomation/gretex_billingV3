@@ -3718,6 +3718,11 @@ const Dashboard = {
     const bill = Dashboard.currentBill;
     if (!bill) return;
 
+    if (bill.biller_status !== "New" || (bill.current_stage && bill.current_stage !== "Biller")) {
+      Toast.error("This invoice has already been submitted or processed and cannot be deleted.");
+      return;
+    }
+
     const ok = await Utils.confirm(
       "Are you sure you want to permanently delete this invoice?<br>This action cannot be undone.", 
       "Delete Invoice 🗑️"

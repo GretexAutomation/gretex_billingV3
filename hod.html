@@ -528,6 +528,9 @@
     <!-- Live Tracking Timeline Container -->
     <div id="modalTrackingTimeline" style="padding: 20px 20px 0; background: var(--white);"></div>
 
+    <!-- Stage Notice Alert (Bypassed / Rejected / View Only) -->
+    <div id="modalStageNotice" style="display:none;margin: 12px 20px 0;padding: 10px 14px;border-radius: 8px;font-size: 0.85rem;font-weight: 600;align-items: center;"></div>
+
     <!-- Review Tabs -->
     <div class="detail-tabs">
       <button class="detail-tab active" data-tab="tab-attachment" onclick="Dashboard.switchTab(this, 'tab-attachment')">📎 Attachment</button>
@@ -649,8 +652,13 @@
           this.allBills = list;
           
           // Categorize bills for HOD view
-          // 1. New / Pending for Me: current_stage === "HOD"
-          this.pendingBills = list.filter(b => (b.current_stage || b["Current_Stage"]) === "HOD");
+          // 1. New / Pending for Me: current_stage === "HOD" (not rejected, not bypassed)
+          this.pendingBills = list.filter(b => {
+            const st = b.current_stage || b["Current_Stage"];
+            const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected";
+            const isBypassed = b["HOD_Status"] === "Bypassed" || (b.approval_history || []).some(a => a.stage === "HOD" && String(a.action_type || "").includes("Bypass"));
+            return st === "HOD" && !isRejected && !isBypassed;
+          });
 
           // 2. Pending (In Process): HOD approved, currently moving through later stages
           const laterStages = ["Account", "Finance", "CFO", "SuperAdmin"];
@@ -719,7 +727,22 @@
         tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No pending invoices awaiting your review 🎉</td></tr>';
         return;
       }
-      tbody.innerHTML = list.map((b, i) => `
+      tbody.innerHTML = list.map((b, i) => {
+        const currentStage = b.current_stage || b["Current_Stage"] || "";
+        const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected";
+        const isBypassed = b["HOD_Status"] === "Bypassed" || (b.approval_history || []).some(a => a.stage === "HOD" && String(a.action_type || "").includes("Bypass"));
+        const canAction = currentStage === "HOD" && !isRejected && !isBypassed;
+
+        let actionHtml = `<button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')"><i class="fa fa-eye"></i> View</button>`;
+        if (isRejected) {
+          actionHtml = `<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:0.75rem;padding:4px 8px;font-weight:600"><i class="fa fa-times-circle"></i> Rejected</span>`;
+        } else if (isBypassed) {
+          actionHtml = `<span class="badge" style="background:#fff3e0;color:#c2410c;font-size:0.75rem;padding:4px 8px;font-weight:600"><i class="fa fa-bolt"></i> Bypassed</span>`;
+        } else if (canAction) {
+          actionHtml = `<button class="queue-action-btn btn-approve" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')"><i class="fa fa-signature"></i> Review &amp; Signoff</button>`;
+        }
+
+        return `
         <tr>
           <td>${i + 1}</td>
           <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
@@ -727,13 +750,9 @@
           <td>${b["A12. Invoice Date"] || 'N/A'}</td>
           <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
           <td>${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
-          <td>
-            <button class="queue-action-btn btn-approve" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
-              <i class="fa fa-signature"></i> Review &amp; Signoff
-            </button>
-          </td>
+          <td>${actionHtml}</td>
         </tr>
-      `).join("");
+      `;}).join("");
     },
 
     renderAllBillsTable(list) {
@@ -768,7 +787,22 @@
         tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No bills pending for your review 🎉</td></tr>';
         return;
       }
-      tbody.innerHTML = list.map(b => `
+      tbody.innerHTML = list.map(b => {
+        const currentStage = b.current_stage || b["Current_Stage"] || "";
+        const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected";
+        const isBypassed = b["HOD_Status"] === "Bypassed" || (b.approval_history || []).some(a => a.stage === "HOD" && String(a.action_type || "").includes("Bypass"));
+        const canAction = currentStage === "HOD" && !isRejected && !isBypassed;
+
+        let actionHtml = `<button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')"><i class="fa fa-eye"></i> View</button>`;
+        if (isRejected) {
+          actionHtml = `<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:0.75rem;padding:4px 8px;font-weight:600"><i class="fa fa-times-circle"></i> Rejected</span>`;
+        } else if (isBypassed) {
+          actionHtml = `<span class="badge" style="background:#fff3e0;color:#c2410c;font-size:0.75rem;padding:4px 8px;font-weight:600"><i class="fa fa-bolt"></i> Bypassed</span>`;
+        } else if (canAction) {
+          actionHtml = `<button class="queue-action-btn btn-approve" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')"><i class="fa fa-signature"></i> Review &amp; Signoff</button>`;
+        }
+
+        return `
         <tr>
           <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
           <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
@@ -776,13 +810,9 @@
           <td>${b["A12. Invoice Date"] || 'N/A'}</td>
           <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
           <td>${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
-          <td>
-            <button class="queue-action-btn btn-approve" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
-              <i class="fa fa-signature"></i> Review &amp; Signoff
-            </button>
-          </td>
+          <td>${actionHtml}</td>
         </tr>
-      `).join("");
+      `;}).join("");
     },
 
     renderInProcessTable(list) {
@@ -989,10 +1019,47 @@
         driveBtn.style.display = "none";
       }
 
-      // Show Approve / Reject buttons ONLY if current_stage === "HOD"
-      const isPendingAtHOD = (inv.current_stage || inv["Current_Stage"]) === "HOD";
-      document.getElementById("modalApproveBtn").style.display = isPendingAtHOD ? "inline-flex" : "none";
-      document.getElementById("modalRejectBtn").style.display  = isPendingAtHOD ? "inline-flex" : "none";
+      // Show Approve / Reject buttons ONLY if current_stage === "HOD" and not rejected or bypassed
+      const currentStage = inv.current_stage || inv["Current_Stage"] || "";
+      const isRejected = inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected";
+      const isBypassed = inv["HOD_Status"] === "Bypassed" || (inv.approval_history || []).some(a => a.stage === "HOD" && String(a.action_type || "").includes("Bypass"));
+      const isPendingAtHOD = currentStage === "HOD" && !isRejected && !isBypassed;
+
+      const approveBtn = document.getElementById("modalApproveBtn");
+      const rejectBtn = document.getElementById("modalRejectBtn");
+      if (approveBtn) approveBtn.style.display = isPendingAtHOD ? "inline-flex" : "none";
+      if (rejectBtn) rejectBtn.style.display  = isPendingAtHOD ? "inline-flex" : "none";
+
+      const noticeEl = document.getElementById("modalStageNotice");
+      if (noticeEl) {
+        if (isRejected) {
+          noticeEl.style.display = "inline-flex";
+          noticeEl.style.background = "#fef2f2";
+          noticeEl.style.color = "#991b1b";
+          noticeEl.style.border = "1px solid #fecaca";
+          noticeEl.innerHTML = '<i class="fa fa-times-circle" style="margin-right:6px"></i> Rejected & Closed — View Only (No changes permitted)';
+        } else if (isBypassed) {
+          noticeEl.style.display = "inline-flex";
+          noticeEl.style.background = "#fff3e0";
+          noticeEl.style.color = "#c2410c";
+          noticeEl.style.border = "1px solid #fed7aa";
+          noticeEl.innerHTML = '<i class="fa fa-bolt" style="margin-right:6px"></i> HOD Stage Bypassed by Executive Authority — View Only';
+        } else if (["Account", "Finance", "CFO", "SuperAdmin"].includes(currentStage)) {
+          noticeEl.style.display = "inline-flex";
+          noticeEl.style.background = "#e0e7ff";
+          noticeEl.style.color = "#3730a3";
+          noticeEl.style.border = "1px solid #c7d2fe";
+          noticeEl.innerHTML = `<i class="fa fa-circle-check" style="margin-right:6px"></i> HOD Signed Off • Currently at ${currentStage} Stage`;
+        } else if (currentStage === "Completed") {
+          noticeEl.style.display = "inline-flex";
+          noticeEl.style.background = "#dcfce7";
+          noticeEl.style.color = "#166534";
+          noticeEl.style.border = "1px solid #bbf7d0";
+          noticeEl.innerHTML = '<i class="fa fa-circle-check" style="margin-right:6px"></i> Final Approved & Completed';
+        } else {
+          noticeEl.style.display = "none";
+        }
+      }
 
       this.buildAttachmentTab(inv);
       this.buildAccountingTab(inv);
@@ -1174,6 +1241,14 @@
     // ─────────────────────────────────────────────
     async approveFromModal() {
       if (!this.currentBill) return;
+      const currentStage = this.currentBill.current_stage || this.currentBill["Current_Stage"] || "";
+      const isRejected = this.currentBill.overall_status === "FAIL" || this.currentBill.overall_status === "Rejected" || this.currentBill["Approval Status"] === "Rejected";
+      const isBypassed = this.currentBill["HOD_Status"] === "Bypassed" || (this.currentBill.approval_history || []).some(a => a.stage === "HOD" && String(a.action_type || "").includes("Bypass"));
+      if (currentStage !== "HOD" || isRejected || isBypassed) {
+        Toast.error("This invoice has been bypassed, rejected, or completed and cannot be modified.");
+        return;
+      }
+
       const invNo = this.currentBill["A13. Invoice Number"] || "this invoice";
       if (!confirm(`Are you sure you want to approve invoice ${invNo} and forward it to Accounts?`)) return;
 
@@ -1192,6 +1267,14 @@
 
     rejectFromModal() {
       if (!this.currentBill) return;
+      const currentStage = this.currentBill.current_stage || this.currentBill["Current_Stage"] || "";
+      const isRejected = this.currentBill.overall_status === "FAIL" || this.currentBill.overall_status === "Rejected" || this.currentBill["Approval Status"] === "Rejected";
+      const isBypassed = this.currentBill["HOD_Status"] === "Bypassed" || (this.currentBill.approval_history || []).some(a => a.stage === "HOD" && String(a.action_type || "").includes("Bypass"));
+      if (currentStage !== "HOD" || isRejected || isBypassed) {
+        Toast.error("This invoice has been bypassed, rejected, or completed and cannot be modified.");
+        return;
+      }
+
       this.pendingRejectId = this.currentBill.id || this.currentBill.rowIndex;
       this.pendingRejectInvoiceNo = this.currentBill["A13. Invoice Number"] || "";
       this.closeModal();

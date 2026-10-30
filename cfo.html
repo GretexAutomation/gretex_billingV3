@@ -2768,9 +2768,32 @@ const Dashboard = {
 
     tbody.innerHTML = pageData.map((item, i) => {
       const status = item["Approval Status"] || "Pending";
-      const isPending = status === "Pending" || status === "";
+      const isRejected = item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected";
+      const currentStage = item.current_stage || item["Current_Stage"] || "";
+      const isCompleted = currentStage === "Completed" || status === "Approved" || item.overall_status === "PASS";
+      const isBypassed = (typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(item) : false;
+      const isPending = (status === "Pending" || status === "") && !isRejected && !isCompleted;
       const rowIdx = item.queueRowIndex;
       const invNo = item["A13. Invoice Number"] || "";
+
+      let actionTd = "";
+      if (isRejected) {
+        actionTd = `<span class="badge" style="background:#fee2e2;color:#dc2626;font-size:0.75rem;padding:4px 8px;font-weight:600"><i class="fa fa-times-circle"></i> Rejected</span>`;
+      } else if (isCompleted) {
+        actionTd = `<span class="badge" style="background:#dcfce7;color:#166534;font-size:0.75rem;padding:4px 8px;font-weight:600"><i class="fa fa-circle-check"></i> Cleared</span>`;
+      } else if (isPending) {
+        actionTd = `<div style="display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" style="background:#34a853;color:#fff;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:600" 
+            onclick="Dashboard.openApproveModal('${rowIdx}', '${escapeJsString(invNo)}')">✅ Approve</button>
+          ${!isBypassed
+            ? `<button class="btn btn-sm" style="background:#ea4335;color:#fff;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:600"
+                onclick="Dashboard.openRejectModal('${rowIdx}', '${escapeJsString(invNo)}')">❌ Reject</button>`
+            : `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:0.7rem;padding:3px 6px;font-weight:600" title="Bypassed invoices can only be approved">⚡ Bypassed</span>`}
+        </div>`;
+      } else {
+        actionTd = `<span style="color:var(--gray-500);font-size:0.75rem;">${status}</span>`;
+      }
+
       return `<tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail('${rowIdx}')">
         <td style="color:var(--gray-400);font-size:0.75rem">${start + i+1}</td>
         <td><strong>${escapeHtml(invNo || "—")}</strong></td>
@@ -2779,15 +2802,8 @@ const Dashboard = {
         <td>${item["B1. TDS Applicable"]==="Yes" ? Utils.formatCurrency(item["B8. TDS Amount"]) : "N/A"}</td>
         <td><strong>${Utils.formatCurrency(item["D1. Final Payable Amt"])}</strong></td>
         <td>${item["🚩 Red Flags"] ? "🚩" : "—"}</td>
-        <td>${isPending ? '<span style="background:#fff3e0;color:#f9a825;padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:600">Pending</span>' : status}</td>
-        <td onclick="event.stopPropagation()">${isPending ? `<div style="display:flex;gap:6px;align-items:center">
-          <button class="btn btn-sm" style="background:#34a853;color:#fff;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:600" 
-            onclick="Dashboard.openApproveModal('${rowIdx}', '${escapeJsString(invNo)}')">✅ Approve</button>
-          ${(!Utils.isBillBypassed(item) && item["Current_Stage"] !== "Account")
-            ? `<button class="btn btn-sm" style="background:#ea4335;color:#fff;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:600"
-                onclick="Dashboard.openRejectModal('${rowIdx}', '${escapeJsString(invNo)}')">❌ Reject</button>`
-            : `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:0.7rem;padding:3px 6px;font-weight:600" title="Bypassed invoices can only be approved">⚡ Bypassed</span>`}
-        </div>` : ""}</td>
+        <td>${isRejected ? '<span style="background:#fee2e2;color:#dc2626;padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:600">Rejected</span>' : (isPending ? '<span style="background:#fff3e0;color:#f9a825;padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:600">Pending</span>' : status)}</td>
+        <td onclick="event.stopPropagation()">${actionTd}</td>
       </tr>`;
     }).join("");
 
@@ -5093,11 +5109,24 @@ const Dashboard = {
     const approveBtn = document.getElementById("modalApproveBtn");
     const rejectBtn = document.getElementById("modalRejectBtn");
 
+    const isRejected = inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected";
     const isCompleted = currentStage === "Completed" || inv["Approval Status"] === "Approved" || inv["overall_status"] === "PASS";
     const isAtCfo = currentStage === "CFO";
     const isBypassed = (typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(inv) : false;
 
-    if (isCompleted) {
+    if (isRejected) {
+      if (stageAlert) {
+        stageAlert.style.display = "block";
+        stageAlert.innerHTML = `
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:10px; color:#991b1b; font-size:0.83rem;">
+            <i class="fa fa-times-circle" style="font-size:1.1rem; color:#dc2626;"></i>
+            <div><strong>Invoice Rejected &amp; Closed:</strong> This invoice was rejected and closed. No actions, approvals, or bypasses are permitted. (View Only)</div>
+          </div>`;
+      }
+      if (bypassBtn) bypassBtn.style.display = "none";
+      if (approveBtn) approveBtn.style.display = "none";
+      if (rejectBtn) rejectBtn.style.display = "none";
+    } else if (isCompleted) {
       if (stageAlert) {
         stageAlert.style.display = "block";
         stageAlert.innerHTML = `
@@ -5178,6 +5207,13 @@ const Dashboard = {
 
   openBypassModal(rowIdx, invoiceNo) {
     const inv = Dashboard.getInvoiceById(rowIdx);
+    const isRejected = inv && (inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected");
+    const currentStage = inv ? (inv.current_stage || inv["Current_Stage"] || "") : "";
+    if (isRejected || currentStage === "Completed") {
+      Toast.error("This invoice is rejected or completed and cannot be bypassed.");
+      return;
+    }
+
     Dashboard.pendingBypassRow = rowIdx;
     Dashboard.pendingBypassInvoiceNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
 
@@ -5367,6 +5403,14 @@ const Dashboard = {
 
   // 🔥 APPROVE / REJECT MODALS & LOGIC 🔥
   openApproveModal(rowIdx, invoiceNo) {
+    const inv = Dashboard.getInvoiceById(rowIdx);
+    const isRejected = inv && (inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected");
+    const currentStage = inv ? (inv.current_stage || inv["Current_Stage"] || "") : "";
+    if (isRejected || currentStage === "Completed") {
+      Toast.error("This invoice is rejected or completed and cannot be approved.");
+      return;
+    }
+
     Dashboard.pendingApproveRow = rowIdx;
     Dashboard.pendingApproveInvoiceNo = invoiceNo;
     const invNoEl = document.getElementById("approveModalInvoiceNo");
@@ -5410,6 +5454,18 @@ const Dashboard = {
 
   openRejectModal(rowIdx, invoiceNo) {
     const inv = Dashboard.getInvoiceById(rowIdx);
+    const isRejected = inv && (inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected");
+    const currentStage = inv ? (inv.current_stage || inv["Current_Stage"] || "") : "";
+    const isBypassed = inv ? ((typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(inv) : false) : false;
+    if (isRejected || currentStage === "Completed") {
+      Toast.error("This invoice is rejected or completed and cannot be modified.");
+      return;
+    }
+    if (isBypassed) {
+      Toast.error("This invoice has been bypassed and cannot be rejected.");
+      return;
+    }
+
     Dashboard.pendingRejectRow = rowIdx;
     Dashboard.pendingRejectInvoiceNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
     const invNoEl = document.getElementById("rejectModalInvoiceNo");

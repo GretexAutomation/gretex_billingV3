@@ -1440,8 +1440,9 @@ const Dashboard = {
       const isPending = status === "Pending" || status === "";
       const rowIdx    = item.queueRowIndex;
       const redFlags  = item["🚩 Red Flags"] || "";
-      const tdsAmt    = item["B8. TDS Amount"];
-      const isBypassed = Utils.isBillBypassed(item);
+      const isRejected = item.overall_status === "FAIL" || item["Approval Status"] === "Rejected" || (item.current_stage === "Completed" && item.overall_status === "FAIL");
+      const isBypassed = Utils.isBillBypassed(item) || item["Account_Status"] === "Bypassed" || (item.current_stage && item.current_stage !== "Account" && item.current_stage !== "Completed");
+      const canAction = isPending && !isBypassed && !isRejected;
       
       const safeInvNo = String(item["A13. Invoice Number"] || "").replace(/"/g, '&quot;');
       const safeRowIdx = item.id || item.queueRowIndex || item.rowIndex;
@@ -1457,14 +1458,16 @@ const Dashboard = {
           <td>${redFlags && redFlags !== "" ? `<span style="color:var(--danger);font-size:0.78rem;font-weight:600;cursor:pointer" title="${redFlags}">🚩 ${redFlags.split("|").length}</span>` : `<span style="color:var(--gray-200)">—</span>`}</td>
           <td>${Dashboard.queueStatusBadge(status)}</td>
           <td onclick="event.stopPropagation()">
-            ${isPending
+            ${canAction
               ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
                    <button class="queue-action-btn btn-approve" data-act="approve" data-row="${safeRowIdx}" data-inv="${safeInvNo}"><i class="fa fa-check" style="font-size:0.72rem"></i> Approve</button>
-                   ${!isBypassed 
-                     ? `<button class="queue-action-btn btn-reject" data-act="reject" data-row="${safeRowIdx}" data-inv="${safeInvNo}"><i class="fa fa-xmark" style="font-size:0.72rem"></i> Reject</button>`
-                     : `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:0.7rem;padding:3px 6px;font-weight:600" title="Bypassed invoices can only be approved">⚡ Bypassed</span>`}
+                   <button class="queue-action-btn btn-reject" data-act="reject" data-row="${safeRowIdx}" data-inv="${safeInvNo}"><i class="fa fa-xmark" style="font-size:0.72rem"></i> Reject</button>
                  </div>`
-              : `<span style="font-size:0.78rem;color:var(--gray-400)">${status === "Approved" ? '<i class="fa fa-check" style="color:#34a853"></i> Sent to Finance' : '<i class="fa fa-xmark" style="color:#ea4335"></i> Stopped'}</span>`}
+              : isRejected
+                ? `<span class="badge" style="background:#fef2f2;color:#b91c1c;font-size:0.72rem;padding:3px 8px;font-weight:700;"><i class="fa fa-times"></i> Rejected</span>`
+                : isBypassed
+                  ? `<span class="badge" style="background:#fff3e0;color:#c2410c;font-size:0.72rem;padding:3px 8px;font-weight:700;"><i class="fa fa-bolt"></i> Bypassed</span>`
+                  : `<span style="font-size:0.78rem;color:var(--gray-400)">${status === "Approved" ? '<i class="fa fa-check" style="color:#34a853"></i> Sent to Finance' : '<i class="fa fa-xmark" style="color:#ea4335"></i> Stopped'}</span>`}
           </td>
         </tr>`;
     }).join("");
@@ -1789,17 +1792,30 @@ const Dashboard = {
       driveBtn.href = driveUrl; driveBtn.style.display = "inline-flex";
     } else { driveBtn.style.display = "none"; }
 
-    // SHOW APPROVE/REJECT BUTTONS ONLY IF PENDING AT ACCOUNT (Bypassed bills can only be approved)
+    // SHOW APPROVE/REJECT BUTTONS ONLY IF GENUINELY PENDING AT ACCOUNT (Locked if Bypassed or Rejected)
     const currentStage = (inv["Current_Stage"] || inv.current_stage || "").trim();
-    const isPendingAtAccount = currentStage === "Account";
-    const isBypassed = Utils.isBillBypassed(inv);
+    const isRejected = inv.overall_status === "FAIL" || inv["Approval Status"] === "Rejected" || (currentStage === "Completed" && inv.overall_status === "FAIL");
+    const isBypassed = Utils.isBillBypassed(inv) || inv["Account_Status"] === "Bypassed" || (currentStage !== "Account" && currentStage !== "Completed");
+    const isPendingAtAccount = currentStage === "Account" && !isRejected && !isBypassed;
     
     document.getElementById("modalApproveBtn").style.display = isPendingAtAccount ? "inline-flex" : "none";
-    document.getElementById("modalRejectBtn").style.display  = (isPendingAtAccount && !isBypassed) ? "inline-flex" : "none";
+    document.getElementById("modalRejectBtn").style.display  = isPendingAtAccount ? "inline-flex" : "none";
 
     const noticeEl = document.getElementById("modalStageNotice");
     if (noticeEl) {
-      if (currentStage === "HOD") {
+      if (isRejected) {
+        noticeEl.style.display = "inline-flex";
+        noticeEl.style.background = "#fef2f2";
+        noticeEl.style.color = "#991b1b";
+        noticeEl.style.border = "1px solid #fecaca";
+        noticeEl.innerHTML = '<i class="fa fa-times-circle" style="margin-right:6px"></i> Rejected & Closed — View Only (No changes permitted)';
+      } else if (isBypassed) {
+        noticeEl.style.display = "inline-flex";
+        noticeEl.style.background = "#fff3e0";
+        noticeEl.style.color = "#c2410c";
+        noticeEl.style.border = "1px solid #fed7aa";
+        noticeEl.innerHTML = '<i class="fa fa-bolt" style="margin-right:6px"></i> Account Stage Bypassed by Executive Authority — View Only';
+      } else if (currentStage === "HOD") {
         noticeEl.style.display = "inline-flex";
         noticeEl.style.background = "#fef3c7";
         noticeEl.style.color = "#92400e";

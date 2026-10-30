@@ -867,7 +867,9 @@
       tbody.innerHTML = list.map(b => {
         const safeId = String(b.id || b.invoice_unique_id || "");
         const stageCls = this.getStageClass(b.current_stage);
-        const isActionable = b.current_stage === "Finance";
+        const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected" || (b.current_stage === "Completed" && b.overall_status === "FAIL");
+        const isBypassed = b.Finance_Status === "Bypassed" || (b.approval_history || []).some(a => a.stage === "Finance" && String(a.action_type || "").includes("Bypass"));
+        const isActionable = b.current_stage === "Finance" && !isRejected && !isBypassed;
 
         return `
           <tr style="cursor:pointer;" onclick="Dashboard.openReviewModal('${safeId}')">
@@ -1108,27 +1110,31 @@
       const btnReject = document.getElementById("btnModalReject");
       const remarksBlock = document.getElementById("financeRemarksBlock");
 
-      if (bill.current_stage === "Finance") {
+      const isRejected = bill.overall_status === "FAIL" || bill.overall_status === "Rejected" || bill["Approval Status"] === "Rejected" || (bill.current_stage === "Completed" && bill.overall_status === "FAIL");
+      const isBypassed = bill.Finance_Status === "Bypassed" || (bill.approval_history || []).some(a => a.stage === "Finance" && String(a.action_type || "").includes("Bypass"));
+      const isPendingAtFinance = bill.current_stage === "Finance" && !isRejected && !isBypassed;
+
+      if (isPendingAtFinance) {
         if (banner) banner.style.display = "none";
         if (btnApprove) btnApprove.style.display = "inline-flex";
         if (btnReject) btnReject.style.display = "inline-flex";
         if (remarksBlock) remarksBlock.style.display = "block";
-      } else if (["HOD", "Account"].includes(bill.current_stage)) {
-        if (banner) {
-          banner.style.display = "block";
-          banner.innerHTML = `<div class="alert alert-info" style="margin:0;"><i class="fa fa-info-circle"></i> Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong> (Awaiting earlier signoff — View Only mode)</div>`;
-        }
-        if (btnApprove) btnApprove.style.display = "none";
-        if (btnReject) btnReject.style.display = "none";
-        if (remarksBlock) remarksBlock.style.display = "none";
       } else {
-        if (banner) {
-          banner.style.display = "block";
-          banner.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fa fa-check-circle"></i> Cleared by Finance — Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong></div>`;
-        }
         if (btnApprove) btnApprove.style.display = "none";
         if (btnReject) btnReject.style.display = "none";
         if (remarksBlock) remarksBlock.style.display = "none";
+        if (banner) {
+          banner.style.display = "block";
+          if (isRejected) {
+            banner.innerHTML = `<div class="alert alert-danger" style="margin:0;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;"><i class="fa fa-times-circle"></i> <strong>Rejected & Closed:</strong> This invoice has been rejected and closed. No changes permitted.</div>`;
+          } else if (isBypassed) {
+            banner.innerHTML = `<div class="alert alert-warning" style="margin:0;background:#fff3e0;color:#c2410c;border:1px solid #fed7aa;"><i class="fa fa-bolt"></i> <strong>Finance Stage Bypassed:</strong> This invoice was bypassed by executive authority. View-only mode (No changes permitted).</div>`;
+          } else if (["HOD", "Account"].includes(bill.current_stage)) {
+            banner.innerHTML = `<div class="alert alert-info" style="margin:0;"><i class="fa fa-info-circle"></i> Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong> (Awaiting earlier signoff — View Only mode)</div>`;
+          } else {
+            banner.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fa fa-check-circle"></i> Cleared by Finance — Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong></div>`;
+          }
+        }
       }
 
       // Populate live audit timeline if available
@@ -1205,6 +1211,12 @@
 
     async handleDecision(action) {
       if (!this.currentBill) return;
+      const isRejected = this.currentBill.overall_status === "FAIL" || this.currentBill.overall_status === "Rejected" || this.currentBill["Approval Status"] === "Rejected" || this.currentBill.current_stage === "Completed";
+      const isBypassed = this.currentBill.Finance_Status === "Bypassed" || this.currentBill.current_stage !== "Finance";
+      if (isRejected || isBypassed) {
+        Toast.error("This invoice is bypassed or closed and cannot be modified.");
+        return;
+      }
       const remark = (document.getElementById("financeRemarkInput").value || "").trim();
 
       if (action === "reject" && !remark) {

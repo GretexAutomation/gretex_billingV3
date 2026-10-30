@@ -2616,7 +2616,9 @@ const Dashboard = {
 
     tbody.innerHTML = data.map((item, i) => {
       const status = item["Approval Status"] || "Pending";
-      const isPending = status === "Pending";
+      const isRejected = item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected";
+      const isCompleted = item.current_stage === "Completed" || status === "Approved" || item.overall_status === "PASS";
+      const isPending = (status === "Pending") && !isRejected && !isCompleted;
       const rowIdx = item.queueRowIndex || item.rowIndex;
       const invNo = item["A13. Invoice Number"] || "—";
       const isChecked = Dashboard.selectedQueueIds.has(String(rowIdx));
@@ -2852,10 +2854,11 @@ const Dashboard = {
     }
 
     // Super Admin action buttons:
-    // If completed: hide all action buttons
+    // If completed or rejected: hide all action buttons
     // If at SuperAdmin: show Approve and Reject ONLY (hide Bypass)
     // If at earlier stages: show Approve (Clear), Bypass (Forward), and Reject
-    const isCompleted = Dashboard.pendingStage === "Completed" || inv["Approval Status"] === "Approved" || inv.overall_status === "PASS";
+    const isRejected = inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected";
+    const isCompleted = Dashboard.pendingStage === "Completed" || inv["Approval Status"] === "Approved" || inv.overall_status === "PASS" || isRejected;
     const isAtSuperAdmin = Dashboard.pendingStage === "SuperAdmin";
 
     document.getElementById("modalApproveBtn").style.display = !isCompleted ? "inline-flex" : "none";
