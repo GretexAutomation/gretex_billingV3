@@ -203,14 +203,27 @@ const Sidebar = {
         section: "Main",
         items: [
           { id: "dashboard", icon: "fa-gauge",        label: "Dashboard",        page: "finance.html" },
-          { id: "approval",  icon: "fa-money-bill-transfer", label: "Clearance Queue", page: "finance.html#approval", badge: "approval" },
-          { id: "invoices",  icon: "fa-file-invoice", label: "All Invoices",     page: "finance.html#invoices" }
+          {
+            id: "myinvoices",
+            icon: "fa-file-invoice",
+            label: "Invoices & Queue",
+            page: "finance.html#invoices",
+            badge: "approval",
+            children: [
+              { id: "invoices",   label: "All Bills",                     page: "finance.html#invoices",   icon: "fa-list" },
+              { id: "atprevious", label: "At HOD & Account (View Only)",  page: "finance.html#atprevious", icon: "fa-user-clock" },
+              { id: "approval",   label: "Approval Pending For Us",       page: "finance.html#approval",   icon: "fa-sparkles" },
+              { id: "pending",    label: "Pending (In Process)",          page: "finance.html#pending",    icon: "fa-clock" },
+              { id: "completed",  label: "Completed",                     page: "finance.html#completed",  icon: "fa-circle-check" }
+            ]
+          },
+          { id: "redflags",  icon: "fa-flag",          label: "Red Flags",      page: "finance.html#redflags", badge: "redflags" }
         ]
       },
       {
         section: "Reports",
         items: [
-          { id: "reports",   icon: "fa-chart-bar",    label: "Reports",          page: "finance.html#reports" }
+          { id: "summary",   icon: "fa-chart-pie",     label: "Summary",        page: "finance.html#summary" }
         ]
       },
       {
@@ -495,20 +508,23 @@ const Sidebar = {
     }
 
     try {
-      // Approval Queue pending badge (Account & HOD roles)
+      // Approval Queue pending badge (Account, Finance & HOD roles)
       const approvalBadge = document.getElementById("badge-approval");
       if (approvalBadge) {
         const user = Auth.getUser();
         let qRes;
         if (user?.role === "HOD") {
           qRes = await API.approval.getQueue("HOD");
+        } else if (user?.role === "Finance") {
+          qRes = await API.approval.getQueue("Finance");
         } else {
           qRes = await API.account.getQueue();
         }
         if (qRes?.success) {
-          const queue   = qRes.data.queue || [];
+          const queue = qRes.data.queue || [];
+          const targetStage = user?.role === "HOD" ? "HOD" : (user?.role === "Finance" ? "Finance" : "Account");
           const pending = queue.filter(i =>
-            (i.current_stage === "HOD" || i["Current_Stage"] === "HOD" || (i["Approval Status"] || "Pending") === "Pending")
+            (i.current_stage === targetStage || i["Current_Stage"] === targetStage || (i["Approval Status"] || "Pending") === "Pending")
           ).length;
 
           if (pending > 0) {
