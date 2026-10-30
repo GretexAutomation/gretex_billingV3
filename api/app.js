@@ -193,19 +193,73 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
 
     "Biller_Send_At": billerAction?.action_taken_at || (isNew ? "" : (b.created_at || b.timestamp)),
     "HOD_Send_At": hodAction?.action_taken_at || "",
-    "HOD_Status": hodAction ? (hodAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "HOD_Status": (() => {
+      if (hodAction) {
+        if (hodAction.action_type.includes("Reject")) return "Rejected";
+        if (hodAction.action_type.includes("Bypass")) return "Bypassed";
+        return "Approved";
+      }
+      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+      const cIdx = order.indexOf(b.current_stage || "");
+      if (b.current_stage === "Completed" || (cIdx > order.indexOf("HOD"))) return "Bypassed";
+      if (b.current_stage === "HOD") return "Pending";
+      return "";
+    })(),
     "HOD_Remark": hodAction?.remark || "",
     "Account_Send_At": accountAction?.action_taken_at || "",
-    "Account_Status": accountAction ? (accountAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "Account_Status": (() => {
+      if (accountAction) {
+        if (accountAction.action_type.includes("Reject")) return "Rejected";
+        if (accountAction.action_type.includes("Bypass")) return "Bypassed";
+        return "Approved";
+      }
+      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+      const cIdx = order.indexOf(b.current_stage || "");
+      if (b.current_stage === "Completed" || (cIdx > order.indexOf("Account"))) return "Bypassed";
+      if (b.current_stage === "Account") return "Pending";
+      return "";
+    })(),
     "Account_Remark": accountAction?.remark || "",
     "Finance_Send_At": financeAction?.action_taken_at || "",
-    "Finance_Status": financeAction ? (financeAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "Finance_Status": (() => {
+      if (financeAction) {
+        if (financeAction.action_type.includes("Reject")) return "Rejected";
+        if (financeAction.action_type.includes("Bypass")) return "Bypassed";
+        return "Approved";
+      }
+      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+      const cIdx = order.indexOf(b.current_stage || "");
+      if (b.current_stage === "Completed" || (cIdx > order.indexOf("Finance"))) return "Bypassed";
+      if (b.current_stage === "Finance") return "Pending";
+      return "";
+    })(),
     "Finance_Remark": financeAction?.remark || "",
     "CFO_Send_At": cfoAction?.action_taken_at || "",
-    "CFO_Status": cfoAction ? (cfoAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "CFO_Status": (() => {
+      if (cfoAction) {
+        if (cfoAction.action_type.includes("Reject")) return "Rejected";
+        if (cfoAction.action_type.includes("Bypass")) return "Bypassed";
+        return "Approved";
+      }
+      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+      const cIdx = order.indexOf(b.current_stage || "");
+      if (b.current_stage === "Completed" || (cIdx > order.indexOf("CFO"))) return "Bypassed";
+      if (b.current_stage === "CFO") return "Pending";
+      return "";
+    })(),
     "CFO_Remark": cfoAction?.remark || "",
     "SA_Approved_At": saAction?.action_taken_at || b.close_at || "",
-    "SA_Status": saAction ? (saAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "SA_Status": (() => {
+      if (saAction) {
+        if (saAction.action_type.includes("Reject")) return "Rejected";
+        if (saAction.action_type.includes("Bypass")) return "Bypassed";
+        return "Approved";
+      }
+      if (b.current_stage === "Completed" && (b.overall_status === "PASS" || b.overall_status === "Approved")) return "Approved";
+      if (b.current_stage === "Completed" && (b.overall_status === "FAIL" || b.overall_status === "Rejected")) return "Rejected";
+      if (b.current_stage === "SuperAdmin") return "Pending";
+      return "";
+    })(),
     "SA_Remark": saAction?.remark || "",
     approval_history: approvalHistory,
 
@@ -913,6 +967,9 @@ module.exports = async function handler(req, res) {
 
         if (!bill) return Response.error(res, "Invoice not found");
 
+        const PIPELINE = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+        const ACTION_STAGES = ["HOD", "Account", "Finance", "CFO", "SuperAdmin"];
+
         // Determine Next Stage in Pipeline:
         // HOD -> Account -> Finance -> CFO -> SuperAdmin -> Completed
         let nextStage = "Completed";
@@ -933,10 +990,11 @@ module.exports = async function handler(req, res) {
 
         const updatePayload = {
           current_stage: nextStage,
-          d11_narration: `${bill.d11_narration || ""} | ${user.role} Approved: ${remark}`.trim()
+          d11_narration: `${bill.d11_narration || ""} | ${user.role} ${isBypass ? "Bypassed" : "Approved"}: ${remark}`.trim()
         };
 
         if (nextStage === "Completed") {
+          updatePayload.overall_status = "PASS";
           updatePayload.send_for_billing_at = new Date().toISOString();
           updatePayload.close_at = new Date().toISOString();
         }
@@ -959,6 +1017,40 @@ module.exports = async function handler(req, res) {
           remark: remark
         });
 
+        // If this action was a bypass that jumped over stages, mark intermediate skipped stages as Bypassed
+        const fromIdx = PIPELINE.indexOf(bill.current_stage || "Biller");
+        const toIdx = PIPELINE.indexOf(nextStage);
+        if (toIdx > fromIdx) {
+          const { data: existingApprovals } = await supabase
+            .from("invoice_approvals")
+            .select("stage")
+            .eq("invoice_unique_id", bill.invoice_unique_id);
+          const actedStages = new Set((existingApprovals || []).map(a => a.stage));
+          actedStages.add(user.role);
+
+          for (const s of ACTION_STAGES) {
+            const sIdx = PIPELINE.indexOf(s);
+            if (sIdx >= fromIdx && sIdx <= toIdx && s !== user.role && !actedStages.has(s)) {
+              if (sIdx < toIdx || (nextStage === "Completed" && s !== user.role)) {
+                await supabase.from("invoice_approvals").insert({
+                  invoice_unique_id: bill.invoice_unique_id,
+                  cycle_no: 1,
+                  stage: s,
+                  approver_name: `${user.name} (Override)`,
+                  approver_email: user.email,
+                  approver_role: user.role,
+                  action_type: "Bypassed",
+                  next_stage: nextStage,
+                  target_assignee: `${nextStage} Team`,
+                  received_at: new Date().toISOString(),
+                  action_taken_at: new Date().toISOString(),
+                  remark: `Bypassed by ${user.role} (${user.name}): ${remark}`
+                });
+              }
+            }
+          }
+        }
+
         await logAudit(supabase, `${user.role.toUpperCase()}_APPROVE`, user.email, `Approved ${bill.invoice_unique_id} -> ${nextStage}`);
         return Response.success(res, { nextStage }, `Bill approved and forwarded to ${nextStage}`);
       }
@@ -976,6 +1068,7 @@ module.exports = async function handler(req, res) {
         }
         if (!bill) return Response.error(res, "Invoice not found");
 
+        // Close invoice immediately with FAIL / Rejected status
         await supabase.from("master_invoices").update({
           current_stage: "Completed",
           overall_status: "FAIL",
@@ -983,6 +1076,14 @@ module.exports = async function handler(req, res) {
           close_at: new Date().toISOString()
         }).eq("id", bill.id);
 
+        const { data: existingApprovals } = await supabase
+          .from("invoice_approvals")
+          .select("stage")
+          .eq("invoice_unique_id", bill.invoice_unique_id);
+        const actedStages = new Set((existingApprovals || []).map(a => a.stage));
+        actedStages.add(user.role);
+
+        // Record the rejecting user's action
         await supabase.from("invoice_approvals").insert({
           invoice_unique_id: bill.invoice_unique_id,
           cycle_no: 1,
@@ -996,6 +1097,27 @@ module.exports = async function handler(req, res) {
           action_taken_at: new Date().toISOString(),
           remark: remark
         });
+
+        // Mark all remaining unacted stages in the pipeline as Bypassed so they don't remain pending!
+        const ALL_ACTION_STAGES = ["HOD", "Account", "Finance", "CFO", "SuperAdmin"];
+        for (const s of ALL_ACTION_STAGES) {
+          if (!actedStages.has(s)) {
+            await supabase.from("invoice_approvals").insert({
+              invoice_unique_id: bill.invoice_unique_id,
+              cycle_no: 1,
+              stage: s,
+              approver_name: `${user.name} (Override)`,
+              approver_email: user.email,
+              approver_role: user.role,
+              action_type: "Bypassed",
+              next_stage: "Completed",
+              target_assignee: "N/A",
+              received_at: new Date().toISOString(),
+              action_taken_at: new Date().toISOString(),
+              remark: `Bypassed due to rejection by ${user.role}`
+            });
+          }
+        }
 
         await logAudit(supabase, `${user.role.toUpperCase()}_REJECT`, user.email, `Rejected ${bill.invoice_unique_id}`);
         return Response.success(res, {}, "Bill marked as rejected.");
