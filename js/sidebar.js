@@ -47,8 +47,20 @@ const Sidebar = {
         section: "Main",
         items: [
           { id: "dashboard", icon: "fa-gauge",         label: "Dashboard",      page: "account.html"  },
-          { id: "invoices",  icon: "fa-file-invoice",  label: "All Invoices",   page: "account.html#invoices" },
-          { id: "approval",  icon: "fa-list-check",    label: "Approval Queue", page: "account.html#approval", badge: "approval" },
+          {
+            id: "myinvoices",
+            icon: "fa-file-invoice",
+            label: "Invoices & Queue",
+            page: "account.html#invoices",
+            badge: "approval",
+            children: [
+              { id: "invoices",  label: "All Bills",                page: "account.html#invoices",  icon: "fa-list" },
+              { id: "athod",     label: "At HOD (View Only)",       page: "account.html#athod",     icon: "fa-user-clock" },
+              { id: "approval",  label: "Approval Pending For Us",  page: "account.html#approval",  icon: "fa-sparkles" },
+              { id: "pending",   label: "Pending (In Process)",     page: "account.html#pending",   icon: "fa-clock" },
+              { id: "completed", label: "Completed",                page: "account.html#completed", icon: "fa-circle-check" }
+            ]
+          },
           { id: "redflags",  icon: "fa-flag",          label: "Red Flags",      page: "account.html#redflags", badge: "redflags" }
         ]
       },
