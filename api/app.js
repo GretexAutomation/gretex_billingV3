@@ -809,6 +809,17 @@ module.exports = async function handler(req, res) {
       // ── Approval Queue (HOD, Account, Finance, CFO, SuperAdmin) ──
       case "getApprovalQueue":
       case "getInvoices": {
+        if (params.stage === "Biller") {
+          const { data: newBills, error: billerErr } = await supabase
+            .from("invoices")
+            .select("*")
+            .eq("biller_status", "New")
+            .order("created_at", { ascending: false });
+          if (billerErr) return Response.error(res, billerErr.message);
+          const formattedBiller = (newBills || []).map(b => formatInvoiceForUI(b, true));
+          return Response.success(res, { invoices: formattedBiller, queue: formattedBiller, total: formattedBiller.length });
+        }
+
         let query = supabase.from("master_invoices").select("*");
 
         // Role-based Queue Filters:
@@ -839,8 +850,13 @@ module.exports = async function handler(req, res) {
             query = query.eq("current_stage", "Finance");
           }
         } else if (user.role === "CFO") {
-          // CFO sees all bills at CFO stage
-          query = query.eq("current_stage", "CFO");
+          // CFO is executive monitoring — can view all pipeline invoices or filter by stage
+          if (params.stage && params.stage !== "All") {
+            query = query.eq("current_stage", params.stage);
+          } else if (action === "getApprovalQueue" && !params.stage) {
+            // Default approval queue for CFO
+            query = query.eq("current_stage", "CFO");
+          }
         } else if (user.role === "SuperAdmin") {
           // SuperAdmin can filter by requested stage or see active
           if (params.stage && params.stage !== "All") {
