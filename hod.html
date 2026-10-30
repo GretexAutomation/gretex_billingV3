@@ -988,13 +988,12 @@
           setTimeout(async () => {
             await Auth.logout();
           }, 1800);
-        } else {
-          Toast.error(res?.message || "Failed to update password. Current password may be incorrect.");
+        } else if (res && !res.success) {
+          Toast.error(res.message || "Failed to update password.");
         }
       } catch (err) {
         Loader.hide();
         console.error("Change password error:", err);
-        Toast.error(err.message || "Failed to update password. Current password may be incorrect.");
       }
     },
 
