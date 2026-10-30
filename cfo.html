@@ -334,6 +334,89 @@
           </div>
         </div>
 
+        <!-- 1.5 Real-Time Approval Pipeline Velocity & Stage Monitor -->
+        <div class="card" style="margin-bottom: 24px; border-radius: 12px; border: 1px solid var(--gray-200); box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:14px 20px; border-bottom:1px solid var(--gray-200);">
+            <div class="card-title" style="font-size:0.95rem; font-weight:700; color:var(--gray-800); display:flex; align-items:center; gap:8px;">
+              <i class="fa fa-diagram-project" style="color:var(--primary);"></i> Real-Time Approval Pipeline Velocity &amp; Stage Balances
+            </div>
+            <span style="font-size:0.75rem; color:var(--gray-500); font-weight:500;">
+              Click any stage card to monitor queue &amp; execute bypass
+            </span>
+          </div>
+          <div class="card-body" style="padding:16px 20px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px;">
+              
+              <!-- 1. Biller Stage Card -->
+              <div class="cfo-stage-card" onclick="Dashboard.showSection('atbiller')" style="background:#fff; border:1px solid #e2e8f0; border-top:4px solid #64748b; border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#64748b;">1. At Biller</span>
+                  <i class="fa fa-receipt" style="color:#94a3b8; font-size:0.9rem;"></i>
+                </div>
+                <div style="font-size:1.35rem; font-weight:800; color:#1e293b;" id="stageCountBiller">0</div>
+                <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;" id="stageAmtBiller">₹0</div>
+                <div style="font-size:0.7rem; color:var(--primary); font-weight:600; margin-top:6px;"><i class="fa fa-arrow-right"></i> View Queue</div>
+              </div>
+
+              <!-- 2. HOD Stage Card (With HOD breakdown preview) -->
+              <div class="cfo-stage-card" onclick="Dashboard.showSection('athod')" style="background:#fff; border:1px solid #e2e8f0; border-top:4px solid #f59e0b; border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#b45309;">2. At HODs</span>
+                  <i class="fa fa-users-gear" style="color:#f59e0b; font-size:0.9rem;"></i>
+                </div>
+                <div style="font-size:1.35rem; font-weight:800; color:#b45309;" id="stageCountHod">0</div>
+                <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;" id="stageAmtHod">₹0</div>
+                <div style="font-size:0.7rem; color:#b45309; font-weight:600; margin-top:6px;" id="stageSubHod"><i class="fa fa-user-check"></i> Across 0 HODs</div>
+              </div>
+
+              <!-- 3. Account Stage Card -->
+              <div class="cfo-stage-card" onclick="Dashboard.showSection('ataccount')" style="background:#fff; border:1px solid #e2e8f0; border-top:4px solid #06b6d4; border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#0e7490;">3. At Account</span>
+                  <i class="fa fa-calculator" style="color:#06b6d4; font-size:0.9rem;"></i>
+                </div>
+                <div style="font-size:1.35rem; font-weight:800; color:#0e7490;" id="stageCountAccount">0</div>
+                <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;" id="stageAmtAccount">₹0</div>
+                <div style="font-size:0.7rem; color:#0e7490; font-weight:600; margin-top:6px;"><i class="fa fa-arrow-right"></i> View &amp; Bypass</div>
+              </div>
+
+              <!-- 4. Finance Stage Card -->
+              <div class="cfo-stage-card" onclick="Dashboard.showSection('atfinance')" style="background:#fff; border:1px solid #e2e8f0; border-top:4px solid #8b5cf6; border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#6d28d9;">4. At Finance</span>
+                  <i class="fa fa-money-bill-transfer" style="color:#8b5cf6; font-size:0.9rem;"></i>
+                </div>
+                <div style="font-size:1.35rem; font-weight:800; color:#6d28d9;" id="stageCountFinance">0</div>
+                <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;" id="stageAmtFinance">₹0</div>
+                <div style="font-size:0.7rem; color:#6d28d9; font-weight:600; margin-top:6px;"><i class="fa fa-arrow-right"></i> View &amp; Bypass</div>
+              </div>
+
+              <!-- 5. CFO Approval Stage Card -->
+              <div class="cfo-stage-card" onclick="Dashboard.showSection('approve')" style="background:#fff; border:1.5px solid #4f46e5; border-top:4px solid #4f46e5; border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(79,70,229,0.18)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#4338ca;">5. Pending CFO</span>
+                  <span class="badge" style="background:#e0e7ff; color:#4338ca; font-size:0.65rem;">Action Required</span>
+                </div>
+                <div style="font-size:1.35rem; font-weight:800; color:#4338ca;" id="stageCountCfo">0</div>
+                <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;" id="stageAmtCfo">₹0</div>
+                <div style="font-size:0.7rem; color:#4338ca; font-weight:700; margin-top:6px;"><i class="fa fa-stamp"></i> Review &amp; Signoff</div>
+              </div>
+
+              <!-- 6. Completed Stage Card -->
+              <div class="cfo-stage-card" onclick="Dashboard.showSection('completed')" style="background:#fff; border:1px solid #e2e8f0; border-top:4px solid #10b981; border-radius:10px; padding:14px 16px; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:#047857;">6. Completed</span>
+                  <i class="fa fa-circle-check" style="color:#10b981; font-size:0.9rem;"></i>
+                </div>
+                <div style="font-size:1.35rem; font-weight:800; color:#047857;" id="stageCountCompleted">0</div>
+                <div style="font-size:0.75rem; color:var(--gray-500); margin-top:2px;" id="stageAmtCompleted">₹0</div>
+                <div style="font-size:0.7rem; color:#047857; font-weight:600; margin-top:6px;"><i class="fa fa-check-double"></i> Cleared Spends</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
         <!-- 2. Primary KPI Metric Cards (3x2 Balanced Grid) -->
         <div class="cfo-kpi-grid">
           
@@ -645,7 +728,242 @@
         </div>
       </div>
 
-      <!-- RED FLAGS SECTION -->
+      <!-- SECTION: AT BILLER (#atbiller) -->
+      <div class="section" id="section-atbiller">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <div>
+                <h4 style="margin:0 0 4px 0;font-size:1.1rem;font-weight:700;color:var(--gray-800);">
+                  <i class="fa fa-receipt text-secondary"></i> Bills Pending at Biller Stage
+                </h4>
+                <div style="font-size:0.8rem;color:var(--gray-500);">
+                  Raw extracted invoices currently undergoing intake preparation and verification by Biller
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="text" autocomplete="off" class="form-control" id="atbillerSearchInput" placeholder="Search vendor, invoice no..." style="width:240px;font-size:0.82rem;" oninput="Dashboard.renderAtBillerTable()"/>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.loadDashboardData()"><i class="fa fa-rotate-right"></i> Refresh</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper" style="max-height:65vh;overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky;top:0;z-index:10;">
+                <tr>
+                  <th>#</th>
+                  <th>Invoice No &amp; Date</th>
+                  <th>Vendor Name</th>
+                  <th>Description</th>
+                  <th>Basic Amount</th>
+                  <th>Status</th>
+                  <th>Received At</th>
+                  <th style="text-align:right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="atbillerTableBody">
+                <tr><td colspan="8" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading biller queue...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: AT HODs WITH BREAKDOWN (#athod) -->
+      <div class="section" id="section-athod">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:16px 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+              <div>
+                <h4 style="margin:0 0 4px 0;font-size:1.1rem;font-weight:700;color:var(--gray-800);">
+                  <i class="fa fa-users-gear" style="color:#f59e0b;"></i> Invoices Pending at Department Heads (HOD Stage)
+                </h4>
+                <div style="font-size:0.8rem;color:var(--gray-500);">
+                  Monitor pending signoffs per Department Head. Filter by specific HOD or execute CFO bypass.
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <select id="athodDropdown" class="form-control" style="font-size:0.82rem;font-weight:600;min-width:200px;cursor:pointer;" onchange="Dashboard.filterAthod(this.value)">
+                  <option value="ALL">All HODs</option>
+                </select>
+                <input type="text" autocomplete="off" class="form-control" id="athodSearchInput" placeholder="Search vendor, invoice no..." style="width:220px;font-size:0.82rem;" oninput="Dashboard.renderAtHodTable()"/>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.loadDashboardData()"><i class="fa fa-rotate-right"></i> Refresh</button>
+              </div>
+            </div>
+
+            <!-- Interactive HOD Breakdown Chips Strip -->
+            <div>
+              <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--gray-500);margin-bottom:8px;">
+                <i class="fa fa-filter"></i> Filter by Assigned HOD:
+              </div>
+              <div id="athodBreakdownChips" style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:0.8rem;color:var(--gray-400);">Loading HOD breakdown...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper" style="max-height:65vh;overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky;top:0;z-index:10;">
+                <tr>
+                  <th>Unique ID</th>
+                  <th>Assigned HOD</th>
+                  <th>Department</th>
+                  <th>Invoice No &amp; Date</th>
+                  <th>Vendor Name</th>
+                  <th>Basic Amount</th>
+                  <th>Final Payable</th>
+                  <th>Stage</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="athodTableBody">
+                <tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading HOD invoices...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: AT ACCOUNT (#ataccount) -->
+      <div class="section" id="section-ataccount">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <div>
+                <h4 style="margin:0 0 4px 0;font-size:1.1rem;font-weight:700;color:var(--gray-800);">
+                  <i class="fa fa-calculator" style="color:#06b6d4;"></i> Invoices Undergoing Account Audit &amp; TDS/GST Verification
+                </h4>
+                <div style="font-size:0.8rem;color:var(--gray-500);">
+                  Bills currently undergoing statutory compliance checks (194C, 194J, GST 2B ITC verification) by Account team
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="text" autocomplete="off" class="form-control" id="ataccountSearchInput" placeholder="Search vendor, invoice no..." style="width:240px;font-size:0.82rem;" oninput="Dashboard.renderAtAccountTable()"/>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.loadDashboardData()"><i class="fa fa-rotate-right"></i> Refresh</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper" style="max-height:65vh;overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky;top:0;z-index:10;">
+                <tr>
+                  <th>Unique ID</th>
+                  <th>Department</th>
+                  <th>Invoice No &amp; Date</th>
+                  <th>Vendor Name</th>
+                  <th>Basic Amount</th>
+                  <th>TDS Amount</th>
+                  <th>Final Payable</th>
+                  <th>Stage</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ataccountTableBody">
+                <tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading account queue...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: AT FINANCE (#atfinance) -->
+      <div class="section" id="section-atfinance">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <div>
+                <h4 style="margin:0 0 4px 0;font-size:1.1rem;font-weight:700;color:var(--gray-800);">
+                  <i class="fa fa-money-bill-transfer" style="color:#8b5cf6;"></i> Invoices Undergoing Finance Budget Clearance
+                </h4>
+                <div style="font-size:0.8rem;color:var(--gray-500);">
+                  Bills approved by Account now undergoing corporate fund allocation &amp; budget signoff before CFO signoff
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="text" autocomplete="off" class="form-control" id="atfinanceSearchInput" placeholder="Search vendor, invoice no..." style="width:240px;font-size:0.82rem;" oninput="Dashboard.renderAtFinanceTable()"/>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.loadDashboardData()"><i class="fa fa-rotate-right"></i> Refresh</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper" style="max-height:65vh;overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky;top:0;z-index:10;">
+                <tr>
+                  <th>Unique ID</th>
+                  <th>Department</th>
+                  <th>Invoice No &amp; Date</th>
+                  <th>Vendor Name</th>
+                  <th>Basic Amount</th>
+                  <th>TDS Amount</th>
+                  <th>Final Payable</th>
+                  <th>Stage</th>
+                  <th style="text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="atfinanceTableBody">
+                <tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading finance queue...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: COMPLETED (#completed) -->
+      <div class="section" id="section-completed">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+              <div>
+                <h4 style="margin:0 0 4px 0;font-size:1.1rem;font-weight:700;color:#047857;">
+                  <i class="fa fa-circle-check"></i> Completed &amp; Payment Cleared Invoices
+                </h4>
+                <div style="font-size:0.8rem;color:var(--gray-500);">
+                  Fully cleared corporate expenditures that have completed the full pipeline and payment routing
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="text" autocomplete="off" class="form-control" id="completedSearchInput" placeholder="Search vendor, invoice no..." style="width:240px;font-size:0.82rem;" oninput="Dashboard.renderCompletedTable()"/>
+                <button class="btn btn-outline btn-sm" onclick="Dashboard.loadDashboardData()"><i class="fa fa-rotate-right"></i> Refresh</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrapper" style="max-height:65vh;overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky;top:0;z-index:10;">
+                <tr>
+                  <th>Unique ID</th>
+                  <th>Department</th>
+                  <th>Invoice No &amp; Date</th>
+                  <th>Vendor Name</th>
+                  <th>Basic Amount</th>
+                  <th>Final Payable</th>
+                  <th>Cleared At</th>
+                  <th>Status</th>
+                  <th style="text-align:right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="completedTableBody">
+                <tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading completed invoices...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
       <div class="section" id="section-redflags">
         <div class="card">
           <div class="card-header"><div class="card-title" style="color:var(--danger)">🚩 Red Flag Invoices</div></div>
@@ -1004,6 +1322,9 @@
       <button class="modal-close" onclick="Dashboard.closeDetailModal()">✕</button>
     </div>
 
+    <!-- STAGE NOTICE BANNER (Bypass Alert / Stage Status) -->
+    <div id="modalStageAlert" style="padding: 14px 20px 0; display: none;"></div>
+
     <div id="modalTrackingTimeline" style="padding: 20px 20px 0; background: var(--white);"></div>
 
     <div class="detail-tabs">
@@ -1028,6 +1349,9 @@
       <a id="driveLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none">
         <i class="fa fa-file-pdf"></i> View Original
       </a>
+      <button class="btn btn-sm btn-warning" id="modalBypassBtn" onclick="Dashboard.openBypassFromModal()" style="display:none; background:#f59e0b; color:#fff; border:none; font-weight:700; padding:6px 14px; border-radius:6px;">
+        <i class="fa fa-bolt"></i> ⚡ Executive Bypass
+      </button>
       <button class="btn btn-sm" id="modalApproveBtn" onclick="Dashboard.openApproveFromModal()" style="display:none; background:#34a853; color:#fff; border:none; font-weight:600; padding:6px 14px; border-radius:6px;">
         <i class="fa fa-check"></i> Approve
       </button>
@@ -1055,33 +1379,74 @@
       <div style="margin-bottom:16px;padding:12px;background:#e3f2fd;border-radius:8px;border-left:4px solid var(--primary)">
         <div style="font-size:0.85rem;color:var(--primary);line-height:1.4">
           <i class="fa fa-info-circle" style="margin-right:6px"></i>
-          This invoice will be approved and moved to Admin queue for final processing.
+          This invoice will be approved and forwarded for final clearance.
         </div>
       </div>
-      <div style="margin-bottom:16px;padding:12px;background:#fff3e0;border-radius:8px;border:1px solid #ffe0b2">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;color:#e65100">
-          <input type="checkbox" id="bypassAccountCheckbox" style="width:18px;height:18px;cursor:pointer"/>
-          <span>
-            ⚡ Bypass Account Approval<br>
-            <span style="font-size:0.75rem;font-weight:400;color:#bf360c;margin-left:26px;display:block;margin-top:4px">Only check if Account queue is delayed</span>
-          </span>
-        </label>
-      </div>
-      <div style="margin-bottom:16px">
-        <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--gray-700);margin-bottom:8px;display:block">Send To Admin <span style="color:#ea4335">*</span></label>
-        <select id="selectAdminDropdown" style="width:100%;font-size:0.85rem;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:8px;font-family:'Inter',sans-serif;outline:none;cursor:pointer">
-          <option value="">-- Select Admin --</option>
-        </select>
-        <div id="adminSelectError" style="display:none;color:#ea4335;font-size:0.78rem;margin-top:6px">Please select an Admin.</div>
-      </div>
       <label class="form-label" style="font-size:0.8rem;font-weight:600;color:var(--gray-700);margin-bottom:6px;display:block">Approval Notes (Optional)</label>
-      <textarea id="approveNote" placeholder="e.g., TDS verified, GST correct..." style="width:100%;resize:vertical;font-size:0.85rem;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:8px;font-family:'Inter',sans-serif;outline:none;min-height:80px"></textarea>
+      <textarea id="approveNote" placeholder="e.g., TDS verified, GST correct, Budget cleared by CFO..." style="width:100%;resize:vertical;font-size:0.85rem;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:8px;font-family:'Inter',sans-serif;outline:none;min-height:80px"></textarea>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" id="confirmApproveBtn" onclick="Dashboard.confirmApprove()">
         <i class="fa fa-circle-check"></i> Confirm Approval
       </button>
       <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeApproveModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- CFO EXECUTIVE BYPASS MODAL -->
+<div class="modal-overlay" id="bypassModal">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;">
+      <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+        <i class="fa fa-bolt"></i> CFO Executive Bypass
+        <span id="bypassModalInvoiceNo" style="font-size:0.85rem;opacity:0.9;margin-left:4px"></span>
+      </h5>
+      <button class="modal-close" onclick="Dashboard.closeBypassModal()">✕</button>
+    </div>
+    <div style="padding:20px">
+      <div style="margin-bottom:16px;padding:12px;background:#fef3c7;border-radius:8px;border-left:4px solid #f59e0b;">
+        <div style="font-size:0.85rem;color:#92400e;line-height:1.4;">
+          <i class="fa fa-shield-halved" style="margin-right:6px"></i>
+          <strong>Executive Override:</strong> This bill is currently at <strong id="bypassCurrentStageBadge">Stage</strong>. You can bypass earlier bottlenecks and forward it directly or grant final clearance immediately.
+        </div>
+      </div>
+      
+      <div style="margin-bottom:16px;">
+        <label class="form-label" style="font-size:0.82rem;font-weight:700;color:var(--gray-800);margin-bottom:8px;display:block">
+          Select Bypass Action / Destination:
+        </label>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--gray-200);border-radius:8px;cursor:pointer;background:#fff;" id="labelBypassNext">
+            <input type="radio" name="bypassDestination" value="NEXT" checked style="margin-top:3px;"/>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--gray-800);" id="bypassNextText">Forward to Next Stage</div>
+              <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;" id="bypassNextSub">Bypass current signoff and forward to downstream team</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--gray-200);border-radius:8px;cursor:pointer;background:#fff;" id="labelBypassFinal">
+            <input type="radio" name="bypassDestination" value="Completed" style="margin-top:3px;"/>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:#047857;">🏁 Direct Final Clearance (Mark as Completed)</div>
+              <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px;">Bypass all remaining stages and authorize immediate payment</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label class="form-label" style="font-size:0.82rem;font-weight:700;color:var(--gray-800);margin-bottom:6px;display:block">
+          Mandatory Bypass Justification / Note <span style="color:#ef4444">*</span>
+        </label>
+        <textarea id="bypassNote" placeholder="e.g. Cleared by CFO due to urgent vendor dependency / MD approval..." style="width:100%;resize:vertical;font-size:0.85rem;padding:10px 12px;border:1.5px solid var(--gray-300);border-radius:8px;min-height:80px;outline:none;font-family:'Inter',sans-serif;"></textarea>
+        <div id="bypassNoteError" style="display:none;color:#ef4444;font-size:0.78rem;margin-top:4px;">Please provide a reason for bypassing earlier stages.</div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--gray-200);">
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeBypassModal()">Cancel</button>
+      <button class="btn btn-warning" id="confirmBypassBtn" onclick="Dashboard.confirmBypass()" style="background:#f59e0b;color:#fff;border:none;font-weight:700;padding:8px 18px;border-radius:8px;">
+        <i class="fa fa-bolt"></i> Execute Bypass
+      </button>
     </div>
   </div>
 </div>
@@ -1120,17 +1485,28 @@
 <script src="js/api.js"></script>
 <script src="js/sidebar.js"></script>
 <script>
+function escapeHtml(str) {
+  if (str === undefined || str === null) return "—";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+if (typeof Utils !== "undefined") Utils.escapeHtml = escapeHtml;
+
 const Dashboard = {
   queueData: [],
   queueFiltered: [],
   queueCurrentPage: 1, 
   queuePageSize: 15,
   allInvoicesData: [],
+  billerInvoicesData: [],
+  hodBreakdown: {},
+  currentHodFilter: "ALL",
   currentRow: null,
   pendingApproveRow: null,
   pendingApproveInvoiceNo: "",
   pendingRejectRow: null,
   pendingRejectInvoiceNo: "",
+  pendingBypassRow: null,
+  pendingBypassInvoiceNo: "",
 
   generateTrackingTimeline(inv) {
     if (!inv) return "";
@@ -1351,10 +1727,20 @@ const Dashboard = {
     return html;
   },
 
+  bindHashRouting() {
+    window.addEventListener("hashchange", () => {
+      let hash = window.location.hash.replace("#", "");
+      if (hash === "tds-summary") hash = "tds";
+      if (hash === "gst-summary") hash = "gst";
+      if (hash) Dashboard.showSection(hash);
+    });
+  },
+
   async init() {
     if (!Auth.requireRole("CFO")) return; AppLoader.show();
     Header.render("Dashboard");
     Sidebar.init("dashboard");
+    Dashboard.bindHashRouting();
     
     try { await Dashboard.loadDashboardData(); } finally { AppLoader.finish(); }
     
@@ -1380,9 +1766,20 @@ const Dashboard = {
     document.getElementById(`section-${id}`)?.classList.add("active");
     
     const titles = { 
-      dashboard: "Dashboard", invoices: "All Invoices", redflags: "Red Flags", 
-      approve: "CFO Approvals", reports: "General Reports", tds: "TDS Summary", 
-      gst: "GST Summary", profile: "My Profile", password: "Change Password" 
+      dashboard: "Executive Dashboard & Pipeline Monitor",
+      invoices: "All Master Invoices",
+      atbiller: "Pipeline: Bills with Biller",
+      athod: "Pipeline: Bills with Department Heads (HOD)",
+      ataccount: "Pipeline: Bills with Accounts",
+      atfinance: "Pipeline: Bills with Finance",
+      approve: "CFO Clearance Queue",
+      completed: "Completed & Payment Cleared Invoices",
+      redflags: "Red Flagged Invoices",
+      reports: "Executive Spend & Operations Reports",
+      tds: "TDS Compliance Summary", 
+      gst: "GST Compliance Summary",
+      profile: "My Profile",
+      password: "Change Password" 
     };
     Header.setTitle(titles[id] || "Dashboard");
     
@@ -1394,6 +1791,11 @@ const Dashboard = {
     
     if (id === "dashboard") Dashboard.renderDashboardCharts();
     if (id === "approve") Dashboard.loadApprovalQueue();
+    if (id === "atbiller") Dashboard.renderAtBillerTable();
+    if (id === "athod") Dashboard.renderAtHodTable();
+    if (id === "ataccount") Dashboard.renderAtAccountTable();
+    if (id === "atfinance") Dashboard.renderAtFinanceTable();
+    if (id === "completed") Dashboard.renderCompletedTable();
     if (id === "reports") Dashboard.loadReports();
     if (id === "tds")     Dashboard.loadTDSSummary();
     if (id === "gst")     Dashboard.loadGSTSummary();
@@ -1415,12 +1817,329 @@ const Dashboard = {
     nature: null
   },
 
+  filterAthod(val) {
+    Dashboard.currentHodFilter = val;
+    const dd = document.getElementById("athodDropdown");
+    if (dd && dd.value !== val) dd.value = val;
+    Dashboard.renderAtHodTable();
+  },
+
+  renderAtBillerTable() {
+    const tbody = document.getElementById("atbillerTableBody");
+    if (!tbody) return;
+    const search = (document.getElementById("atbillerSearchInput")?.value || "").toLowerCase();
+    let data = Dashboard.billerInvoicesData || [];
+    if (search) {
+      data = data.filter(i => 
+        (i.invoice_number || "").toLowerCase().includes(search) || 
+        (i.vendor_name || "").toLowerCase().includes(search) ||
+        (i.description || "").toLowerCase().includes(search)
+      );
+    }
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-folder-open"></i> No invoices currently pending at Biller stage</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = data.map((inv, idx) => {
+      const amt = Number(inv.total_amount || inv["A20. Basic Amount"] || 0);
+      const rowId = inv.id || inv.rowIndex;
+      return `<tr onclick="Dashboard.openDetail('${rowId}')" style="cursor:pointer;">
+        <td style="color:var(--gray-500);font-size:0.83rem">${idx + 1}</td>
+        <td>
+          <strong style="color:var(--primary);font-size:0.85rem">${escapeHtml(inv.invoice_number || "—")}</strong>
+          <div style="font-size:0.75rem;color:var(--gray-500);">${inv.invoice_date || "—"}</div>
+        </td>
+        <td style="font-weight:600;font-size:0.84rem;">${escapeHtml(Utils.truncate(inv.vendor_name, 25))}</td>
+        <td style="font-size:0.8rem;color:var(--gray-600);">${escapeHtml(Utils.truncate(inv.description, 30))}</td>
+        <td style="font-weight:700;color:var(--gray-900);">${Utils.formatCurrency(amt)}</td>
+        <td><span class="badge" style="background:#f1f5f9;color:#475569;font-size:0.72rem;padding:4px 8px;border-radius:12px;font-weight:600;">Intake</span></td>
+        <td style="font-size:0.78rem;color:var(--gray-500);white-space:nowrap;">${inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : "—"}</td>
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${rowId}')" title="View Bill Details">
+            <i class="fa fa-eye"></i> View
+          </button>
+        </td>
+      </tr>`;
+    }).join("");
+  },
+
+  renderAtHodTable() {
+    const tbody = document.getElementById("athodTableBody");
+    const chipsBox = document.getElementById("athodBreakdownChips");
+    const dropdown = document.getElementById("athodDropdown");
+    if (!tbody) return;
+
+    // 1. Build and populate HOD dropdown and Chips
+    const breakdown = Dashboard.hodBreakdown || {};
+    const keys = Object.keys(breakdown);
+
+    if (dropdown) {
+      const curVal = dropdown.value || "ALL";
+      dropdown.innerHTML = `<option value="ALL">All HODs (${keys.length} Depts)</option>` +
+        keys.map(k => `<option value="${escapeHtml(k)}" ${curVal === k ? 'selected' : ''}>${escapeHtml(breakdown[k].name)} (${escapeHtml(breakdown[k].dept)}) — ${breakdown[k].count} bills</option>`).join("");
+    }
+
+    if (chipsBox) {
+      const activeFilter = Dashboard.currentHodFilter || "ALL";
+      const totalHodBills = Object.values(breakdown).reduce((s, h) => s + h.count, 0);
+      let chipsHtml = `
+        <button class="btn btn-sm ${activeFilter === 'ALL' ? 'btn-primary' : 'btn-outline'}" 
+          style="border-radius:20px; font-size:0.78rem; padding:4px 12px; font-weight:600;" 
+          onclick="Dashboard.filterAthod('ALL')">
+          All HODs (${totalHodBills})
+        </button>
+      `;
+      keys.forEach(k => {
+        const item = breakdown[k];
+        const isActive = activeFilter === k;
+        chipsHtml += `
+          <button class="btn btn-sm ${isActive ? 'btn-warning' : 'btn-outline'}" 
+            style="border-radius:20px; font-size:0.78rem; padding:4px 12px; font-weight:600; display:inline-flex; align-items:center; gap:6px; ${isActive ? 'background:#f59e0b;color:#fff;border-color:#f59e0b;' : ''}" 
+            onclick="Dashboard.filterAthod('${escapeHtml(k)}')">
+            <i class="fa fa-user-tie"></i>
+            <span>${escapeHtml(item.name)} <span style="opacity:0.75;font-size:0.72rem;">(${escapeHtml(item.dept)})</span></span>
+            <span class="badge" style="background:${isActive ? '#fff' : '#fef3c7'}; color:${isActive ? '#b45309' : '#b45309'}; font-size:0.7rem; font-weight:700; padding:2px 6px; border-radius:10px;">${item.count} • ${Utils.formatCurrency(item.totalPayable)}</span>
+          </button>
+        `;
+      });
+      chipsBox.innerHTML = chipsHtml;
+    }
+
+    // 2. Filter rows
+    const search = (document.getElementById("athodSearchInput")?.value || "").toLowerCase();
+    let hodInvoices = (Dashboard.allInvoicesData || []).filter(inv => (inv["Current_Stage"] || "").trim() === "HOD");
+
+    if (Dashboard.currentHodFilter && Dashboard.currentHodFilter !== "ALL") {
+      hodInvoices = hodInvoices.filter(inv => {
+        const hName = inv["assigned_hod_name"] || inv["D4. HOD Name"] || "Unassigned HOD";
+        const dept = inv["department"] || "General";
+        return `${hName}__${dept}` === Dashboard.currentHodFilter;
+      });
+    }
+
+    if (search) {
+      hodInvoices = hodInvoices.filter(inv => 
+        (inv["A13. Invoice Number"] || "").toLowerCase().includes(search) || 
+        (inv["A14. Vendor Name"] || "").toLowerCase().includes(search) ||
+        (inv["assigned_hod_name"] || "").toLowerCase().includes(search) ||
+        (inv["department"] || "").toLowerCase().includes(search)
+      );
+    }
+
+    if (hodInvoices.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-folder-open"></i> No invoices currently pending at HOD stage</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = hodInvoices.map((inv, idx) => {
+      const basic = Number(inv["A20. Basic Amount"]) || 0;
+      const payable = Number(inv["D1. Final Payable Amt"]) || basic;
+      const hodName = inv["assigned_hod_name"] || inv["D4. HOD Name"] || "Unassigned";
+      const dept = inv["department"] || "General";
+      const rowId = inv.rowIndex;
+      const invNo = inv["A13. Invoice Number"] || "—";
+
+      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+        <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
+        <td>
+          <div style="font-weight:700;color:var(--gray-900);font-size:0.83rem;"><i class="fa fa-user-tie" style="color:#f59e0b;margin-right:4px;"></i>${escapeHtml(hodName)}</div>
+          <div style="font-size:0.73rem;color:var(--gray-500);">${escapeHtml(inv["assigned_hod_email"] || "")}</div>
+        </td>
+        <td><span class="badge" style="background:#f1f5f9;color:#334155;font-size:0.74rem;font-weight:600;">${escapeHtml(dept)}</span></td>
+        <td>
+          <strong style="color:var(--primary);font-size:0.85rem">${escapeHtml(invNo)}</strong>
+          <div style="font-size:0.74rem;color:var(--gray-500);">${inv["A12. Invoice Date"] || inv["Timestamp"] || "—"}</div>
+        </td>
+        <td style="font-weight:600;font-size:0.83rem;">${escapeHtml(Utils.truncate(inv["A14. Vendor Name"], 20))}</td>
+        <td style="font-size:0.83rem;">${Utils.formatCurrency(basic)}</td>
+        <td style="font-weight:700;color:var(--gray-900);font-size:0.84rem;">${Utils.formatCurrency(payable)}</td>
+        <td>${Utils.statusBadge("HOD")}</td>
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <div style="display:inline-flex;gap:6px;">
+            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal(${rowId}, '${String(invNo).replace(/'/g, "\\'")}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
+              <i class="fa fa-bolt"></i> Bypass
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+              <i class="fa fa-eye"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  },
+
+  renderAtAccountTable() {
+    const tbody = document.getElementById("ataccountTableBody");
+    if (!tbody) return;
+    const search = (document.getElementById("ataccountSearchInput")?.value || "").toLowerCase();
+    let accountInvoices = (Dashboard.allInvoicesData || []).filter(inv => (inv["Current_Stage"] || "").trim() === "Account");
+
+    if (search) {
+      accountInvoices = accountInvoices.filter(inv => 
+        (inv["A13. Invoice Number"] || "").toLowerCase().includes(search) || 
+        (inv["A14. Vendor Name"] || "").toLowerCase().includes(search) ||
+        (inv["department"] || "").toLowerCase().includes(search)
+      );
+    }
+
+    if (accountInvoices.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-folder-open"></i> No invoices currently pending at Account stage</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = accountInvoices.map((inv, idx) => {
+      const basic = Number(inv["A20. Basic Amount"]) || 0;
+      const tds = Number(inv["B8. TDS Amount"]) || 0;
+      const payable = Number(inv["D1. Final Payable Amt"]) || basic;
+      const dept = inv["department"] || "General";
+      const rowId = inv.rowIndex;
+      const invNo = inv["A13. Invoice Number"] || "—";
+
+      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+        <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
+        <td><span class="badge" style="background:#eff6ff;color:#1e40af;font-size:0.74rem;font-weight:600;">${escapeHtml(dept)}</span></td>
+        <td>
+          <strong style="color:var(--primary);font-size:0.85rem">${escapeHtml(invNo)}</strong>
+          <div style="font-size:0.74rem;color:var(--gray-500);">${inv["A12. Invoice Date"] || inv["Timestamp"] || "—"}</div>
+        </td>
+        <td style="font-weight:600;font-size:0.83rem;">${escapeHtml(Utils.truncate(inv["A14. Vendor Name"], 22))}</td>
+        <td style="font-size:0.83rem;">${Utils.formatCurrency(basic)}</td>
+        <td style="font-size:0.82rem;color:var(--gray-600);">${tds > 0 ? Utils.formatCurrency(tds) : "—"}</td>
+        <td style="font-weight:700;color:var(--gray-900);font-size:0.84rem;">${Utils.formatCurrency(payable)}</td>
+        <td>${Utils.statusBadge("Account")}</td>
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <div style="display:inline-flex;gap:6px;">
+            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal(${rowId}, '${String(invNo).replace(/'/g, "\\'")}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
+              <i class="fa fa-bolt"></i> Bypass
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+              <i class="fa fa-eye"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  },
+
+  renderAtFinanceTable() {
+    const tbody = document.getElementById("atfinanceTableBody");
+    if (!tbody) return;
+    const search = (document.getElementById("atfinanceSearchInput")?.value || "").toLowerCase();
+    let financeInvoices = (Dashboard.allInvoicesData || []).filter(inv => (inv["Current_Stage"] || "").trim() === "Finance");
+
+    if (search) {
+      financeInvoices = financeInvoices.filter(inv => 
+        (inv["A13. Invoice Number"] || "").toLowerCase().includes(search) || 
+        (inv["A14. Vendor Name"] || "").toLowerCase().includes(search) ||
+        (inv["department"] || "").toLowerCase().includes(search)
+      );
+    }
+
+    if (financeInvoices.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-folder-open"></i> No invoices currently pending at Finance stage</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = financeInvoices.map((inv, idx) => {
+      const basic = Number(inv["A20. Basic Amount"]) || 0;
+      const tds = Number(inv["B8. TDS Amount"]) || 0;
+      const payable = Number(inv["D1. Final Payable Amt"]) || basic;
+      const dept = inv["department"] || "General";
+      const rowId = inv.rowIndex;
+      const invNo = inv["A13. Invoice Number"] || "—";
+
+      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+        <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
+        <td><span class="badge" style="background:#f5f3ff;color:#6d28d9;font-size:0.74rem;font-weight:600;">${escapeHtml(dept)}</span></td>
+        <td>
+          <strong style="color:var(--primary);font-size:0.85rem">${escapeHtml(invNo)}</strong>
+          <div style="font-size:0.74rem;color:var(--gray-500);">${inv["A12. Invoice Date"] || inv["Timestamp"] || "—"}</div>
+        </td>
+        <td style="font-weight:600;font-size:0.83rem;">${escapeHtml(Utils.truncate(inv["A14. Vendor Name"], 22))}</td>
+        <td style="font-size:0.83rem;">${Utils.formatCurrency(basic)}</td>
+        <td style="font-size:0.82rem;color:var(--gray-600);">${tds > 0 ? Utils.formatCurrency(tds) : "—"}</td>
+        <td style="font-weight:700;color:var(--gray-900);font-size:0.84rem;">${Utils.formatCurrency(payable)}</td>
+        <td>${Utils.statusBadge("Finance")}</td>
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <div style="display:inline-flex;gap:6px;">
+            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal(${rowId}, '${String(invNo).replace(/'/g, "\\'")}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
+              <i class="fa fa-bolt"></i> Bypass
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+              <i class="fa fa-eye"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+  },
+
+  renderCompletedTable() {
+    const tbody = document.getElementById("completedTableBody");
+    if (!tbody) return;
+    const search = (document.getElementById("completedSearchInput")?.value || "").toLowerCase();
+    let completedInvoices = (Dashboard.allInvoicesData || []).filter(inv => 
+      (inv["Current_Stage"] || "").trim() === "Completed" || (inv["Approval Status"] || "").trim() === "Approved" || (inv["overall_status"] || "").trim() === "PASS"
+    );
+
+    if (search) {
+      completedInvoices = completedInvoices.filter(inv => 
+        (inv["A13. Invoice Number"] || "").toLowerCase().includes(search) || 
+        (inv["A14. Vendor Name"] || "").toLowerCase().includes(search) ||
+        (inv["department"] || "").toLowerCase().includes(search)
+      );
+    }
+
+    if (completedInvoices.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-folder-open"></i> No completed invoices found</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = completedInvoices.map((inv, idx) => {
+      const basic = Number(inv["A20. Basic Amount"]) || 0;
+      const payable = Number(inv["D1. Final Payable Amt"]) || basic;
+      const dept = inv["department"] || "General";
+      const rowId = inv.rowIndex;
+      const invNo = inv["A13. Invoice Number"] || "—";
+      const clearedAt = inv["close_at"] || inv["SA_Approved_At"] || inv["CFO_Send_At"] || inv["Timestamp"] || "—";
+
+      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+        <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
+        <td><span class="badge" style="background:#ecfdf5;color:#047857;font-size:0.74rem;font-weight:600;">${escapeHtml(dept)}</span></td>
+        <td>
+          <strong style="color:var(--primary);font-size:0.85rem">${escapeHtml(invNo)}</strong>
+          <div style="font-size:0.74rem;color:var(--gray-500);">${inv["A12. Invoice Date"] || inv["Timestamp"] || "—"}</div>
+        </td>
+        <td style="font-weight:600;font-size:0.83rem;">${escapeHtml(Utils.truncate(inv["A14. Vendor Name"], 22))}</td>
+        <td style="font-size:0.83rem;">${Utils.formatCurrency(basic)}</td>
+        <td style="font-weight:700;color:var(--gray-900);font-size:0.84rem;">${Utils.formatCurrency(payable)}</td>
+        <td style="font-size:0.78rem;color:var(--gray-600);white-space:nowrap;">${clearedAt}</td>
+        <td>${Utils.statusBadge("Completed")}</td>
+        <td style="text-align:right;" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+            <i class="fa fa-eye"></i> View
+          </button>
+        </td>
+      </tr>`;
+    }).join("");
+  },
+
   async loadDashboardData() {
     let rawStats = null;
     try {
       const res = await API.dashboard.getStats();
       if (res?.success) rawStats = res.data;
     } catch(e) {}
+
+    // Fetch fresh biller queue
+    try {
+      const bRes = await API.biller.getQueue();
+      if (bRes?.success && bRes.data) {
+        Dashboard.billerInvoicesData = bRes.data.queue || [];
+      }
+    } catch(e) {
+      console.warn("Could not fetch biller queue:", e);
+    }
 
     try {
       const res = await API.invoices.getAll();
@@ -1441,8 +2160,12 @@ const Dashboard = {
         let redFlagCount = 0, redFlagVal = 0;
 
         let cfoPendingCount = 0, cfoPendingVal = 0;
+        let financePendingCount = 0, financePendingVal = 0;
         let accountPendingCount = 0, accountPendingVal = 0;
-        let adminPendingCount = 0, adminPendingVal = 0;
+        let hodPendingCount = 0, hodPendingVal = 0;
+        let completedCount = 0, completedVal = 0;
+
+        Dashboard.hodBreakdown = {};
 
         all.forEach(inv => {
           const basic = Number(inv["A20. Basic Amount"]) || 0;
@@ -1455,8 +2178,10 @@ const Dashboard = {
           totalPayable += payable;
           totalTds += tds;
 
-          if (stage === "Completed" || appStatus === "Approved") {
+          if (stage === "Completed" || appStatus === "Approved" || inv["overall_status"] === "PASS") {
             approvedCount++;
+            completedCount++;
+            completedVal += payable;
             totalApprovedVal += payable;
           } else if (stage.includes("Reject") || appStatus.includes("Reject")) {
             rejectedCount++;
@@ -1469,12 +2194,31 @@ const Dashboard = {
           if (stage === "CFO") {
             cfoPendingCount++;
             cfoPendingVal += payable;
+          } else if (stage === "Finance") {
+            financePendingCount++;
+            financePendingVal += payable;
           } else if (stage === "Account") {
             accountPendingCount++;
             accountPendingVal += payable;
-          } else if (stage === "Admin" || stage === "SuperAdmin") {
-            adminPendingCount++;
-            adminPendingVal += payable;
+          } else if (stage === "HOD") {
+            hodPendingCount++;
+            hodPendingVal += payable;
+
+            const hodName = inv["assigned_hod_name"] || inv["D4. HOD Name"] || "Unassigned HOD";
+            const hodEmail = inv["assigned_hod_email"] || "";
+            const dept = inv["department"] || "General";
+            const key = `${hodName}__${dept}`;
+            if (!Dashboard.hodBreakdown[key]) {
+              Dashboard.hodBreakdown[key] = {
+                name: hodName,
+                email: hodEmail,
+                dept: dept,
+                count: 0,
+                totalPayable: 0
+              };
+            }
+            Dashboard.hodBreakdown[key].count++;
+            Dashboard.hodBreakdown[key].totalPayable += payable;
           }
 
           if (inv["🚩 Red Flags"] && String(inv["🚩 Red Flags"]).trim() !== "") {
@@ -1483,18 +2227,44 @@ const Dashboard = {
           }
         });
 
+        // Biller statistics
+        const billerCount = (Dashboard.billerInvoicesData || []).length;
+        const billerVal = (Dashboard.billerInvoicesData || []).reduce((sum, b) => sum + (Number(b.total_amount || b["A20. Basic Amount"] || 0)), 0);
+
         // Update Top Metric KPI Cards safely
         const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-        setTxt("statTotal", totalCount + (totalCount === 1 ? " Bill" : " Bills"));
+        // Pipeline Velocity & Stage Cards
+        setTxt("stageCountBiller", billerCount);
+        setTxt("stageAmtBiller", Utils.formatCurrency(billerVal));
+
+        setTxt("stageCountHod", hodPendingCount);
+        setTxt("stageAmtHod", Utils.formatCurrency(hodPendingVal));
+        const numHods = Object.keys(Dashboard.hodBreakdown).length;
+        setTxt("stageSubHod", `Across ${numHods} Department HOD${numHods === 1 ? '' : 's'}`);
+
+        setTxt("stageCountAccount", accountPendingCount);
+        setTxt("stageAmtAccount", Utils.formatCurrency(accountPendingVal));
+
+        setTxt("stageCountFinance", financePendingCount);
+        setTxt("stageAmtFinance", Utils.formatCurrency(financePendingVal));
+
+        setTxt("stageCountCfo", cfoPendingCount);
+        setTxt("stageAmtCfo", Utils.formatCurrency(cfoPendingVal));
+
+        setTxt("stageCountCompleted", completedCount);
+        setTxt("stageAmtCompleted", Utils.formatCurrency(completedVal));
+
+        // Primary KPI Cards
+        setTxt("statTotal", (totalCount + billerCount) + ((totalCount + billerCount) === 1 ? " Bill" : " Bills"));
         setTxt("statPass", approvedCount);
         setTxt("statReview", cfoPendingCount + (cfoPendingCount === 1 ? " Bill" : " Bills"));
         setTxt("statFail", redFlagCount + " flagged bills");
-        setTxt("statAmount", Utils.formatCurrency(totalPayable));
+        setTxt("statAmount", Utils.formatCurrency(totalPayable + billerVal));
 
         // Update Executive Hero Strip Pills & Subtext
         setTxt("pillCfoPending", cfoPendingCount);
-        setTxt("pillBypassReady", accountPendingCount);
+        setTxt("pillBypassReady", accountPendingCount + financePendingCount + hodPendingCount);
         setTxt("pillFlaggedCount", redFlagCount);
         setTxt("statTdsAmount", Utils.formatCurrency(totalTds));
         setTxt("statApprovedAmount", Utils.formatCurrency(totalApprovedVal));
@@ -1504,14 +2274,14 @@ const Dashboard = {
         setTxt("statFlaggedCount", redFlagCount + (redFlagCount === 1 ? " Flagged Bill" : " Flagged Bills"));
 
         // Update Biller & Account Queue Cards with real numbers
-        setTxt("billerTotal", totalCount);
-        setTxt("billerPending", accountPendingCount + cfoPendingCount);
-        setTxt("billerApproved", approvedCount);
+        setTxt("billerTotal", billerCount + totalCount);
+        setTxt("billerPending", billerCount);
+        setTxt("billerApproved", totalCount);
         setTxt("billerRejected", rejectedCount);
 
         setTxt("accountTotal", totalCount);
         setTxt("accountPending", accountPendingCount);
-        setTxt("accountApproved", cfoPendingCount + adminPendingCount + approvedCount);
+        setTxt("accountApproved", financePendingCount + cfoPendingCount + approvedCount);
         setTxt("accountRejected", rejectedCount);
 
         // Render Recent Activity Table
@@ -1565,6 +2335,17 @@ const Dashboard = {
                 <td>${Utils.statusBadge(inv["Current_Stage"])}</td><td style="white-space:nowrap;font-size:0.8rem">${inv["Timestamp"] || "—"}</td>
                 <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})"><i class="fa fa-eye"></i> View</button></td>
               </tr>`).join("");
+        }
+
+        // Refresh currently active stage tables if open
+        const actSection = document.querySelector(".section.active");
+        if (actSection) {
+          const sId = actSection.id.replace("section-", "");
+          if (sId === "atbiller") Dashboard.renderAtBillerTable();
+          if (sId === "athod") Dashboard.renderAtHodTable();
+          if (sId === "ataccount") Dashboard.renderAtAccountTable();
+          if (sId === "atfinance") Dashboard.renderAtFinanceTable();
+          if (sId === "completed") Dashboard.renderCompletedTable();
         }
 
         // Render all 4 Dashboard Charts!
@@ -4244,12 +5025,19 @@ const Dashboard = {
     `).join("");
   },
 
+  getInvoiceById(id) {
+    if (id === null || id === undefined) return null;
+    let inv = (Dashboard.queueData || []).find(b => b.rowIndex === id || b.queueRowIndex === id || b.id === id || b.id == id);
+    if (!inv) inv = (Dashboard.allInvoicesData || []).find(b => b.rowIndex === id || b.queueRowIndex === id || b.id === id || b.id == id || b["A13. Invoice Number"] === id);
+    if (!inv) inv = (Dashboard.billerInvoicesData || []).find(b => b.id === id || b.id == id || b.rowIndex === id || b.invoice_number === id);
+    return inv;
+  },
+
   // 🔥 DETAIL MODAL LOGIC (READ ONLY)
   openDetail(rowIndex) {
-    if (!rowIndex) return;
+    if (rowIndex === undefined || rowIndex === null) return;
 
-    let inv = Dashboard.queueData.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex);
-    if (!inv) inv = Dashboard.allInvoicesData.find(b => b.rowIndex === rowIndex);
+    let inv = Dashboard.getInvoiceById(rowIndex);
     
     if (!inv) {
       Toast.error("Invoice details not found. Please refresh page.");
@@ -4258,8 +5046,10 @@ const Dashboard = {
 
     Dashboard.currentRow = rowIndex;
 
-    document.getElementById("modalInvoiceNo").textContent = inv["A13. Invoice Number"] || "N/A";
-    document.getElementById("modalStatus").innerHTML = Utils.statusBadge(inv["Current_Stage"] || "N/A");
+    const invNo = inv["A13. Invoice Number"] || inv["invoice_number"] || "N/A";
+    const currentStage = (inv["Current_Stage"] || inv["current_stage"] || (inv.biller_status === "New" ? "Biller" : "N/A")).trim();
+    document.getElementById("modalInvoiceNo").textContent = invNo;
+    document.getElementById("modalStatus").innerHTML = Utils.statusBadge(currentStage);
 
     const trackingBox = document.getElementById("modalTrackingTimeline");
     if(trackingBox) {
@@ -4282,22 +5072,62 @@ const Dashboard = {
       }
     }
 
-    const driveUrl = inv["Drive URL"];
+    const driveUrl = inv["Drive URL"] || inv["drive_url"];
     const driveBtn = document.getElementById("driveLink");
     if (driveUrl && driveUrl !== "N/A" && driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
       driveBtn.href = driveUrl; driveBtn.style.display = "inline-flex";
     } else { driveBtn.style.display = "none"; }
 
-    // SHOW APPROVE/REJECT BUTTONS:
-    // If at Account (Bypass mode) or already bypassed, CFO can ONLY approve, NOT reject!
-    const isAtCfo = inv["Current_Stage"] === "CFO";
-    const isAtAccount = inv["Current_Stage"] === "Account";
-    const isBypassed = Utils.isBillBypassed(inv);
-    const canApprove = isAtCfo || isAtAccount;
-    const canReject = isAtCfo && !isBypassed && !isAtAccount;
+    // Stage Alert / Bypass / Approve / Reject Controls
+    const stageAlert = document.getElementById("modalStageAlert");
+    const bypassBtn = document.getElementById("modalBypassBtn");
+    const approveBtn = document.getElementById("modalApproveBtn");
+    const rejectBtn = document.getElementById("modalRejectBtn");
 
-    document.getElementById("modalApproveBtn").style.display = canApprove ? "inline-flex" : "none";
-    document.getElementById("modalRejectBtn").style.display  = canReject ? "inline-flex" : "none";
+    const isCompleted = currentStage === "Completed" || inv["Approval Status"] === "Approved" || inv["overall_status"] === "PASS";
+    const isAtCfo = currentStage === "CFO";
+    const isBypassed = (typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(inv) : false;
+
+    if (isCompleted) {
+      if (stageAlert) {
+        stageAlert.style.display = "block";
+        stageAlert.innerHTML = `
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:10px; color:#065f46; font-size:0.83rem;">
+            <i class="fa fa-circle-check" style="font-size:1.1rem; color:#10b981;"></i>
+            <div><strong>Payment Cleared &amp; Completed:</strong> This invoice has fully completed all approval stages and corporate payment clearance.</div>
+          </div>`;
+      }
+      if (bypassBtn) bypassBtn.style.display = "none";
+      if (approveBtn) approveBtn.style.display = "none";
+      if (rejectBtn) rejectBtn.style.display = "none";
+    } else if (isAtCfo) {
+      if (stageAlert) {
+        stageAlert.style.display = "block";
+        stageAlert.innerHTML = `
+          <div style="background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:10px; color:#3730a3; font-size:0.83rem;">
+            <i class="fa fa-clock" style="font-size:1.1rem; color:#4f46e5;"></i>
+            <div><strong>Pending CFO Clearance:</strong> This bill has reached CFO stage. You can approve or reject directly below.</div>
+          </div>`;
+      }
+      if (bypassBtn) bypassBtn.style.display = "none";
+      if (approveBtn) approveBtn.style.display = "inline-flex";
+      if (rejectBtn) rejectBtn.style.display = !isBypassed ? "inline-flex" : "none";
+    } else {
+      // It is at Biller, HOD, Account, or Finance stage!
+      if (stageAlert) {
+        stageAlert.style.display = "block";
+        stageAlert.innerHTML = `
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; color:#92400e; font-size:0.83rem;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i class="fa fa-triangle-exclamation" style="font-size:1.1rem; color:#f59e0b;"></i>
+              <div>Currently in pipeline at <strong>${currentStage} Stage</strong>. As CFO, you have executive authority to bypass bottlenecks and forward or clear this invoice immediately.</div>
+            </div>
+          </div>`;
+      }
+      if (bypassBtn) bypassBtn.style.display = "inline-flex";
+      if (approveBtn) approveBtn.style.display = "none";
+      if (rejectBtn) rejectBtn.style.display = "none";
+    }
 
     Dashboard.buildAttachmentTab(inv); 
     Dashboard.buildAccountingTab(inv); 
@@ -4328,6 +5158,79 @@ const Dashboard = {
     const rowToReject = Dashboard.currentRow; 
     Dashboard.closeDetailModal();
     Dashboard.openRejectModal(rowToReject, invoiceNo);
+  },
+
+  openBypassFromModal() {
+    const invoiceNo = document.getElementById("modalInvoiceNo").textContent;
+    const rowToBypass = Dashboard.currentRow;
+    Dashboard.closeDetailModal();
+    Dashboard.openBypassModal(rowToBypass, invoiceNo);
+  },
+
+  openBypassModal(rowIdx, invoiceNo) {
+    const inv = Dashboard.getInvoiceById(rowIdx);
+    Dashboard.pendingBypassRow = rowIdx;
+    Dashboard.pendingBypassInvoiceNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
+
+    const currStage = (inv ? (inv["Current_Stage"] || inv.current_stage || inv.biller_status || "Pipeline") : "Pipeline").trim();
+    
+    document.getElementById("bypassModalInvoiceNo").textContent = Dashboard.pendingBypassInvoiceNo ? `— ${Dashboard.pendingBypassInvoiceNo}` : "";
+    document.getElementById("bypassCurrentStageBadge").textContent = `${currStage} Stage`;
+
+    // Calculate downstream stage
+    let nextStage = "Downstream Stage";
+    if (currStage === "Biller") nextStage = "HOD";
+    else if (currStage === "HOD") nextStage = "Account";
+    else if (currStage === "Account") nextStage = "Finance";
+    else if (currStage === "Finance") nextStage = "CFO";
+
+    const nextTextEl = document.getElementById("bypassNextText");
+    if (nextTextEl) nextTextEl.textContent = `Forward to Next Stage (${nextStage})`;
+
+    document.getElementById("bypassNote").value = "";
+    document.getElementById("bypassNoteError").style.display = "none";
+    document.getElementById("bypassModal").classList.add("active");
+    setTimeout(() => document.getElementById("bypassNote").focus(), 150);
+  },
+
+  closeBypassModal() {
+    document.getElementById("bypassModal").classList.remove("active");
+    Dashboard.pendingBypassRow = null;
+    Dashboard.pendingBypassInvoiceNo = "";
+  },
+
+  async confirmBypass() {
+    const note = document.getElementById("bypassNote").value.trim();
+    const errorDiv = document.getElementById("bypassNoteError");
+    if (!note) {
+      errorDiv.style.display = "block";
+      document.getElementById("bypassNote").focus();
+      return;
+    }
+    errorDiv.style.display = "none";
+
+    const dest = document.querySelector('input[name="bypassDestination"]:checked')?.value || "NEXT";
+    const btn = document.getElementById("confirmBypassBtn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Bypassing...';
+
+    Loader.show("Executing CFO Executive Bypass...");
+    const res = await API.cfo.bypassBill(Dashboard.pendingBypassRow, note, dest);
+    Loader.hide();
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-bolt"></i> Execute Bypass';
+
+    if (res?.success) {
+      Dashboard.closeBypassModal();
+      Toast.success(dest === "Completed" ? "⚡ Bypassed & marked as Completed (Final Clearance Granted)!" : "⚡ Successfully bypassed to next pipeline stage!");
+      await Dashboard.loadDashboardData();
+      if (document.getElementById("section-approve")?.classList.contains("active")) {
+        await Dashboard.loadApprovalQueue(true);
+      }
+    } else {
+      Toast.error(res?.message || "Failed to execute bypass");
+    }
   },
 
   buildAttachmentTab(inv) {
