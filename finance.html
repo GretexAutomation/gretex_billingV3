@@ -1255,26 +1255,33 @@
     },
 
     async handleChangePassword(e) {
-      e.preventDefault();
-      const cur = document.getElementById("currentPassword").value;
-      const np = document.getElementById("newPassword").value;
-      const cp = document.getElementById("confirmPassword").value;
+      if (e && e.preventDefault) e.preventDefault();
+      const cur = (document.getElementById("currentPassword") || document.getElementById("oldPassword"))?.value || "";
+      const np = document.getElementById("newPassword")?.value || "";
+      const cp = document.getElementById("confirmPassword")?.value || "";
 
-      if (np !== cp) {
-        Toast.error("New passwords do not match.");
-        return;
-      }
+      if (!cur || !np || !cp) return Toast.warning("Please fill all fields.");
+      if (np !== cp) return Toast.error("New passwords do not match.");
+      if (np.length < 6) return Toast.error("Password must be at least 6 characters.");
+      if (cur === np) return Toast.warning("New password must be different from current password.");
 
+      Loader.show("Updating password...");
       try {
         const res = await API.auth.changePassword(cur, np);
+        Loader.hide();
         if (res && res.success) {
-          Toast.success("Password updated successfully.");
-          e.target.reset();
+          Toast.success("Password changed successfully! Logging out in 2 seconds...");
+          if (e && e.target && e.target.reset) e.target.reset();
+          setTimeout(async () => {
+            await Auth.logout();
+          }, 1800);
         } else {
-          Toast.error(res?.message || "Failed to update password.");
+          Toast.error(res?.message || "Failed to update password. Current password may be incorrect.");
         }
       } catch (err) {
-        Toast.error(err.message || "Request failed.");
+        Loader.hide();
+        console.error("Change password error:", err);
+        Toast.error(err.message || "Failed to update password. Current password may be incorrect.");
       }
     }
   };

@@ -954,12 +954,12 @@
     },
 
     async changePassword() {
-      const oldPassword = document.getElementById("oldPassword").value;
-      const newPassword = document.getElementById("newPassword").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
+      const oldPassword = document.getElementById("oldPassword")?.value || "";
+      const newPassword = document.getElementById("newPassword")?.value || "";
+      const confirmPassword = document.getElementById("confirmPassword")?.value || "";
 
       if (!oldPassword || !newPassword || !confirmPassword) {
-        Toast.error("Please fill all password fields");
+        Toast.warning("Please fill all password fields");
         return;
       }
       if (newPassword.length < 6) {
@@ -970,18 +970,31 @@
         Toast.error("Passwords do not match");
         return;
       }
+      if (oldPassword === newPassword) {
+        Toast.warning("New password must be different from current password");
+        return;
+      }
 
       Loader.show("Updating password...");
-      const res = await API.auth.changePassword(oldPassword, newPassword);
-      Loader.hide();
+      try {
+        const res = await API.auth.changePassword(oldPassword, newPassword);
+        Loader.hide();
 
-      if (res && res.success) {
-        Toast.success("Password updated successfully!");
-        document.getElementById("oldPassword").value = "";
-        document.getElementById("newPassword").value = "";
-        document.getElementById("confirmPassword").value = "";
-      } else {
-        Toast.error(res?.message || "Failed to update password");
+        if (res && res.success) {
+          Toast.success("Password changed successfully! Logging out in 2 seconds...");
+          document.getElementById("oldPassword").value = "";
+          document.getElementById("newPassword").value = "";
+          document.getElementById("confirmPassword").value = "";
+          setTimeout(async () => {
+            await Auth.logout();
+          }, 1800);
+        } else {
+          Toast.error(res?.message || "Failed to update password. Current password may be incorrect.");
+        }
+      } catch (err) {
+        Loader.hide();
+        console.error("Change password error:", err);
+        Toast.error(err.message || "Failed to update password. Current password may be incorrect.");
       }
     },
 

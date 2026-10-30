@@ -255,17 +255,34 @@ const Dashboard = {
   },
 
   async changePassword() {
-    const o = document.getElementById("oldPassword").value;
-    const n = document.getElementById("newPassword").value;
-    const c = document.getElementById("confirmPassword").value;
-    if (!o||!n||!c) { Toast.warning("Fill all fields"); return; }
-    if (n!==c)      { Toast.error("Passwords don't match"); return; }
-    if (n.length<6) { Toast.error("Min 6 characters"); return; }
-    Loader.show("Updating...");
-    const res = await API.auth.changePassword(o,n);
-    Loader.hide();
-    res?.success ? Toast.success("Updated!") :
-      Toast.error(res?.message||"Failed");
+    const o = document.getElementById("oldPassword")?.value || "";
+    const n = document.getElementById("newPassword")?.value || "";
+    const c = document.getElementById("confirmPassword")?.value || "";
+    if (!o || !n || !c) return Toast.warning("Please fill all fields"); 
+    if (n !== c) return Toast.error("New passwords do not match"); 
+    if (n.length < 6) return Toast.error("Password must be at least 6 characters");
+    if (o === n) return Toast.warning("New password must be different from current password");
+
+    Loader.show("Updating password..."); 
+    try {
+      const res = await API.auth.changePassword(o, n); 
+      Loader.hide(); 
+      if (res && res.success) {
+        Toast.success("Password changed successfully! Logging out in 2 seconds...");
+        document.getElementById("oldPassword").value = "";
+        document.getElementById("newPassword").value = "";
+        document.getElementById("confirmPassword").value = "";
+        setTimeout(async () => {
+          await Auth.logout();
+        }, 1800);
+      } else {
+        Toast.error(res?.message || "Failed to update password. Current password may be incorrect.");
+      }
+    } catch (err) {
+      Loader.hide();
+      console.error("Change password error:", err);
+      Toast.error(err.message || "Failed to update password. Current password may be incorrect.");
+    }
   },
 
   async loadCurrentSection() { await Dashboard.loadStats(); }
