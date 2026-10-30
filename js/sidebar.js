@@ -162,8 +162,19 @@ const Sidebar = {
         section: "Main",
         items: [
           { id: "dashboard", icon: "fa-gauge",        label: "Dashboard",        page: "hod.html" },
-          { id: "approval",  icon: "fa-list-check",   label: "Approval Queue",   page: "hod.html#approval", badge: "approval" },
-          { id: "invoices",  icon: "fa-file-invoice", label: "Department Bills", page: "hod.html#invoices" }
+          {
+            id: "mybills",
+            icon: "fa-file-invoice",
+            label: "Department Bills",
+            page: "hod.html#invoices",
+            badge: "approval",
+            children: [
+              { id: "invoices",  label: "All Bills",                page: "hod.html#invoices",  icon: "fa-list" },
+              { id: "approval",  label: "Approval Pending For Me",  page: "hod.html#approval",  icon: "fa-sparkles" },
+              { id: "pending",   label: "Pending (In Process)",     page: "hod.html#pending",   icon: "fa-clock" },
+              { id: "completed", label: "Completed",                page: "hod.html#completed", icon: "fa-circle-check" }
+            ]
+          }
         ]
       },
       {
@@ -472,14 +483,20 @@ const Sidebar = {
     }
 
     try {
-      // Approval Queue pending badge (Account role only)
+      // Approval Queue pending badge (Account & HOD roles)
       const approvalBadge = document.getElementById("badge-approval");
       if (approvalBadge) {
-        const qRes = await API.account.getQueue();
+        const user = Auth.getUser();
+        let qRes;
+        if (user?.role === "HOD") {
+          qRes = await API.approval.getQueue("HOD");
+        } else {
+          qRes = await API.account.getQueue();
+        }
         if (qRes?.success) {
           const queue   = qRes.data.queue || [];
           const pending = queue.filter(i =>
-            (i["Approval Status"] || "Pending") === "Pending"
+            (i.current_stage === "HOD" || i["Current_Stage"] === "HOD" || (i["Approval Status"] || "Pending") === "Pending")
           ).length;
 
           if (pending > 0) {
