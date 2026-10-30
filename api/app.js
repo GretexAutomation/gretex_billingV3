@@ -163,12 +163,20 @@ function mapFieldsToDbPayload(fields = {}) {
 }
 
 // Convert a database row from Supabase into complete UI compatible object (all 54 points + snake_case)
-function formatInvoiceForUI(b, isNew = false) {
+function formatInvoiceForUI(b, isNew = false, approvals = []) {
   if (!b) return {};
   let statusLabel = isNew ? "New" : `Sent to ${b.current_stage || "Pending"}`;
   if (!isNew && b.current_stage === "Completed") {
     statusLabel = (b.overall_status === "FAIL" || b.overall_status === "Rejected") ? "Rejected" : "Approved";
   }
+
+  const approvalHistory = (approvals && approvals.length > 0) ? approvals : (b.approval_history || []);
+  const billerAction = approvalHistory.find(a => a.stage === "Biller");
+  const hodAction = approvalHistory.find(a => a.stage === "HOD");
+  const accountAction = approvalHistory.find(a => a.stage === "Account");
+  const financeAction = approvalHistory.find(a => a.stage === "Finance");
+  const cfoAction = approvalHistory.find(a => a.stage === "CFO");
+  const saAction = approvalHistory.find(a => a.stage === "SuperAdmin");
 
   return {
     ...b,
@@ -182,6 +190,24 @@ function formatInvoiceForUI(b, isNew = false) {
     "Attachment Name": b.attachment_name || "",
     "🚩 Red Flags": b.red_flags || "",
     Timestamp: b.timestamp || b.created_at || new Date().toISOString(),
+
+    "Biller_Send_At": billerAction?.action_taken_at || (isNew ? "" : (b.created_at || b.timestamp)),
+    "HOD_Send_At": hodAction?.action_taken_at || "",
+    "HOD_Status": hodAction ? (hodAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "HOD_Remark": hodAction?.remark || "",
+    "Account_Send_At": accountAction?.action_taken_at || "",
+    "Account_Status": accountAction ? (accountAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "Account_Remark": accountAction?.remark || "",
+    "Finance_Send_At": financeAction?.action_taken_at || "",
+    "Finance_Status": financeAction ? (financeAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "Finance_Remark": financeAction?.remark || "",
+    "CFO_Send_At": cfoAction?.action_taken_at || "",
+    "CFO_Status": cfoAction ? (cfoAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "CFO_Remark": cfoAction?.remark || "",
+    "SA_Approved_At": saAction?.action_taken_at || b.close_at || "",
+    "SA_Status": saAction ? (saAction.action_type.includes("Reject") ? "Rejected" : "Approved") : "",
+    "SA_Remark": saAction?.remark || "",
+    approval_history: approvalHistory,
 
     // Section A (Basic & Identification)
     "A1. Billed To": b.a1_billed_to || "N/A",
@@ -539,8 +565,22 @@ module.exports = async function handler(req, res) {
           .select("*")
           .order("created_at", { ascending: false });
 
+        const masterIds = (masterBills || []).map(b => b.invoice_unique_id).filter(Boolean);
+        let approvalsMap = {};
+        if (masterIds.length > 0) {
+          const { data: allApprovals } = await supabase
+            .from("invoice_approvals")
+            .select("*")
+            .in("invoice_unique_id", masterIds)
+            .order("action_taken_at", { ascending: true });
+          (allApprovals || []).forEach(a => {
+            if (!approvalsMap[a.invoice_unique_id]) approvalsMap[a.invoice_unique_id] = [];
+            approvalsMap[a.invoice_unique_id].push(a);
+          });
+        }
+
         const formattedNew = (newBills || []).map(b => formatInvoiceForUI(b, true));
-        const formattedMaster = (masterBills || []).map(b => formatInvoiceForUI(b, false));
+        const formattedMaster = (masterBills || []).map(b => formatInvoiceForUI(b, false, approvalsMap[b.invoice_unique_id] || []));
         const combined = [...formattedNew, ...formattedMaster];
 
         return Response.success(res, {
@@ -780,8 +820,22 @@ module.exports = async function handler(req, res) {
         const { data: queue, error } = await query.order("created_at", { ascending: false });
         if (error) return Response.error(res, error.message);
 
+        const queueIds = (queue || []).map(b => b.invoice_unique_id).filter(Boolean);
+        let approvalsMap = {};
+        if (queueIds.length > 0) {
+          const { data: allApprovals } = await supabase
+            .from("invoice_approvals")
+            .select("*")
+            .in("invoice_unique_id", queueIds)
+            .order("action_taken_at", { ascending: true });
+          (allApprovals || []).forEach(a => {
+            if (!approvalsMap[a.invoice_unique_id]) approvalsMap[a.invoice_unique_id] = [];
+            approvalsMap[a.invoice_unique_id].push(a);
+          });
+        }
+
         // Format all 54 fields for frontend tables and review modals
-        const formatted = (queue || []).map(b => formatInvoiceForUI(b, false));
+        const formatted = (queue || []).map(b => formatInvoiceForUI(b, false, approvalsMap[b.invoice_unique_id] || []));
 
         return Response.success(res, { queue: formatted, total: formatted.length });
       }
