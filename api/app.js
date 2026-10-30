@@ -521,17 +521,50 @@ module.exports = async function handler(req, res) {
       }
 
       case "changePassword": {
-        const { oldPassword, newPassword } = params;
-        if (!oldPassword || !newPassword || newPassword.length < 6) {
-          return Response.error(res, "New password must be at least 6 characters.");
+        const oldPassword = (params.oldPassword || "").toString();
+        const newPassword = (params.newPassword || "").toString();
+
+        if (!oldPassword) {
+          return Response.error(res, "Please enter your current password.", 400);
+        }
+        if (!newPassword || newPassword.length < 6) {
+          return Response.error(res, "New password must be at least 6 characters.", 400);
         }
 
-        const { data: dbUser } = await supabase.from("users").select("password_hash").eq("id", user.id).single();
-        if (hashPassword(oldPassword) !== dbUser?.password_hash) {
-          return Response.error(res, "Current password is incorrect.");
+        // Query user account robustly by id or email
+        let query = supabase.from("users").select("id, email, password_hash");
+        if (user.id) {
+          query = query.eq("id", user.id);
+        } else {
+          query = query.eq("email", user.email);
+        }
+        const { data: dbUser, error: dbErr } = await query.maybeSingle();
+
+        if (dbErr || !dbUser) {
+          return Response.error(res, "User account not found. Please log in again.", 404);
         }
 
-        await supabase.from("users").update({ password_hash: hashPassword(newPassword) }).eq("id", user.id);
+        const oldHash = hashPassword(oldPassword);
+        const oldTrimmedHash = hashPassword(oldPassword.trim());
+        const isMatch = (dbUser.password_hash === oldHash) ||
+                        (dbUser.password_hash === oldTrimmedHash) ||
+                        (dbUser.password_hash === oldPassword) ||
+                        (dbUser.password_hash === oldPassword.trim());
+
+        if (!isMatch) {
+          return Response.error(res, "Current password is incorrect.", 400);
+        }
+
+        const newHash = hashPassword(newPassword.trim());
+        const { error: updateErr } = await supabase
+          .from("users")
+          .update({ password_hash: newHash })
+          .eq("id", dbUser.id);
+
+        if (updateErr) {
+          return Response.error(res, "Failed to update password: " + updateErr.message, 500);
+        }
+
         await logAudit(supabase, "PASSWORD_CHANGED", user.email, "Password changed successfully");
         return Response.success(res, {}, "Password changed successfully");
       }
