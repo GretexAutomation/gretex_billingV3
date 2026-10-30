@@ -16,9 +16,21 @@ const Sidebar = {
         items: [
           { id: "dashboard", icon: "fa-gauge",        label: "Dashboard",       page: "biller.html"  },
           { id: "submit",    icon: "fa-plus-circle",  label: "Submit Invoice",  page: "biller.html#submit" },
-          { id: "myinvoices",icon: "fa-file-invoice", label: "My Invoices",     page: "biller.html#invoices" },
-          { id: "flowup",    icon: "fa-list",           label: "Flowup",        page: "biller.html#flowup" },
-          { id: "approved",  icon: "fa-check-double",   label: "Approved",      page: "biller.html#approved" }
+          {
+            id: "myinvoices",
+            icon: "fa-file-invoice",
+            label: "My Invoices",
+            page: "biller.html#invoices",
+            badge: "invoices",
+            children: [
+              { id: "invoices",  label: "All Bills",   page: "biller.html#invoices",  icon: "fa-list" },
+              { id: "new",       label: "New Bills",   page: "biller.html#new",       icon: "fa-sparkles" },
+              { id: "process",   label: "In Process",  page: "biller.html#process",   icon: "fa-clock" },
+              { id: "completed", label: "Completed",   page: "biller.html#completed", icon: "fa-circle-check" }
+            ]
+          },
+          { id: "flowup",    icon: "fa-timeline",     label: "Flowup",        page: "biller.html#flowup" },
+          { id: "approved",  icon: "fa-check-double", label: "Approved",      page: "biller.html#approved" }
         ]
       },
       {
@@ -281,35 +293,82 @@ const Sidebar = {
     return menu.map(section => `
       <div class="nav-section">
         <div class="nav-section-title">${section.section}</div>
-        ${section.items.map(item => `
-          <div
-            class="nav-item ${item.id === activeId ? "active" : ""}"
-            id="nav-${item.id}"
-            onclick="Sidebar.navigate('${item.id}', '${item.page}')"
-            title="${item.label}"
-          >
-            <i class="fa ${item.icon} nav-icon"></i>
-            <span class="nav-label">${item.label}</span>
-            ${item.badge
-              ? `<span class="nav-badge" id="badge-${item.badge}" style="display:none">0</span>`
-              : ""
-            }
-          </div>
-        `).join("")}
+        ${section.items.map(item => {
+          if (item.children && item.children.length > 0) {
+            const isChildActive = item.children.some(c => c.id === activeId);
+            const isParentActive = item.id === activeId || isChildActive;
+            return `
+              <div class="nav-group">
+                <div
+                  class="nav-item has-sub ${isParentActive ? "active" : ""} ${isParentActive ? "expanded" : ""}"
+                  id="nav-${item.id}"
+                  onclick="Sidebar.handleParentNav('${item.id}', '${item.page}', 'sub-${item.id}')"
+                  title="${item.label}"
+                >
+                  <i class="fa ${item.icon} nav-icon"></i>
+                  <span class="nav-label">${item.label}</span>
+                  <i class="fa fa-chevron-down sub-arrow"></i>
+                  ${item.badge
+                    ? `<span class="nav-badge" id="badge-${item.badge}" style="display:none">0</span>`
+                    : ""
+                  }
+                </div>
+                <div class="sub-menu ${isParentActive ? "open" : ""}" id="sub-${item.id}">
+                  ${item.children.map(sub => `
+                    <div
+                      class="nav-sub-item ${sub.id === activeId ? "active" : ""}"
+                      id="nav-sub-${sub.id}"
+                      onclick="Sidebar.navigate('${sub.id}', '${sub.page}')"
+                      title="${sub.label}"
+                    >
+                      <i class="fa ${sub.icon || 'fa-circle'} sub-icon" style="font-size:0.65rem;width:14px;text-align:center"></i>
+                      <span>${sub.label}</span>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            `;
+          }
+
+          return `
+            <div
+              class="nav-item ${item.id === activeId ? "active" : ""}"
+              id="nav-${item.id}"
+              onclick="Sidebar.navigate('${item.id}', '${item.page}')"
+              title="${item.label}"
+            >
+              <i class="fa ${item.icon} nav-icon"></i>
+              <span class="nav-label">${item.label}</span>
+              ${item.badge
+                ? `<span class="nav-badge" id="badge-${item.badge}" style="display:none">0</span>`
+                : ""
+              }
+            </div>
+          `;
+        }).join("")}
       </div>
     `).join("");
+  },
+
+  handleParentNav(id, page, subId) {
+    const sub = document.getElementById(subId);
+    const parent = document.getElementById(`nav-${id}`);
+    const isOpen = sub?.classList.contains("open");
+    if (isOpen) {
+      sub?.classList.remove("open");
+      parent?.classList.remove("expanded");
+    } else {
+      sub?.classList.add("open");
+      parent?.classList.add("expanded");
+    }
+    Sidebar.navigate(id, page);
   },
 
   // ─────────────────────────────────────────────
   // NAVIGATE: Go to page/section
   // ─────────────────────────────────────────────
   navigate(id, page) {
-    // 1. Update active state in sidebar UI
-    document.querySelectorAll(".nav-item").forEach(el => {
-      el.classList.remove("active");
-    });
-    const active = document.getElementById(`nav-${id}`);
-    if (active) active.classList.add("active");
+    Sidebar.setActive(id);
 
     const currentPage = window.location.pathname.split("/").pop();
     const targetPage  = page.split("#")[0];
@@ -440,11 +499,30 @@ const Sidebar = {
   // SET ACTIVE: Update active nav item
   // ─────────────────────────────────────────────
   setActive(id) {
-    document.querySelectorAll(".nav-item").forEach(el => {
+    document.querySelectorAll(".nav-item, .nav-sub-item").forEach(el => {
       el.classList.remove("active");
     });
+
+    const subEl = document.getElementById(`nav-sub-${id}`);
+    if (subEl) {
+      subEl.classList.add("active");
+      const parentGroup = subEl.closest(".nav-group");
+      if (parentGroup) {
+        parentGroup.querySelector(".nav-item")?.classList.add("active", "expanded");
+        parentGroup.querySelector(".sub-menu")?.classList.add("open");
+      }
+      return;
+    }
+
     const el = document.getElementById(`nav-${id}`);
-    if (el) el.classList.add("active");
+    if (el) {
+      el.classList.add("active");
+      const nextSub = el.nextElementSibling;
+      if (nextSub && nextSub.classList.contains("sub-menu")) {
+        el.classList.add("expanded");
+        nextSub.classList.add("open");
+      }
+    }
   },
 
   // ─────────────────────────────────────────────
