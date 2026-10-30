@@ -846,6 +846,18 @@ const Utils = {
     return status.indexOf("Sent") !== -1 || 
            status === "Approved" || 
            status === "Rejected";
+  },
+
+  // ✅ PREVIEW URL CONVERTER (Embed Google Drive & direct links)
+  getPreviewEmbedUrl(url) {
+    if (!url || typeof url !== "string") return "";
+    const u = url.trim();
+    if (!u.startsWith("http")) return "";
+    const m1 = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (m1 && m1[1]) return `https://drive.google.com/file/d/${m1[1]}/preview`;
+    const m2 = u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m2 && m2[1]) return `https://drive.google.com/file/d/${m2[1]}/preview`;
+    return u;
   }
 };
 
