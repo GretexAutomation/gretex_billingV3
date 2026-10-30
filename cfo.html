@@ -5369,92 +5369,96 @@ const Dashboard = {
   openApproveModal(rowIdx, invoiceNo) {
     Dashboard.pendingApproveRow = rowIdx;
     Dashboard.pendingApproveInvoiceNo = invoiceNo;
-    document.getElementById("approveModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
-    document.getElementById("approveNote").value = "Approved by CFO";
-    document.getElementById("bypassAccountCheckbox").checked = false;
-    document.getElementById("selectAdminDropdown").value = "";
-    document.getElementById("adminSelectError").style.display = "none";
-    Dashboard.loadAdminsForDropdown();
-    document.getElementById("approveModal").classList.add("active");
-    setTimeout(() => document.getElementById("approveNote").focus(), 150);
+    const invNoEl = document.getElementById("approveModalInvoiceNo");
+    if (invNoEl) invNoEl.textContent = invoiceNo ? `— ${invoiceNo}` : "";
+    const noteEl = document.getElementById("approveNote");
+    if (noteEl) noteEl.value = "Approved by CFO";
+    document.getElementById("approveModal")?.classList.add("active");
+    setTimeout(() => document.getElementById("approveNote")?.focus(), 150);
   },
 
-  async loadAdminsForDropdown() {
-    const res = await API.users.getByRole("Admin");
-    const dropdown = document.getElementById("selectAdminDropdown");
-    if (!res?.success || !res.data || res.data.length === 0) {
-      dropdown.innerHTML = `<option value="">No Admins available</option>`; return;
-    }
-    dropdown.innerHTML = `<option value="">-- Select Admin --</option>`;
-    const admins = res.data.users ? res.data.users : res.data;
-    admins.forEach(admin => {
-      const option = document.createElement("option");
-      option.value = admin.email; option.textContent = `${admin.name} (${admin.email})`;
-      dropdown.appendChild(option);
-    });
+  closeApproveModal() {
+    document.getElementById("approveModal")?.classList.remove("active");
+    Dashboard.pendingApproveRow = null;
+    Dashboard.pendingApproveInvoiceNo = "";
   },
-
-  closeApproveModal() { document.getElementById("approveModal").classList.remove("active"); Dashboard.pendingApproveRow = null; },
 
   async confirmApprove() {
-    const bypass = document.getElementById("bypassAccountCheckbox").checked;
-    const selectedAdmin = document.getElementById("selectAdminDropdown").value;
-    const note = document.getElementById("approveNote").value.trim() || "Approved by CFO";
+    const note = document.getElementById("approveNote")?.value.trim() || "Approved by CFO";
     const btn = document.getElementById("confirmApproveBtn");
-    const errorDiv = document.getElementById("adminSelectError");
-    
-    if (!selectedAdmin) { errorDiv.style.display = "block"; document.getElementById("selectAdminDropdown").focus(); return; }
-    errorDiv.style.display = "none";
-    
-    btn.disabled = true; btn.innerHTML = "Approving...";
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Approving...';
+    }
     Loader.show("Approving invoice...");
-    const res = await API.cfo.approveBill(Dashboard.pendingApproveRow, note, bypass, selectedAdmin);
+    const res = await API.cfo.approveBill(Dashboard.pendingApproveRow, note);
     Loader.hide();
     
-    btn.disabled = false; btn.innerHTML = '<i class="fa fa-circle-check"></i> Confirm Approval';
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-circle-check"></i> Confirm Approval';
+    }
     if (res?.success) {
       Dashboard.closeApproveModal();
-      Toast.success(bypass ? `✅ Approved! Sent to ${selectedAdmin} (Account bypassed ⚡)` : `✅ Approved! Sent to ${selectedAdmin}`);
+      Toast.success("✅ Invoice approved successfully by CFO!");
       await Dashboard.loadApprovalQueue();
       await Dashboard.loadDashboardData();
-    } else { Toast.error(res?.message || "Failed to approve"); }
+    } else {
+      Toast.error(res?.message || "Failed to approve invoice");
+    }
   },
 
   openRejectModal(rowIdx, invoiceNo) {
-    const inv = (Dashboard.queueData || []).find(b => b.queueRowIndex === rowIdx || b.rowIndex === rowIdx) || (Dashboard.allInvoicesData || []).find(b => b.rowIndex === rowIdx);
-    if (inv && (inv["Current_Stage"] === "Account" || Utils.isBillBypassed(inv))) {
-      Toast.error("This invoice is in Bypass mode and can only be approved, not rejected.");
-      return;
-    }
+    const inv = Dashboard.getInvoiceById(rowIdx);
     Dashboard.pendingRejectRow = rowIdx;
-    Dashboard.pendingRejectInvoiceNo = invoiceNo;
-    document.getElementById("rejectModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
-    document.getElementById("rejectReason").value = "";
-    document.getElementById("rejectReasonError").style.display = "none";
-    document.getElementById("rejectModal").classList.add("active");
-    setTimeout(() => document.getElementById("rejectReason").focus(), 150);
+    Dashboard.pendingRejectInvoiceNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
+    const invNoEl = document.getElementById("rejectModalInvoiceNo");
+    if (invNoEl) invNoEl.textContent = Dashboard.pendingRejectInvoiceNo ? `— ${Dashboard.pendingRejectInvoiceNo}` : "";
+    const reasonEl = document.getElementById("rejectReason");
+    if (reasonEl) reasonEl.value = "";
+    const errorEl = document.getElementById("rejectReasonError");
+    if (errorEl) errorEl.style.display = "none";
+    document.getElementById("rejectModal")?.classList.add("active");
+    setTimeout(() => document.getElementById("rejectReason")?.focus(), 150);
   },
 
-  closeRejectModal() { document.getElementById("rejectModal").classList.remove("active"); Dashboard.pendingRejectRow = null; },
+  closeRejectModal() {
+    document.getElementById("rejectModal")?.classList.remove("active");
+    Dashboard.pendingRejectRow = null;
+    Dashboard.pendingRejectInvoiceNo = "";
+  },
 
   async confirmReject() {
-    const reason = document.getElementById("rejectReason").value.trim();
+    const reason = document.getElementById("rejectReason")?.value.trim();
     const errorDiv = document.getElementById("rejectReasonError");
-    if (!reason) { errorDiv.style.display = "block"; return; }
-    errorDiv.style.display = "none";
+    if (!reason) {
+      if (errorDiv) errorDiv.style.display = "block";
+      document.getElementById("rejectReason")?.focus();
+      return;
+    }
+    if (errorDiv) errorDiv.style.display = "none";
     
     const btn = document.getElementById("confirmRejectBtn");
-    btn.disabled = true; Loader.show("Rejecting invoice...");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Rejecting...';
+    }
+    Loader.show("Rejecting invoice...");
     const res = await API.cfo.rejectBill(Dashboard.pendingRejectRow, reason);
     Loader.hide();
     
-    btn.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
+    }
     if (res?.success) {
       Dashboard.closeRejectModal();
-      Toast.success("❌ Invoice rejected");
+      Toast.success("❌ Invoice rejected & returned to Biller");
       await Dashboard.loadApprovalQueue();
       await Dashboard.loadDashboardData();
-    } else { Toast.error(res?.message || "Failed to reject"); }
+    } else {
+      Toast.error(res?.message || "Failed to reject invoice");
+    }
   },
 
   loadProfile() {
