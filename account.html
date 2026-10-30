@@ -394,9 +394,10 @@
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
               <div class="filter-tabs">
                 <button class="filter-tab active" data-status="ALL">All</button>
-                <button class="filter-tab" data-status="Completed">✅ Completed</button>
+                <button class="filter-tab" data-status="HOD">👤 At HOD (View Only)</button>
                 <button class="filter-tab" data-status="Account">⏳ At Account</button>
-                <button class="filter-tab" data-status="CFO">💼 At CFO</button>
+                <button class="filter-tab" data-status="PROCESS">🔄 In Process</button>
+                <button class="filter-tab" data-status="Completed">✅ Completed</button>
               </div>
               <div style="flex:1;min-width:200px;position:relative">
                 <i class="fa fa-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--gray-400);pointer-events:none"></i>
@@ -706,21 +707,26 @@
       <div class="detail-tab-content" id="tab-flags"></div>
     </div>
 
-    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px;">
-      <a id="driveLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none">
-        <i class="fa fa-file-pdf"></i> View Original
-      </a>
-      
-      <button class="btn btn-sm" id="modalApproveBtn" onclick="Dashboard.approveFromModal()" style="display:none; background:#34a853; color:#fff; border:none; font-weight:600; padding:6px 14px; border-radius:6px;">
-        <i class="fa fa-check"></i> Approve
-      </button>
-      <button class="btn btn-sm" id="modalRejectBtn" onclick="Dashboard.rejectFromModal()" style="display:none; background:#ea4335; color:#fff; border:none; font-weight:600; padding:6px 14px; border-radius:6px;">
-        <i class="fa fa-xmark"></i> Reject
-      </button>
-      
-      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeModal()">
-        <i class="fa fa-xmark"></i> Close
-      </button>
+    <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <span id="modalStageNotice" style="display:none; font-size:0.8rem; font-weight:600; padding:5px 12px; border-radius:20px;"></span>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <a id="driveLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none">
+          <i class="fa fa-file-pdf"></i> View Original
+        </a>
+        
+        <button class="btn btn-sm" id="modalApproveBtn" onclick="Dashboard.approveFromModal()" style="display:none; background:#34a853; color:#fff; border:none; font-weight:600; padding:6px 14px; border-radius:6px;">
+          <i class="fa fa-check"></i> Approve
+        </button>
+        <button class="btn btn-sm" id="modalRejectBtn" onclick="Dashboard.rejectFromModal()" style="display:none; background:#ea4335; color:#fff; border:none; font-weight:600; padding:6px 14px; border-radius:6px;">
+          <i class="fa fa-xmark"></i> Reject
+        </button>
+        
+        <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeModal()">
+          <i class="fa fa-xmark"></i> Close
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1036,6 +1042,11 @@ const Dashboard = {
 
     try { await Dashboard.loadDashboardData(); } finally { AppLoader.finish(); }
 
+    window.addEventListener("hashchange", () => {
+      const h = window.location.hash.replace("#", "") || "dashboard";
+      Dashboard.showSection(h);
+    });
+
     const hash = window.location.hash.replace("#", "");
     if (hash) Dashboard.showSection(hash);
 
@@ -1051,12 +1062,42 @@ const Dashboard = {
   },
 
   showSection(id) {
+    if (id === "myinvoices") id = "invoices";
+
+    // Handle stage-filtered sub-sections
+    if (id === "athod") {
+      id = "invoices";
+      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
+        b.classList.toggle("active", b.dataset.status === "HOD");
+      });
+      Dashboard.currentPage = 1;
+      setTimeout(() => Dashboard.filterInvoices(), 50);
+    } else if (id === "pending") {
+      id = "invoices";
+      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
+        b.classList.toggle("active", b.dataset.status === "PROCESS");
+      });
+      Dashboard.currentPage = 1;
+      setTimeout(() => Dashboard.filterInvoices(), 50);
+    }
+
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     document.getElementById(`section-${id}`)?.classList.add("active");
 
-    const titles = { dashboard: "Dashboard", invoices : "All Invoices", approval : "Approval Queue", redflags : "Red Flags", completed: "Completed Bills", summary: "Summary Report", profile: "My Profile", password : "Change Password" };
+    const titles = {
+      dashboard: "Dashboard",
+      invoices : "All Invoices",
+      athod    : "At HOD Invoices (View Only)",
+      approval : "Approval Queue",
+      pending  : "In Process Invoices",
+      redflags : "Red Flags",
+      completed: "Completed Bills",
+      summary  : "Summary Report",
+      profile  : "My Profile",
+      password : "Change Password"
+    };
     Header.setTitle(titles[id] || "Dashboard");
-    Sidebar.setActive(id);
+    Sidebar.setActive(window.location.hash.replace("#", "") || id);
 
     if (id === "approval") Dashboard.loadApprovalQueue();
     if (id === "completed") Dashboard.loadCompletedSection();
@@ -1135,8 +1176,12 @@ const Dashboard = {
     let filtered = [...Dashboard.invoices];
     if (status !== "ALL") {
       filtered = filtered.filter(i => {
-        if (status === "Completed") return i["Current_Stage"] === "Completed";
-        return i["Current_Stage"] === status;
+        const stage = (i["Current_Stage"] || i.current_stage || "").trim();
+        if (status === "Completed") return stage === "Completed";
+        if (status === "HOD") return stage === "HOD";
+        if (status === "Account") return stage === "Account";
+        if (status === "PROCESS") return ["Finance", "CFO", "SuperAdmin"].includes(stage);
+        return stage === status;
       });
     }
     if (search) filtered = filtered.filter(i => (i["A14. Vendor Name"]||"").toLowerCase().includes(search) || (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A16. Bill Description"]||"").toLowerCase().includes(search));
@@ -1612,16 +1657,16 @@ const Dashboard = {
   openDetail(rowIndex) {
     if (!rowIndex) return;
 
-    let inv = Dashboard.queueData.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex);
-    if (!inv) inv = Dashboard.invoices.find(b => b.rowIndex === rowIndex);
-    if (!inv) inv = Dashboard.filteredData.find(b => b.rowIndex === rowIndex);
+    let inv = Dashboard.queueData.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex || b.id === rowIndex || b.invoice_unique_id === rowIndex);
+    if (!inv) inv = Dashboard.invoices.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex || b.id === rowIndex || b.invoice_unique_id === rowIndex);
+    if (!inv) inv = Dashboard.filteredData.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex || b.id === rowIndex || b.invoice_unique_id === rowIndex);
     
     if (!inv) {
       Toast.error("Invoice details not found. Please refresh page.");
       return;
     }
 
-    Dashboard.currentRow = rowIndex;
+    Dashboard.currentRow = inv.id || inv.queueRowIndex || inv.rowIndex;
 
     document.getElementById("modalInvoiceNo").textContent = inv["A13. Invoice Number"] || "N/A";
     document.getElementById("modalStatus").innerHTML = Utils.statusBadge(inv["Current_Stage"] || "N/A");
@@ -1654,10 +1699,37 @@ const Dashboard = {
     } else { driveBtn.style.display = "none"; }
 
     // SHOW APPROVE/REJECT BUTTONS ONLY IF PENDING AT ACCOUNT (Bypassed bills can only be approved)
-    const isPending = inv["Current_Stage"] === "Account";
+    const currentStage = (inv["Current_Stage"] || inv.current_stage || "").trim();
+    const isPendingAtAccount = currentStage === "Account";
     const isBypassed = Utils.isBillBypassed(inv);
-    document.getElementById("modalApproveBtn").style.display = isPending ? "inline-flex" : "none";
-    document.getElementById("modalRejectBtn").style.display  = (isPending && !isBypassed) ? "inline-flex" : "none";
+    
+    document.getElementById("modalApproveBtn").style.display = isPendingAtAccount ? "inline-flex" : "none";
+    document.getElementById("modalRejectBtn").style.display  = (isPendingAtAccount && !isBypassed) ? "inline-flex" : "none";
+
+    const noticeEl = document.getElementById("modalStageNotice");
+    if (noticeEl) {
+      if (currentStage === "HOD") {
+        noticeEl.style.display = "inline-flex";
+        noticeEl.style.background = "#fef3c7";
+        noticeEl.style.color = "#92400e";
+        noticeEl.style.border = "1px solid #fde68a";
+        noticeEl.innerHTML = '<i class="fa fa-user-clock" style="margin-right:6px"></i> Currently at HOD Stage (Awaiting HOD Signoff — View Only)';
+      } else if (["Finance", "CFO", "SuperAdmin"].includes(currentStage)) {
+        noticeEl.style.display = "inline-flex";
+        noticeEl.style.background = "#e0e7ff";
+        noticeEl.style.color = "#3730a3";
+        noticeEl.style.border = "1px solid #c7d2fe";
+        noticeEl.innerHTML = `<i class="fa fa-circle-check" style="margin-right:6px"></i> Account Approved • Currently at ${currentStage} Stage`;
+      } else if (currentStage === "Completed") {
+        noticeEl.style.display = "inline-flex";
+        noticeEl.style.background = "#dcfce7";
+        noticeEl.style.color = "#166534";
+        noticeEl.style.border = "1px solid #bbf7d0";
+        noticeEl.innerHTML = '<i class="fa fa-circle-check" style="margin-right:6px"></i> Final Approved & Completed';
+      } else {
+        noticeEl.style.display = "none";
+      }
+    }
 
     Dashboard.buildAttachmentTab(inv); 
     Dashboard.buildAccountingTab(inv); 
