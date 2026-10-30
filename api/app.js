@@ -738,15 +738,6 @@ module.exports = async function handler(req, res) {
         // Merge raw bill with any edited fields
         const billData = { ...rawBill, ...updatePayload };
 
-        // Mark as Sent in raw intake
-        await supabase.from("invoices").update({
-          ...updatePayload,
-          biller_status: "Sent",
-          department: dept,
-          assigned_hod_email: hodEmail,
-          assigned_hod_name: hodName
-        }).eq("id", id);
-
         // Ensure unique ID exists
         const uniqueId = billData.invoice_unique_id || `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
 
@@ -759,7 +750,7 @@ module.exports = async function handler(req, res) {
         // Insert into Master Invoices
         const masterPayload = {
           invoice_unique_id: uniqueId,
-          raw_invoice_id: rawBill.id,
+          raw_invoice_id: null, // Raw bill is moved to master_invoices and removed from staging invoices
           current_stage: nextStage,
           department: dept,
           assigned_hod_email: hodEmail,
@@ -856,7 +847,13 @@ module.exports = async function handler(req, res) {
           remark: remark
         });
 
-        await logAudit(supabase, "SUBMIT_FOR_APPROVAL", user.email, `Submitted ${uniqueId} to ${nextStage} (${dept})`);
+        // 🗑️ Move Complete: Delete from raw intake invoices table
+        const { error: delErr } = await supabase.from("invoices").delete().eq("id", id);
+        if (delErr) {
+          console.warn("[sendBillForApproval] Warning deleting from invoices table:", delErr.message);
+        }
+
+        await logAudit(supabase, "SUBMIT_FOR_APPROVAL", user.email, `Moved ${uniqueId} from invoices to master_invoices (${nextStage}, ${dept})`);
         return Response.success(res, { invoiceUniqueId: uniqueId }, "Invoice submitted for approval successfully");
       }
 
