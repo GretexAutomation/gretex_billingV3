@@ -83,18 +83,32 @@ const Sidebar = {
       {
         section: "Main",
         items: [
-          { id: "dashboard", icon: "fa-gauge",         label: "Dashboard",      page: "cfo.html"  },
-          { id: "invoices",  icon: "fa-file-invoice",  label: "All Invoices",   page: "cfo.html#invoices" },
-          { id: "redflags",  icon: "fa-flag",          label: "Red Flags",      page: "cfo.html#redflags", badge: "redflags" },
-          { id: "approve",   icon: "fa-circle-check",  label: "Approvals",      page: "cfo.html#approve" }
+          { id: "dashboard", icon: "fa-gauge",         label: "Dashboard",       page: "cfo.html"  },
+          {
+            id: "myinvoices",
+            icon: "fa-file-invoice",
+            label: "Pipeline Monitor",
+            page: "cfo.html#invoices",
+            badge: "approval",
+            children: [
+              { id: "invoices",   label: "All Pipeline Bills",  page: "cfo.html#invoices",   icon: "fa-list" },
+              { id: "atbiller",   label: "At Biller",           page: "cfo.html#atbiller",   icon: "fa-receipt" },
+              { id: "athod",      label: "At HODs (By HOD)",    page: "cfo.html#athod",      icon: "fa-users-gear" },
+              { id: "ataccount",  label: "At Account",          page: "cfo.html#ataccount",  icon: "fa-calculator" },
+              { id: "atfinance",  label: "At Finance",          page: "cfo.html#atfinance",  icon: "fa-money-bill-transfer" },
+              { id: "approve",    label: "Pending CFO Signoff", page: "cfo.html#approve",    icon: "fa-stamp" },
+              { id: "completed",  label: "Completed",           page: "cfo.html#completed",  icon: "fa-circle-check" }
+            ]
+          },
+          { id: "redflags",  icon: "fa-flag",          label: "Red Flags",       page: "cfo.html#redflags", badge: "redflags" }
         ]
       },
       {
-        section: "Reports",
+        section: "Reports & Audits",
         items: [
-          { id: "reports",   icon: "fa-chart-bar",     label: "Reports",        page: "cfo.html#reports" },
-          { id: "tds",       icon: "fa-percent",       label: "TDS Summary",    page: "cfo.html#tds" },
-          { id: "gst",       icon: "fa-receipt",       label: "GST Summary",    page: "cfo.html#gst" }
+          { id: "reports",   icon: "fa-chart-bar",     label: "Spend Reports",   page: "cfo.html#reports" },
+          { id: "tds",       icon: "fa-percent",       label: "TDS Summary",     page: "cfo.html#tds" },
+          { id: "gst",       icon: "fa-receipt",       label: "GST Summary",     page: "cfo.html#gst" }
         ]
       },
       {
@@ -517,12 +531,14 @@ const Sidebar = {
           qRes = await API.approval.getQueue("HOD");
         } else if (user?.role === "Finance") {
           qRes = await API.approval.getQueue("Finance");
+        } else if (user?.role === "CFO") {
+          qRes = await API.approval.getQueue("CFO");
         } else {
           qRes = await API.account.getQueue();
         }
         if (qRes?.success) {
           const queue = qRes.data.queue || [];
-          const targetStage = user?.role === "HOD" ? "HOD" : (user?.role === "Finance" ? "Finance" : "Account");
+          const targetStage = user?.role === "HOD" ? "HOD" : (user?.role === "Finance" ? "Finance" : (user?.role === "CFO" ? "CFO" : "Account"));
           const pending = queue.filter(i =>
             (i.current_stage === targetStage || i["Current_Stage"] === targetStage || (i["Approval Status"] || "Pending") === "Pending")
           ).length;

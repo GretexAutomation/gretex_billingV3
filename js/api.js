@@ -309,6 +309,16 @@ const API = {
       });
     },
 
+    async bypassBill(queueRowIndex, note = "", targetStage = "Completed") {
+      return await API.request("approveBill", {
+        queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
+        note: note,
+        bypass: true,
+        targetStage: targetStage
+      });
+    },
+
     async getQueueStats() {
       return await API.request("getQueueStats");
     }
