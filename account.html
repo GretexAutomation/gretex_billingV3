@@ -1064,26 +1064,6 @@ const Dashboard = {
   showSection(id) {
     if (id === "myinvoices") id = "invoices";
 
-    // Handle stage-filtered sub-sections
-    if (id === "athod") {
-      id = "invoices";
-      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
-        b.classList.toggle("active", b.dataset.status === "HOD");
-      });
-      Dashboard.currentPage = 1;
-      setTimeout(() => Dashboard.filterInvoices(), 50);
-    } else if (id === "pending") {
-      id = "invoices";
-      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
-        b.classList.toggle("active", b.dataset.status === "PROCESS");
-      });
-      Dashboard.currentPage = 1;
-      setTimeout(() => Dashboard.filterInvoices(), 50);
-    }
-
-    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-    document.getElementById(`section-${id}`)?.classList.add("active");
-
     const titles = {
       dashboard: "Dashboard",
       invoices : "All Invoices",
@@ -1096,8 +1076,48 @@ const Dashboard = {
       profile  : "My Profile",
       password : "Change Password"
     };
-    Header.setTitle(titles[id] || "Dashboard");
-    Sidebar.setActive(window.location.hash.replace("#", "") || id);
+
+    // Sub-stage routing into #section-invoices with corresponding tab active:
+    if (id === "athod") {
+      id = "invoices";
+      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
+        b.classList.toggle("active", b.dataset.status === "HOD");
+      });
+      Dashboard.currentPage = 1;
+      setTimeout(() => Dashboard.filterInvoices(), 50);
+      Header.setTitle("At HOD Invoices (View Only)");
+    } else if (id === "pending") {
+      id = "invoices";
+      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
+        b.classList.toggle("active", b.dataset.status === "PROCESS");
+      });
+      Dashboard.currentPage = 1;
+      setTimeout(() => Dashboard.filterInvoices(), 50);
+      Header.setTitle("Pending (In Process) Invoices");
+    } else if (id === "completed") {
+      id = "invoices";
+      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
+        b.classList.toggle("active", b.dataset.status === "Completed");
+      });
+      Dashboard.currentPage = 1;
+      setTimeout(() => Dashboard.filterInvoices(), 50);
+      Header.setTitle("Completed & Final Approved Invoices");
+    } else if (id === "invoices") {
+      document.querySelectorAll(".filter-tab[data-status]").forEach(b => {
+        b.classList.toggle("active", b.dataset.status === "ALL");
+      });
+      Dashboard.currentPage = 1;
+      setTimeout(() => Dashboard.filterInvoices(), 50);
+      Header.setTitle("All Invoices");
+    } else {
+      Header.setTitle(titles[id] || "Dashboard");
+    }
+
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(`section-${id}`)?.classList.add("active");
+
+    const currentHash = window.location.hash.replace("#", "") || id;
+    Sidebar.setActive(currentHash);
 
     if (id === "approval") Dashboard.loadApprovalQueue();
     if (id === "completed") Dashboard.loadCompletedSection();
@@ -1120,33 +1140,52 @@ const Dashboard = {
         const d = statsRes.data;
         const setSafe = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
         setSafe("statTotal",  d.invoiceStats?.total  || d.total  || 0);
-        setSafe("statPass",   d.invoiceStats?.pass   || d.pass   || 0);
-        setSafe("statReview", d.invoiceStats?.review || d.review || 0);
-        setSafe("statFail",   d.invoiceStats?.fail   || d.fail   || 0);
+        setSafe("statPass",   d.invoiceStats?.pass   || d.pass   || d.approved || 0);
+        setSafe("statReview", d.invoiceStats?.review || d.review || d.actionNeeded || 0);
+        setSafe("statFail",   d.invoiceStats?.fail   || d.fail   || d.rejected || 0);
         setSafe("statAmount", Utils.formatCurrency(d.invoiceStats?.totalAmount || d.totalAmount || 0));
       }
     } catch(e) { console.error("Stats Error", e); }
 
     try {
-      const invRes = await API.invoices.getAll();
+      const invRes = await API.invoices.getAll({ stage: "All" });
       if (invRes?.success) {
-        Dashboard.invoices = invRes.data.invoices || [];
+        Dashboard.invoices = invRes.data.invoices || invRes.data.queue || [];
         Dashboard.filteredData = [...Dashboard.invoices];
         Dashboard.renderTable();
 
-        const recent = [...Dashboard.invoices].reverse().slice(0, 5);
+        // Sync stats directly from loaded invoices if stats API didn't have full breakdown
+        const total = Dashboard.invoices.length;
+        const pass = Dashboard.invoices.filter(i => (i["Current_Stage"] || i.current_stage) === "Completed" && i["Approval Status"] !== "Rejected").length;
+        const actionNeeded = Dashboard.invoices.filter(i => (i["Current_Stage"] || i.current_stage) === "Account").length;
+        const fail = Dashboard.invoices.filter(i => (i["Approval Status"] === "Rejected" || i.overall_status === "Rejected")).length;
+        const totalAmt = Dashboard.invoices.reduce((sum, i) => sum + (Number(i["A20. Basic Amount"]) || 0), 0);
+
+        const setSafe = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        if (total > 0) {
+          setSafe("statTotal", total);
+          setSafe("statPass", pass);
+          setSafe("statReview", actionNeeded);
+          setSafe("statFail", fail);
+          setSafe("statAmount", Utils.formatCurrency(totalAmt));
+        }
+
+        const recent = [...Dashboard.invoices].slice(0, 5);
         const rBody = document.getElementById("recentBody");
         if (recent.length === 0) {
           if (rBody) rBody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding:24px;color:var(--gray-400)">No invoices yet</td></tr>`;
         } else {
-          if (rBody) rBody.innerHTML = recent.map(inv => `
-            <tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+          if (rBody) rBody.innerHTML = recent.map(inv => {
+            const safeId = String(inv.id || inv.rowIndex || inv.queueRowIndex).replace(/'/g, "\\'");
+            return `
+            <tr style="cursor:pointer" onclick="Dashboard.openDetail('${safeId}')">
               <td><strong style="font-size:0.83rem">${inv["A13. Invoice Number"] || "—"}</strong></td>
               <td style="font-size:0.82rem">${Utils.truncate(inv["A14. Vendor Name"], 18)}</td>
               <td style="font-size:0.83rem">${Utils.formatCurrency(inv["A20. Basic Amount"])}</td>
               <td>${Utils.statusBadge(inv["Current_Stage"])}</td>
-              <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})"><i class="fa fa-eye"></i></button></td>
-            </tr>`).join("");
+              <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail('${safeId}')"><i class="fa fa-eye"></i></button></td>
+            </tr>`;
+          }).join("");
         }
 
         const flagged = Dashboard.invoices.filter(i => i["🚩 Red Flags"] && i["🚩 Red Flags"].trim() !== "");
@@ -1154,14 +1193,17 @@ const Dashboard = {
         if (flagged.length === 0) {
           if (fPanel) fPanel.innerHTML = `<div class="empty-state" style="padding:24px 0"><div class="empty-icon">✅</div><div class="empty-title">No red flags!</div></div>`;
         } else {
-          if (fPanel) fPanel.innerHTML = flagged.slice(0, 8).map(inv => `
-            <div style="padding:10px 0;border-bottom:1px solid var(--gray-100);cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+          if (fPanel) fPanel.innerHTML = flagged.slice(0, 8).map(inv => {
+            const safeId = String(inv.id || inv.rowIndex || inv.queueRowIndex).replace(/'/g, "\\'");
+            return `
+            <div style="padding:10px 0;border-bottom:1px solid var(--gray-100);cursor:pointer" onclick="Dashboard.openDetail('${safeId}')">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
                 <strong style="font-size:0.83rem">${inv["A13. Invoice Number"] || "—"}</strong>${Utils.statusBadge(inv["Current_Stage"])}
               </div>
               <div style="font-size:0.78rem;color:var(--gray-600)">${Utils.truncate(inv["A14. Vendor Name"], 24)}</div>
               <div style="font-size:0.72rem;color:var(--danger);margin-top:3px">🚩 ${Utils.truncate(inv["🚩 Red Flags"], 48)}</div>
-            </div>`).join("");
+            </div>`;
+          }).join("");
         }
         Dashboard.loadRedFlagTableLocally(flagged);
       }
@@ -1202,13 +1244,26 @@ const Dashboard = {
 
     if(count) count.textContent = `(${total} records)`;
 
+    const headerTitle = document.querySelector("#section-invoices .card-title");
+    if (headerTitle) {
+      const status = document.querySelector(".filter-tab[data-status].active")?.dataset.status || "ALL";
+      let titleHtml = '<i class="fa fa-file-invoice"></i> All Invoices';
+      if (status === "HOD") titleHtml = '<i class="fa fa-user-clock" style="color:#d97706"></i> At HOD (View Only — Awaiting HOD Signoff)';
+      else if (status === "Account") titleHtml = '<i class="fa fa-sparkles" style="color:#2563eb"></i> Invoices at Account Stage';
+      else if (status === "PROCESS") titleHtml = '<i class="fa fa-clock" style="color:#3b82f6"></i> In Process (Finance / CFO / SuperAdmin)';
+      else if (status === "Completed") titleHtml = '<i class="fa fa-circle-check" style="color:#16a34a"></i> Completed & Final Approved Invoices';
+      headerTitle.innerHTML = `${titleHtml} <span id="invoiceCount" style="font-weight:400;color:var(--gray-500);font-size:0.8rem">(${total} records)</span>`;
+    }
+
     if (total === 0) {
       if(tbody) tbody.innerHTML = `<tr><td colspan="12" class="text-center" style="padding:32px;color:var(--gray-400)">📭 No invoices found</td></tr>`;
       Dashboard.renderPagination(0, 0); return;
     }
 
-    if(tbody) tbody.innerHTML = page.map((inv, i) => `
-      <tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+    if(tbody) tbody.innerHTML = page.map((inv, i) => {
+      const safeId = String(inv.id || inv.rowIndex || inv.queueRowIndex).replace(/'/g, "\\'");
+      return `
+      <tr style="cursor:pointer" onclick="Dashboard.openDetail('${safeId}')">
         <td style="color:var(--gray-400);font-size:0.75rem">${start + i + 1}</td>
         <td style="white-space:nowrap;font-size:0.8rem">${inv["Timestamp"] || inv["A12. Invoice Date"] || "—"}</td>
         <td><strong style="font-size:0.83rem">${inv["A13. Invoice Number"] || "—"}</strong></td>
@@ -1220,9 +1275,9 @@ const Dashboard = {
         <td><span class="badge ${inv["A21. Invoice Type"] === 'Proforma' ? 'badge-warning' : 'badge-info'}" style="font-size:0.68rem">${inv["A21. Invoice Type"] || "—"}</span></td>
         <td>${inv["🚩 Red Flags"] && inv["🚩 Red Flags"] !== "" ? `<span style="color:var(--danger);font-size:0.78rem;font-weight:600;cursor:pointer" title="${inv["🚩 Red Flags"]}">🚩 ${inv["🚩 Red Flags"].split("|").length}</span>` : `<span style="color:var(--gray-200)">—</span>`}</td>
         <td>${Utils.statusBadge(inv["Current_Stage"])}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})" title="View Details"><i class="fa fa-eye"></i></button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail('${safeId}')" title="View Details"><i class="fa fa-eye"></i> View</button></td>
       </tr>
-    `).join("");
+    `}).join("");
     Dashboard.renderPagination(total, end);
   },
 
@@ -1276,16 +1331,19 @@ const Dashboard = {
     }
     
     if(count) count.textContent = `(${flaggedData.length} flagged)`;
-    tbody.innerHTML = flaggedData.map(inv => `
-      <tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
+    tbody.innerHTML = flaggedData.map(inv => {
+      const safeId = String(inv.id || inv.rowIndex || inv.queueRowIndex).replace(/'/g, "\\'");
+      return `
+      <tr style="cursor:pointer" onclick="Dashboard.openDetail('${safeId}')">
         <td><strong>${inv["A13. Invoice Number"] || "—"}</strong></td>
         <td>${Utils.truncate(inv["A14. Vendor Name"], 20)}</td>
         <td>${Utils.formatCurrency(inv["A20. Basic Amount"])}</td>
         <td>${(inv["🚩 Red Flags"] || "").split("|").map(f => `<div class="red-flag-item" style="margin-bottom:4px">🚩 ${f.trim()}</div>`).join("")}</td>
         <td>${Utils.statusBadge(inv["Current_Stage"])}</td>
         <td style="white-space:nowrap;font-size:0.8rem">${inv["Timestamp"] || "—"}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})"><i class="fa fa-eye"></i> View</button></td>
-      </tr>`).join("");
+        <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail('${safeId}')"><i class="fa fa-eye"></i> View</button></td>
+      </tr>`;
+    }).join("");
   },
 
   async loadApprovalQueue(isSilent = false) {
@@ -1385,8 +1443,11 @@ const Dashboard = {
       const tdsAmt    = item["B8. TDS Amount"];
       const isBypassed = Utils.isBillBypassed(item);
       
+      const safeInvNo = String(item["A13. Invoice Number"] || "").replace(/"/g, '&quot;');
+      const safeRowIdx = item.id || item.queueRowIndex || item.rowIndex;
+
       return `
-        <tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail(${rowIdx})">
+        <tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail('${safeRowIdx}')">
           <td style="color:var(--gray-400);font-size:0.75rem">${start + i + 1}</td>
           <td><strong style="font-size:0.83rem">${item["A13. Invoice Number"] || "—"}</strong><div style="font-size:0.72rem;color:var(--gray-400);margin-top:2px">${item["Timestamp"] || item["A12. Invoice Date"]}</div></td>
           <td style="font-size:0.82rem"><div>${Utils.truncate(item["A14. Vendor Name"], 20)}</div><div style="font-size:0.72rem;color:var(--gray-400)">${Utils.truncate(item["A16. Bill Description"] || "", 22)}</div></td>
@@ -1398,17 +1459,34 @@ const Dashboard = {
           <td onclick="event.stopPropagation()">
             ${isPending
               ? `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-                   <button class="queue-action-btn btn-approve" onclick="Dashboard.approveItem(${rowIdx}, '${String(item["A13. Invoice Number"] || "").replace(/'/g, "\\'")}')"><i class="fa fa-check" style="font-size:0.72rem"></i> Approve</button>
+                   <button class="queue-action-btn btn-approve" data-act="approve" data-row="${safeRowIdx}" data-inv="${safeInvNo}"><i class="fa fa-check" style="font-size:0.72rem"></i> Approve</button>
                    ${!isBypassed 
-                     ? `<button class="queue-action-btn btn-reject" onclick="Dashboard.openRejectModal(${rowIdx}, '${String(item["A13. Invoice Number"] || "").replace(/'/g, "\\'")}')"><i class="fa fa-xmark" style="font-size:0.72rem"></i> Reject</button>`
+                     ? `<button class="queue-action-btn btn-reject" data-act="reject" data-row="${safeRowIdx}" data-inv="${safeInvNo}"><i class="fa fa-xmark" style="font-size:0.72rem"></i> Reject</button>`
                      : `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:0.7rem;padding:3px 6px;font-weight:600" title="Bypassed invoices can only be approved">⚡ Bypassed</span>`}
                  </div>`
-              : `<span style="font-size:0.78rem;color:var(--gray-400)">${status === "Approved" ? '<i class="fa fa-check" style="color:#34a853"></i> Sent to CFO' : '<i class="fa fa-xmark" style="color:#ea4335"></i> Stopped'}</span>`}
+              : `<span style="font-size:0.78rem;color:var(--gray-400)">${status === "Approved" ? '<i class="fa fa-check" style="color:#34a853"></i> Sent to Finance' : '<i class="fa fa-xmark" style="color:#ea4335"></i> Stopped'}</span>`}
           </td>
         </tr>`;
     }).join("");
 
     Dashboard.renderQueuePagination(total, end);
+
+    if (tbody && !tbody._delegated) {
+      tbody._delegated = true;
+      tbody.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-act]");
+        if (!btn) return;
+        e.stopPropagation();
+        const act = btn.dataset.act;
+        const row = btn.dataset.row;
+        const inv = btn.dataset.inv;
+        if (act === "approve") {
+          Dashboard.approveItem(row, inv);
+        } else if (act === "reject") {
+          Dashboard.openRejectModal(row, inv);
+        }
+      });
+    }
   },
 
   renderQueuePagination(total, end) {
@@ -1456,8 +1534,10 @@ const Dashboard = {
   // APPROVE ITEM & MODAL
   // ─────────────────────────────────────────────
   approveItem(queueRowIndex, invoiceNo) {
-    Dashboard.pendingApproveRow        = queueRowIndex;
-    Dashboard.pendingApproveInvoiceNo = invoiceNo || "";
+    const inv = (Dashboard.queueData || []).find(b => b.id === queueRowIndex || b.queueRowIndex === queueRowIndex || b.rowIndex === queueRowIndex) ||
+                (Dashboard.invoices || []).find(b => b.id === queueRowIndex || b.rowIndex === queueRowIndex || b.queueRowIndex === queueRowIndex);
+    Dashboard.pendingApproveRow        = inv?.id || queueRowIndex;
+    Dashboard.pendingApproveInvoiceNo = invoiceNo || inv?.["A13. Invoice Number"] || "";
     
     document.getElementById("approveReason").value = "Verified and Approved."; // Default text
     document.getElementById("approveModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
@@ -1498,12 +1578,13 @@ const Dashboard = {
   },
 
   openRejectModal(queueRowIndex, invoiceNo) {
-    const inv = (Dashboard.queueData || []).find(b => b.queueRowIndex === queueRowIndex) || (Dashboard.invoices || []).find(b => b.rowIndex === queueRowIndex);
+    const inv = (Dashboard.queueData || []).find(b => b.id === queueRowIndex || b.queueRowIndex === queueRowIndex || b.rowIndex === queueRowIndex) ||
+                (Dashboard.invoices || []).find(b => b.id === queueRowIndex || b.rowIndex === queueRowIndex || b.queueRowIndex === queueRowIndex);
     if (inv && Utils.isBillBypassed(inv)) {
       Toast.error("This invoice has been bypassed and can only be approved, not rejected.");
       return;
     }
-    Dashboard.pendingRejectRow        = queueRowIndex;
+    Dashboard.pendingRejectRow        = inv?.id || queueRowIndex;
     Dashboard.pendingRejectInvoiceNo = invoiceNo || "";
     document.getElementById("rejectReason").value = "";
     document.getElementById("rejectReasonError").style.display = "none";
@@ -1577,8 +1658,9 @@ const Dashboard = {
 
     el.innerHTML = bills.map(b => {
       const isApproved = b["Account_Status"] === "Approved";
+      const safeId = String(b.id || b.rowIndex || b.queueRowIndex).replace(/'/g, "\\'");
       return `
-        <div class="completed-card ${isApproved ? 'approved':'rejected'}" onclick="Dashboard.openDetail(${b.rowIndex})">
+        <div class="completed-card ${isApproved ? 'approved':'rejected'}" onclick="Dashboard.openDetail('${safeId}')">
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
               <strong style="font-size:0.9rem">${b["A13. Invoice Number"]||"—"}</strong>
@@ -1657,9 +1739,18 @@ const Dashboard = {
   openDetail(rowIndex) {
     if (!rowIndex) return;
 
-    let inv = Dashboard.queueData.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex || b.id === rowIndex || b.invoice_unique_id === rowIndex);
-    if (!inv) inv = Dashboard.invoices.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex || b.id === rowIndex || b.invoice_unique_id === rowIndex);
-    if (!inv) inv = Dashboard.filteredData.find(b => b.rowIndex === rowIndex || b.queueRowIndex === rowIndex || b.id === rowIndex || b.invoice_unique_id === rowIndex);
+    const key = String(rowIndex).trim();
+    const match = b => b && (
+      String(b.id || "") === key ||
+      String(b.rowIndex || "") === key ||
+      String(b.queueRowIndex || "") === key ||
+      String(b.invoice_unique_id || "") === key ||
+      String(b["A13. Invoice Number"] || "") === key
+    );
+
+    let inv = (Dashboard.invoices || []).find(match) ||
+              (Dashboard.queueData || []).find(match) ||
+              (Dashboard.filteredData || []).find(match);
     
     if (!inv) {
       Toast.error("Invoice details not found. Please refresh page.");
