@@ -70,53 +70,148 @@ const UI = {
       </div>`;
   },
   generateTrackingTimeline(inv) {
+    if (!inv) return "";
+    
+    // Normalize current stage
+    let currentStage = (inv.current_stage || inv["Current_Stage"] || "").trim();
+    if (!currentStage || inv.isNew || inv.biller_status === "New" || inv["Approval Status"] === "New") {
+      currentStage = "Biller";
+    }
+
+    const stagesOrder = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+    
+    // Check if bill has any rejections
+    let rejectedAt = null;
+    let rejectionRemark = "";
+    
+    if (inv["overall_status"] === "Rejected" || inv["overall_status"] === "FAIL" || inv["Approval Status"] === "Rejected") {
+      rejectedAt = inv["Rejection By"] || inv["rejection_by"] || currentStage;
+      rejectionRemark = inv["Rejection Reason"] || inv["rejection_reason"] || inv["Account_Remark"] || inv["CFO_Remark"] || inv["d11_narration"] || "No specific reason provided.";
+    } else if ((inv["HOD_Status"] || "").includes("Rejected")) {
+      rejectedAt = "HOD"; rejectionRemark = inv["HOD_Remark"] || "Rejected by Department Head";
+    } else if ((inv["Account_Status"] || "").includes("Rejected")) {
+      rejectedAt = "Account"; rejectionRemark = inv["Account_Remark"] || "Rejected by Accounts";
+    } else if ((inv["Finance_Status"] || "").includes("Rejected")) {
+      rejectedAt = "Finance"; rejectionRemark = inv["Finance_Remark"] || "Rejected by Finance";
+    } else if ((inv["CFO_Status"] || "").includes("Rejected")) {
+      rejectedAt = "CFO"; rejectionRemark = inv["CFO_Remark"] || "Rejected by CFO";
+    } else if ((inv["SA_Status"] || "").includes("Rejected")) {
+      rejectedAt = "SuperAdmin"; rejectionRemark = inv["SA_Remark"] || "Rejected by Super Admin";
+    }
+
+    const stageIdx = stagesOrder.indexOf(currentStage);
+    const currIdx = stageIdx !== -1 ? stageIdx : 1;
+
+    const formatDt = (d) => {
+      if (!d) return "";
+      try {
+        const dt = new Date(d);
+        if (isNaN(dt.getTime())) return d;
+        return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+      } catch (e) {
+        return d;
+      }
+    };
+
     const steps = [
-      { key: "Received", label: "Received",    date: inv["Timestamp"],       icon: "fa-envelope" },
-      { key: "Biller",   label: "Biller",      date: inv["Biller_Send_At"],  icon: "fa-user-check", statusCol: "" },
-      { key: "Account",  label: "Account",     date: inv["Account_Send_At"], icon: "fa-calculator", statusCol: inv["Account_Status"] },
-      { key: "CFO",      label: "CFO",         date: inv["CFO_Send_At"],     icon: "fa-briefcase",  statusCol: inv["CFO_Status"] },
-      { key: "Admin",    label: "Admin",       date: inv["Admin_Send_At"],   icon: "fa-user-shield",statusCol: inv["Admin_Status"] },
-      { key: "SA",       label: "Super Admin", date: inv["SA_Approved_At"],  icon: "fa-crown",      statusCol: inv["SA_Status"] }
+      {
+        key: "Received",
+        label: "Received",
+        icon: "fa-envelope",
+        date: formatDt(inv["Timestamp"] || inv["created_at"]) || "Done",
+        stageIdx: 0
+      },
+      {
+        key: "Biller",
+        label: "Biller",
+        icon: "fa-user-check",
+        date: currIdx > 1 ? (formatDt(inv["Biller_Send_At"] || inv["biller_sent_at"]) || "Done") : "In Review",
+        stageIdx: 1
+      },
+      {
+        key: "HOD",
+        label: inv.department && inv.department !== "General" ? `HOD (${inv.department})` : "HOD",
+        icon: "fa-user-tie",
+        date: currIdx > 2 ? (formatDt(inv["HOD_Send_At"]) || "Approved") : (currIdx === 2 ? "In Review" : "Pending..."),
+        stageIdx: 2
+      },
+      {
+        key: "Account",
+        label: "Account",
+        icon: "fa-calculator",
+        date: currIdx > 3 ? (formatDt(inv["Account_Send_At"]) || "Approved") : (currIdx === 3 ? "In Review" : "Pending..."),
+        stageIdx: 3
+      },
+      {
+        key: "Finance",
+        label: "Finance",
+        icon: "fa-coins",
+        date: currIdx > 4 ? (formatDt(inv["Finance_Send_At"]) || "Approved") : (currIdx === 4 ? "In Review" : "Pending..."),
+        stageIdx: 4
+      },
+      {
+        key: "CFO",
+        label: "CFO",
+        icon: "fa-briefcase",
+        date: currIdx > 5 ? (formatDt(inv["CFO_Send_At"]) || "Approved") : (currIdx === 5 ? "In Review" : "Pending..."),
+        stageIdx: 5
+      },
+      {
+        key: "SuperAdmin",
+        label: "Super Admin",
+        icon: "fa-crown",
+        date: currentStage === "Completed" ? (formatDt(inv["close_at"] || inv["send_for_billing_at"]) || "Final Approved") : (currIdx === 6 ? "In Review" : "Pending..."),
+        stageIdx: 6
+      }
     ];
 
-    const currentStage = inv["Current_Stage"] || "New";
-    let hasRejected = steps.some(s => s.statusCol && s.statusCol.includes("Rejected"));
-    let stageReached = false;
     let html = `<div class="tracking-wrapper"><div class="tracking-container">`;
-    let rejectionHtml = "";
 
     steps.forEach((step) => {
       let statusClass = "";
       let iconHtml = `<i class="fa ${step.icon}"></i>`;
-      let dateText = step.date ? step.date : "Pending...";
-      if (step.date && step.date !== "") {
+      let dateText = step.date;
+
+      if (rejectedAt && (step.key === rejectedAt || (rejectedAt === "Super Admin" && step.key === "SuperAdmin"))) {
+        statusClass = "rejected";
+        iconHtml = `<i class="fa fa-times"></i>`;
+        dateText = "Rejected";
+      } else if (rejectedAt && step.stageIdx > stagesOrder.indexOf(rejectedAt)) {
+        statusClass = "";
+        dateText = "Cancelled";
+      } else if (currentStage === "Completed" || step.stageIdx < currIdx) {
         statusClass = "completed";
-        iconHtml = `<i class="fa fa-check"></i>`; 
-        if (step.statusCol && step.statusCol.includes("Rejected")) {
-          statusClass = "rejected";
-          iconHtml = `<i class="fa fa-times"></i>`;
-          let remark = "";
-          if (step.key === "Account") remark = inv["Account_Remark"];
-          else if (step.key === "CFO") remark = inv["CFO_Remark"];
-          else if (step.key === "Admin") remark = inv["Admin_Remark"];
-          else if (step.key === "SA") remark = inv["SA_Remark"];
-          if (!remark || remark.trim() === "") remark = "No specific reason provided.";
-          rejectionHtml = `
-            <div style="margin-top: 20px; background: #fff0f0; border-left: 4px solid #ea4335; border-radius: 8px; padding: 12px 16px;">
-              <div style="color: #d32f2f; font-weight: 700; margin-bottom: 4px; font-size: 0.9rem;">❌ Rejected at ${step.label} Stage</div>
-              <div style="color: #5f6368; font-size: 0.85rem;"><strong>Reason:</strong> ${remark}</div>
-            </div>`;
-        }
-      } else {
-        if (!stageReached && !hasRejected && currentStage !== "Completed") {
-          statusClass = "active";
-          stageReached = true; 
-        }
+        iconHtml = `<i class="fa fa-check"></i>`;
+      } else if (step.stageIdx === currIdx) {
+        statusClass = "active";
       }
-      html += `<div class="track-step ${statusClass}"><div class="track-icon">${iconHtml}</div><div class="track-text"><h6>${step.label}</h6><p>${dateText}</p></div></div>`;
+
+      html += `
+        <div class="track-step ${statusClass}">
+          <div class="track-icon">${iconHtml}</div>
+          <div class="track-text">
+            <h6>${step.label}</h6>
+            <p>${dateText}</p>
+          </div>
+        </div>
+      `;
     });
+
     html += `</div></div>`;
-    if (rejectionHtml) html += rejectionHtml;
+
+    if (rejectedAt) {
+      html += `
+        <div style="margin-top: 16px; background: #fff0f0; border-left: 4px solid #ea4335; border-radius: 8px; padding: 12px 16px;">
+          <div style="color: #d32f2f; font-weight: 700; margin-bottom: 4px; font-size: 0.9rem;">
+            ❌ Rejected at ${rejectedAt} Stage
+          </div>
+          <div style="color: #5f6368; font-size: 0.85rem;">
+            <strong>Reason:</strong> ${rejectionRemark}
+          </div>
+        </div>
+      `;
+    }
+
     return html;
   }
 };
