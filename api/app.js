@@ -967,6 +967,20 @@ module.exports = async function handler(req, res) {
 
         if (!bill) return Response.error(res, "Invoice not found");
 
+        // 🛡️ LOCKDOWN GUARD: If bill is already Completed or Rejected, it CANNOT be modified or approved!
+        if (bill.current_stage === "Completed" || bill.overall_status === "FAIL" || bill.overall_status === "Rejected") {
+          return Response.error(res, `Locked: This invoice is already ${bill.overall_status === "FAIL" ? "Rejected" : "Completed"} and cannot be modified.`, 403);
+        }
+
+        // 🛡️ STAGE LOCKDOWN: Standard roles cannot act if the bill is not at their stage or was bypassed
+        if (user.role !== "SuperAdmin") {
+          if (user.role === "CFO") {
+            // CFO has bypass authority for earlier stages and CFO stage
+          } else if (bill.current_stage !== user.role) {
+            return Response.error(res, `Locked: This invoice is currently at '${bill.current_stage}' stage (your stage was bypassed or already completed) and cannot be modified.`, 403);
+          }
+        }
+
         const PIPELINE = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
         const ACTION_STAGES = ["HOD", "Account", "Finance", "CFO", "SuperAdmin"];
 
@@ -1067,6 +1081,19 @@ module.exports = async function handler(req, res) {
           bill = billByUid;
         }
         if (!bill) return Response.error(res, "Invoice not found");
+
+        // 🛡️ LOCKDOWN GUARD: If bill is already Completed or Rejected, it CANNOT be rejected again or modified!
+        if (bill.current_stage === "Completed" || bill.overall_status === "FAIL" || bill.overall_status === "Rejected") {
+          return Response.error(res, `Locked: This invoice is already ${bill.overall_status === "FAIL" ? "Rejected" : "Completed"} and cannot be modified.`, 403);
+        }
+
+        if (user.role !== "SuperAdmin") {
+          if (user.role === "CFO") {
+            // CFO can reject
+          } else if (bill.current_stage !== user.role) {
+            return Response.error(res, `Locked: This invoice is currently at '${bill.current_stage}' stage and cannot be modified.`, 403);
+          }
+        }
 
         // Close invoice immediately with FAIL / Rejected status
         await supabase.from("master_invoices").update({
