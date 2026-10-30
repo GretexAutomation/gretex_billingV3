@@ -710,7 +710,13 @@
         <div class="card" style="margin-bottom:16px">
           <div class="card-body" style="padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
             <div class="filter-tabs" style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="filter-tab active" id="btnApprovedOpen"
+              <button class="filter-tab active" id="btnApprovedAll"
+                onclick="Dashboard.setApprovedFilter('ALL', this)"
+                style="display:flex;align-items:center;gap:6px">
+                <i class="fa fa-list" style="font-size:0.75rem"></i>
+                All Approved (<span id="appAllCount">0</span>)
+              </button>
+              <button class="filter-tab" id="btnApprovedOpen"
                 onclick="Dashboard.setApprovedFilter('OPEN', this)"
                 style="display:flex;align-items:center;gap:6px">
                 <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#10b981"></span>
@@ -721,12 +727,6 @@
                 style="display:flex;align-items:center;gap:6px">
                 <i class="fa fa-lock" style="font-size:0.75rem"></i>
                 Closed Bills (<span id="appClosedCount">0</span>)
-              </button>
-              <button class="filter-tab" id="btnApprovedAll"
-                onclick="Dashboard.setApprovedFilter('ALL', this)"
-                style="display:flex;align-items:center;gap:6px">
-                <i class="fa fa-list" style="font-size:0.75rem"></i>
-                All Approved (<span id="appAllCount">0</span>)
               </button>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -742,7 +742,7 @@
           <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
             <div class="card-title">
               <i class="fa fa-check-double" style="color:var(--success)"></i>
-              <span id="approvedSectionTitle">Approved Bills (Open)</span>
+              <span id="approvedSectionTitle">Approved Bills (All)</span>
               <span id="approvedCount"
                 style="font-weight:600;color:var(--success);font-size:0.85rem;margin-left:6px"></span>
             </div>
@@ -852,13 +852,16 @@
                 <input type="checkbox" value="New" checked onchange="Dashboard.toggleFlowupFilter()" /> New Bills
               </label>
               <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
+                <input type="checkbox" value="HOD" checked onchange="Dashboard.toggleFlowupFilter()" /> HOD
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
                 <input type="checkbox" value="Account" checked onchange="Dashboard.toggleFlowupFilter()" /> Account
               </label>
               <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
-                <input type="checkbox" value="CFO" checked onchange="Dashboard.toggleFlowupFilter()" /> CFO
+                <input type="checkbox" value="Finance" checked onchange="Dashboard.toggleFlowupFilter()" /> Finance
               </label>
               <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
-                <input type="checkbox" value="Admin" checked onchange="Dashboard.toggleFlowupFilter()" /> Admin
+                <input type="checkbox" value="CFO" checked onchange="Dashboard.toggleFlowupFilter()" /> CFO
               </label>
               <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; color: #1565c0;">
                 <input type="checkbox" value="Super Admin" checked onchange="Dashboard.toggleFlowupFilter()" /> Final Approval (Super Admin)
@@ -1748,7 +1751,7 @@ const Dashboard = {
         flowup: "Flowup - All Bills Status"
     };
     Header.setTitle(titles[id] || "Dashboard");
-    Sidebar.setActive(id === 'new' || id === 'process' || id === 'invoices' || id === 'completed' ? "myinvoices" : (id === 'submit' ? 'submit' : id));
+    Sidebar.setActive(id);
 
     if (id === "dashboard") {
         document.getElementById("recentBills").innerHTML = '<div class="text-center p-4"><i class="fa fa-spinner fa-spin"></i> Loading...</div>';
@@ -1862,7 +1865,7 @@ const Dashboard = {
     }
   },
 
-  approvedFilterStatus: "OPEN",
+  approvedFilterStatus: "ALL",
   flowupCloseFilter: "ALL",
 
   isClosedBill(b) {
@@ -1898,7 +1901,7 @@ const Dashboard = {
     "Rejection Remark",
     "D11. Narration"
   ],
-  flowupSelectedStages: ["New", "Account", "CFO", "Admin", "Super Admin", "Completed", "Rejected"],
+  flowupSelectedStages: ["New", "HOD", "Account", "Finance", "CFO", "Admin", "Super Admin", "SuperAdmin", "Completed", "Approved", "Rejected"],
   flowupFilteredQueue: [],
   flowupRowsPerPage: 10,
   flowupCurrentPage: 1,
@@ -2015,20 +2018,23 @@ const Dashboard = {
       if (b._exportChecked === undefined) b._exportChecked = true;
 
       let rBy = "", rRem = "";
-      if ((b["Account_Status"] || "").includes("Rejected")) { 
+      if ((b["HOD_Status"] || "").includes("Rejected")) { 
+          rBy = "HOD"; rRem = b["HOD_Remark"] || ""; 
+      }
+      else if ((b["Account_Status"] || "").includes("Rejected")) { 
           rBy = "Account"; rRem = b["Account_Remark"] || ""; 
+      }
+      else if ((b["Finance_Status"] || "").includes("Rejected")) { 
+          rBy = "Finance"; rRem = b["Finance_Remark"] || ""; 
       }
       else if ((b["CFO_Status"] || "").includes("Rejected")) { 
           rBy = "CFO"; rRem = b["CFO_Remark"] || ""; 
       }
-      else if ((b["Admin_Status"] || "").includes("Rejected")) { 
-          rBy = "Admin"; rRem = b["Admin_Remark"] || ""; 
+      else if ((b["Admin_Status"] || "").includes("Rejected") || (b["SA_Status"] || "").includes("Rejected")) { 
+          rBy = "Super Admin"; rRem = b["SA_Remark"] || b["Admin_Remark"] || ""; 
       }
-      else if ((b["SA_Status"] || "").includes("Rejected")) { 
-          rBy = "Super Admin"; rRem = b["SA_Remark"] || ""; 
-      }
-      else if (b["Approval Status"] === "Rejected") {
-          rBy = "Unknown Stage"; rRem = "—";
+      else if (b["Approval Status"] === "Rejected" || b.overall_status === "FAIL" || b.overall_status === "Rejected") {
+          rBy = "Rejected"; rRem = b["Rejection Remark"] || "—";
       }
       
       b["Rejection By"] = rBy;
@@ -2111,14 +2117,19 @@ const Dashboard = {
 
     // Filter queue by selected stages and close filter
     Dashboard.flowupFilteredQueue = Dashboard.queue.filter(b => {
-        let stage = b["Current_Stage"] || "New";
-        let isRejected = b["Approval Status"] === "Rejected" || (b["Rejection By"] && b["Rejection By"] !== "");
+        let stage = b["Current_Stage"] || b.current_stage || "New";
+        let isRejected = b["Approval Status"] === "Rejected" || b.overall_status === "Rejected" || b.overall_status === "FAIL" || (b["Rejection By"] && b["Rejection By"] !== "");
         
         let stageMatch = false;
         if (isRejected) {
             stageMatch = Dashboard.flowupSelectedStages.includes("Rejected");
         } else {
-            stageMatch = Dashboard.flowupSelectedStages.includes(stage) || (stage === "New" && Dashboard.flowupSelectedStages.includes("New"));
+            stageMatch = Dashboard.flowupSelectedStages.includes(stage) || 
+                         (stage === "New" && Dashboard.flowupSelectedStages.includes("New")) ||
+                         ((stage === "SuperAdmin" || stage === "Super Admin" || stage === "Admin") && 
+                          (Dashboard.flowupSelectedStages.includes("SuperAdmin") || Dashboard.flowupSelectedStages.includes("Super Admin") || Dashboard.flowupSelectedStages.includes("Admin"))) ||
+                         ((stage === "Completed" || stage === "Approved") && 
+                          (Dashboard.flowupSelectedStages.includes("Completed") || Dashboard.flowupSelectedStages.includes("Approved")));
         }
         if (!stageMatch) return false;
 
@@ -2389,8 +2400,12 @@ const Dashboard = {
   },
 
   filterApproved(query) {
-    query = (query || "").trim().toLowerCase();
-    const allApproved = Dashboard.queue.filter(b => (b["Approval Status"]||"") === "Approved");
+    const allApproved = Dashboard.queue.filter(b => {
+      const status = (b["Approval Status"]||"").toLowerCase();
+      const stage = (b["Current_Stage"] || b.current_stage || "").toLowerCase();
+      const overall = (b["overall_status"] || "").toLowerCase();
+      return status === "approved" || stage === "completed" || overall === "approved" || overall === "pass";
+    });
     const openApproved = allApproved.filter(b => !Dashboard.isClosedBill(b));
     const closedApproved = allApproved.filter(b => Dashboard.isClosedBill(b));
 
@@ -2416,10 +2431,11 @@ const Dashboard = {
     if (titleEl) titleEl.textContent = titleText;
 
     let bills = baseList;
-    if (query) {
+    const q = (query || "").trim().toLowerCase();
+    if (q) {
       bills = bills.filter(b =>
-        String(b["A13. Invoice Number"]||"").toLowerCase().includes(query) ||
-        String(b["A14. Vendor Name"]||"").toLowerCase().includes(query)
+        String(b["A13. Invoice Number"]||"").toLowerCase().includes(q) ||
+        String(b["A14. Vendor Name"]||"").toLowerCase().includes(q)
       );
     }
 
