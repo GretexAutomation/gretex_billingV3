@@ -831,8 +831,13 @@ module.exports = async function handler(req, res) {
             query = query.eq("current_stage", "Account");
           }
         } else if (user.role === "Finance") {
-          // Finance sees all bills at Finance stage
-          query = query.eq("current_stage", "Finance");
+          // Finance can view all invoices or filter by stage (HOD, Account, Finance, CFO, Completed, All)
+          if (params.stage && params.stage !== "All") {
+            query = query.eq("current_stage", params.stage);
+          } else if (action === "getApprovalQueue" && !params.stage) {
+            // Default queue only if no stage requested
+            query = query.eq("current_stage", "Finance");
+          }
         } else if (user.role === "CFO") {
           // CFO sees all bills at CFO stage
           query = query.eq("current_stage", "CFO");
