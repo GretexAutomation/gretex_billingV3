@@ -643,6 +643,12 @@
       await this.loadAllData();
     },
 
+    async loadCurrentSection() {
+      await this.loadAllData();
+      const hash = window.location.hash.replace("#", "") || "dashboard";
+      this.showSection(hash);
+    },
+
     async loadAllData() {
       Loader.show("Loading department bills...");
       try {

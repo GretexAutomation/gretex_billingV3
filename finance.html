@@ -701,6 +701,12 @@
       this.showSection(hash);
     },
 
+    async loadCurrentSection() {
+      await this.loadAllData();
+      const hash = (window.location.hash || "").replace("#", "") || "dashboard";
+      this.showSection(hash);
+    },
+
     showSection(sec) {
       this.currentSection = sec;
       document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));

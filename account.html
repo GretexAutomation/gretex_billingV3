@@ -816,6 +816,14 @@ const Dashboard = {
   pendingApproveRow : null,
   pendingApproveInvoiceNo: "",
 
+  async loadCurrentSection() {
+    await Dashboard.loadDashboardData();
+    const hash = (window.location.hash || "").replace("#", "") || "dashboard";
+    if (typeof Dashboard.showSection === "function") {
+      Dashboard.showSection(hash);
+    }
+  },
+
   generateTrackingTimeline(inv) {
     if (!inv) return "";
     
