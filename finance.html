@@ -627,6 +627,19 @@
 <script src="js/sidebar.js"></script>
 
 <script>
+  function escapeHtml(str) {
+    if (str === undefined || str === null) return "N/A";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  if (typeof Utils !== "undefined") {
+    Utils.escapeHtml = escapeHtml;
+  }
+
   const Dashboard = {
     allInvoices: [],
     currentBill: null,
@@ -642,7 +655,7 @@
         document.getElementById("profileEmail").value = user.email || "";
       }
 
-      Sidebar.render("finance");
+      Sidebar.init("dashboard");
       this.bindHashRouting();
 
       await this.loadAllData();
@@ -745,11 +758,11 @@
         const safeId = String(b.id || "");
         return `
           <tr onclick="Dashboard.openReviewModal('${safeId}')">
-            <td style="font-weight:700;color:var(--primary);">${Utils.escapeHtml(b.invoice_unique_id || 'N/A')}</td>
-            <td style="font-weight:600;">${Utils.escapeHtml(b.a14_vendor_name || 'N/A')}</td>
-            <td>${Utils.escapeHtml(b.a13_invoice_number || 'N/A')}</td>
+            <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
+            <td style="font-weight:600;">${escapeHtml(b.a14_vendor_name || 'N/A')}</td>
+            <td>${escapeHtml(b.a13_invoice_number || 'N/A')}</td>
             <td>${Utils.formatCurrency(b.a20_basic_amount)}</td>
-            <td><span class="badge badge-secondary">${Utils.escapeHtml(b.b6_tds_section || 'N/A')}</span></td>
+            <td><span class="badge badge-secondary">${escapeHtml(b.b6_tds_section || 'N/A')}</span></td>
             <td style="font-weight:700;color:#10b981;">${Utils.formatCurrency(b.d1_final_payable_amt || b.a20_basic_amount)}</td>
             <td><span class="stage-badge stage-finance"><i class="fa fa-sparkles"></i> Finance</span></td>
             <td>
@@ -763,6 +776,10 @@
     },
 
     renderTableForSection(sec) {
+      if (sec === "dashboard") {
+        this.renderDashboardQueue();
+        return;
+      }
       if (sec === "redflags") {
         this.renderRedFlagsTable();
         return;
@@ -824,17 +841,17 @@
 
         return `
           <tr onclick="Dashboard.openReviewModal('${safeId}')">
-            <td style="font-weight:700;color:var(--primary);">${Utils.escapeHtml(b.invoice_unique_id || 'N/A')}</td>
-            <td><span class="badge badge-secondary">${Utils.escapeHtml(b.department || 'General')}</span></td>
+            <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
+            <td><span class="badge badge-secondary">${escapeHtml(b.department || 'General')}</span></td>
             <td>
-              <div style="font-weight:600;">${Utils.escapeHtml(b.a13_invoice_number || 'N/A')}</div>
-              <div style="font-size:0.75rem;color:var(--gray-500);">${Utils.escapeHtml(b.a12_invoice_date || 'N/A')}</div>
+              <div style="font-weight:600;">${escapeHtml(b.a13_invoice_number || 'N/A')}</div>
+              <div style="font-size:0.75rem;color:var(--gray-500);">${escapeHtml(b.a12_invoice_date || 'N/A')}</div>
             </td>
-            <td style="font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.escapeHtml(b.a14_vendor_name || 'N/A')}</td>
+            <td style="font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(b.a14_vendor_name || 'N/A')}</td>
             <td>${Utils.formatCurrency(b.a20_basic_amount)}</td>
             <td>${Utils.formatCurrency(b.b8_tds_amount)}</td>
             <td style="font-weight:700;color:#10b981;">${Utils.formatCurrency(b.d1_final_payable_amt || b.a20_basic_amount)}</td>
-            <td><span class="stage-badge ${stageCls}">${Utils.escapeHtml(b.current_stage || 'Unknown')}</span></td>
+            <td><span class="stage-badge ${stageCls}">${escapeHtml(b.current_stage || 'Unknown')}</span></td>
             <td>
               <button class="btn btn-sm ${isActionable ? 'btn-primary' : 'btn-secondary'}" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
                 ${isActionable ? '<i class="fa fa-sparkles"></i> Review' : '<i class="fa fa-eye"></i> View'}
@@ -898,12 +915,12 @@
         const safeId = String(b.id || "");
         return `
           <tr onclick="Dashboard.openReviewModal('${safeId}')">
-            <td style="font-weight:700;color:var(--primary);">${Utils.escapeHtml(b.invoice_unique_id || 'N/A')}</td>
-            <td style="font-weight:600;">${Utils.escapeHtml(b.a13_invoice_number || 'N/A')}</td>
-            <td>${Utils.escapeHtml(b.a14_vendor_name || 'N/A')}</td>
+            <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
+            <td style="font-weight:600;">${escapeHtml(b.a13_invoice_number || 'N/A')}</td>
+            <td>${escapeHtml(b.a14_vendor_name || 'N/A')}</td>
             <td style="font-weight:700;">${Utils.formatCurrency(b.d1_final_payable_amt || b.a20_basic_amount)}</td>
             <td><span class="stage-badge ${this.getStageClass(b.current_stage)}">${b.current_stage}</span></td>
-            <td style="color:#b91c1c;font-size:0.82rem;font-weight:600;">${Utils.escapeHtml(b.red_flags)}</td>
+            <td style="color:#b91c1c;font-size:0.82rem;font-weight:600;">${escapeHtml(b.red_flags)}</td>
             <td>
               <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
                 Inspect
@@ -934,7 +951,7 @@
 
       let deptRows = Object.keys(deptMap).map(d => `
         <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100);font-size:0.88rem;">
-          <span style="font-weight:600;">${Utils.escapeHtml(d)}</span>
+          <span style="font-weight:600;">${escapeHtml(d)}</span>
           <span style="font-weight:700;color:var(--primary);">${Utils.formatCurrency(deptMap[d])}</span>
         </div>
       `).join("");
