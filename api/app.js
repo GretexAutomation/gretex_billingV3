@@ -1095,6 +1095,37 @@ module.exports = async function handler(req, res) {
         return Response.success(res, { status: newStatus }, `User status updated to ${newStatus}`);
       }
 
+      case "updateUser": {
+        if (!["SuperAdmin", "Admin"].includes(user.role)) return Response.error(res, "Unauthorized", 403);
+        const { email, userId, name, role, department, password, status } = params;
+        const targetEmail = email || (params.user && params.user.email);
+        const targetId = userId || params.id;
+
+        if (!targetEmail && !targetId) {
+          return Response.error(res, "User email or userId required for update");
+        }
+
+        const updates = {};
+        if (name) updates.name = name.trim();
+        if (role) updates.role = role.trim();
+        if (department !== undefined) updates.department = department.trim();
+        if (status) updates.status = status.trim();
+        if (password && password.trim()) updates.password_hash = hashPassword(password.trim());
+
+        let query = supabase.from("users").update(updates);
+        if (targetEmail) {
+          query = query.eq("email", targetEmail.trim().toLowerCase());
+        } else {
+          query = query.eq("user_id", targetId);
+        }
+
+        const { error: updateErr } = await query;
+        if (updateErr) return Response.error(res, `Failed to update user: ${updateErr.message}`);
+
+        await logAudit(supabase, "UPDATE_USER", user.email, `Updated user ${targetEmail || targetId}`);
+        return Response.success(res, updates, "User updated successfully");
+      }
+
       default:
         return Response.error(res, `Action '${action}' not supported`, 404);
     }
