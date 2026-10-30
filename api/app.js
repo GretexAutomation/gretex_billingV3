@@ -598,6 +598,26 @@ module.exports = async function handler(req, res) {
 
         if (!id) return Response.error(res, "Invoice ID required");
 
+        // 🛡️ SECURITY RULE: Biller ke alawa aur koi bhi user bill data edit nahi kar sakta!
+        if (user.role !== "Biller") {
+          return Response.error(res, "Unauthorized: Only Biller can modify invoice fields.", 403);
+        }
+
+        // 🛡️ LOCK RULE: Biller ek bar bill aage send kar dega approval ke liye, phir usme koi change nahi ho sakta!
+        const { data: rawBill, error: findErr } = await supabase
+          .from("invoices")
+          .select("id, biller_status")
+          .eq("id", id)
+          .single();
+
+        if (findErr || !rawBill) {
+          return Response.error(res, "Locked: This bill has already been submitted for approval and is permanently locked.", 403);
+        }
+
+        if (rawBill.biller_status !== "New") {
+          return Response.error(res, `Locked: Bill has already been forwarded (${rawBill.biller_status}) and cannot be modified.`, 403);
+        }
+
         // Convert UI field names (e.g. "A1. Billed To", "A20. Basic Amount") to exact DB snake_case columns
         const updatePayload = mapFieldsToDbPayload(fields);
 
@@ -605,23 +625,15 @@ module.exports = async function handler(req, res) {
           return Response.success(res, {}, "No fields to update");
         }
 
-        // Try updating in invoices first
-        let { data: updated, error: invErr } = await supabase
+        // Update ONLY in raw intake 'invoices' table where biller_status is 'New'
+        const { error: invErr } = await supabase
           .from("invoices")
           .update(updatePayload)
-          .eq("id", id)
-          .select();
+          .eq("id", id);
 
-        if (invErr || !updated || updated.length === 0) {
-          // If not in invoices, update in master_invoices
-          const { error: mstErr } = await supabase
-            .from("master_invoices")
-            .update(updatePayload)
-            .eq("id", id);
-          if (mstErr) {
-            console.error("[Update Master Invoice Error]", mstErr);
-            return Response.error(res, `Failed to update invoice: ${mstErr.message}`);
-          }
+        if (invErr) {
+          console.error("[Update Raw Invoice Error]", invErr);
+          return Response.error(res, `Failed to update invoice: ${invErr.message}`);
         }
 
         return Response.success(res, { id, updated: updatePayload }, "Invoice updated successfully");
