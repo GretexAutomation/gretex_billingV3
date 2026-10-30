@@ -14,7 +14,37 @@
     .section { display: none; }
     .section.active { display: block; }
 
-    .modal-box.large { max-width: 980px; width: 95%; }
+    /* ── Modal Overlay & Box Styling ── */
+    .modal-overlay {
+      position       : fixed;
+      inset          : 0;
+      background     : rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index        : 9999;
+      display        : none;
+      align-items    : center;
+      justify-content: center;
+      padding        : 20px;
+      opacity        : 0;
+      visibility     : hidden;
+      transition     : opacity 0.2s ease, visibility 0.2s ease;
+    }
+    .modal-overlay.active {
+      display        : flex !important;
+      opacity        : 1 !important;
+      visibility     : visible !important;
+    }
+    .modal-box.large {
+      max-width    : 980px;
+      width        : 95%;
+      max-height   : 90vh;
+      display      : flex;
+      flex-direction: column;
+      overflow     : hidden;
+      background   : #ffffff;
+      border-radius: 12px;
+      box-shadow   : 0 20px 40px rgba(0, 0, 0, 0.25);
+    }
 
     /* ── Invoice Detail Tabs ── */
     .detail-tabs {
@@ -451,7 +481,7 @@
 <!-- ══════════════════════════════════════════════════════════
      ENTERPRISE 54-POINT INVOICE REVIEW MODAL
      ══════════════════════════════════════════════════════════ -->
-<div class="modal" id="reviewModal">
+<div class="modal-overlay" id="reviewModal" onclick="if(event.target === this) Dashboard.closeReviewModal()">
   <div class="modal-box large">
     <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-bottom:1px solid var(--gray-200);">
       <div>
@@ -755,9 +785,9 @@
       }
 
       tbody.innerHTML = pendingFinance.slice(0, 8).map(b => {
-        const safeId = String(b.id || "");
+        const safeId = String(b.id || b.invoice_unique_id || "");
         return `
-          <tr onclick="Dashboard.openReviewModal('${safeId}')">
+          <tr style="cursor:pointer;" onclick="Dashboard.openReviewModal('${safeId}')">
             <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
             <td style="font-weight:600;">${escapeHtml(b.a14_vendor_name || 'N/A')}</td>
             <td>${escapeHtml(b.a13_invoice_number || 'N/A')}</td>
@@ -767,7 +797,7 @@
             <td><span class="stage-badge stage-finance"><i class="fa fa-sparkles"></i> Finance</span></td>
             <td>
               <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
-                Review & Signoff
+                <i class="fa fa-sparkles"></i> Review & Signoff
               </button>
             </td>
           </tr>
@@ -835,12 +865,12 @@
       }
 
       tbody.innerHTML = list.map(b => {
-        const safeId = String(b.id || "");
+        const safeId = String(b.id || b.invoice_unique_id || "");
         const stageCls = this.getStageClass(b.current_stage);
         const isActionable = b.current_stage === "Finance";
 
         return `
-          <tr onclick="Dashboard.openReviewModal('${safeId}')">
+          <tr style="cursor:pointer;" onclick="Dashboard.openReviewModal('${safeId}')">
             <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
             <td><span class="badge badge-secondary">${escapeHtml(b.department || 'General')}</span></td>
             <td>
@@ -912,18 +942,18 @@
       }
 
       tbody.innerHTML = flagged.map(b => {
-        const safeId = String(b.id || "");
+        const safeId = String(b.id || b.invoice_unique_id || "");
         return `
-          <tr onclick="Dashboard.openReviewModal('${safeId}')">
+          <tr style="cursor:pointer;" onclick="Dashboard.openReviewModal('${safeId}')">
             <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
             <td style="font-weight:600;">${escapeHtml(b.a13_invoice_number || 'N/A')}</td>
             <td>${escapeHtml(b.a14_vendor_name || 'N/A')}</td>
             <td style="font-weight:700;">${Utils.formatCurrency(b.d1_final_payable_amt || b.a20_basic_amount)}</td>
-            <td><span class="stage-badge ${this.getStageClass(b.current_stage)}">${b.current_stage}</span></td>
+            <td><span class="stage-badge ${this.getStageClass(b.current_stage)}">${escapeHtml(b.current_stage)}</span></td>
             <td style="color:#b91c1c;font-size:0.82rem;font-weight:600;">${escapeHtml(b.red_flags)}</td>
             <td>
               <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
-                Inspect
+                <i class="fa fa-eye"></i> Inspect
               </button>
             </td>
           </tr>
@@ -978,79 +1008,99 @@
     // REVIEW MODAL & AUTHORIZATION GUARD
     // ─────────────────────────────────────────────
     openReviewModal(id) {
-      const bill = this.allInvoices.find(b => String(b.id) === String(id));
+      if (!id) return;
+      const key = String(id).trim();
+      const bill = (this.allInvoices || []).find(b => b && (
+        String(b.id || "") === key ||
+        String(b.invoice_unique_id || "") === key ||
+        String(b.queueRowIndex || "") === key ||
+        String(b.rowIndex || "") === key ||
+        String(b.a13_invoice_number || "") === key
+      ));
       if (!bill) {
-        Toast.error("Invoice record not found.");
+        if (typeof Toast !== "undefined") Toast.error("Invoice record not found.");
+        else alert("Invoice record not found.");
         return;
       }
       this.currentBill = bill;
 
+      // Safe DOM text setter helper
+      const setVal = (elemId, val, isHtml = false) => {
+        const el = document.getElementById(elemId);
+        if (!el) return;
+        const text = val !== undefined && val !== null && val !== "" ? val : "N/A";
+        if (isHtml) el.innerHTML = text;
+        else el.textContent = text;
+      };
+
       // Header info
-      document.getElementById("modalInvoiceId").textContent = `Invoice Review — ${bill.invoice_unique_id || 'ID Unavailable'}`;
-      document.getElementById("modalInvoiceSubtitle").textContent = `Department: ${bill.department || 'General'} | Submitted by: ${bill.email_from || 'N/A'}`;
+      setVal("modalInvoiceId", `Invoice Review — ${bill.invoice_unique_id || 'ID Unavailable'}`);
+      setVal("modalInvoiceSubtitle", `Department: ${bill.department || 'General'} | Submitted by: ${bill.email_from || 'N/A'}`);
 
       // Summary Strip
-      document.getElementById("smVendor").textContent = bill.a14_vendor_name || "N/A";
-      document.getElementById("smInvNo").textContent = bill.a13_invoice_number || "N/A";
-      document.getElementById("smPayable").textContent = Utils.formatCurrency(bill.d1_final_payable_amt || bill.a20_basic_amount);
+      setVal("smVendor", bill.a14_vendor_name || "N/A");
+      setVal("smInvNo", bill.a13_invoice_number || "N/A");
+      setVal("smPayable", Utils.formatCurrency(bill.d1_final_payable_amt || bill.a20_basic_amount));
       
       const driveUrl = bill.drive_url || "#";
-      document.getElementById("smDriveLink").innerHTML = (driveUrl && driveUrl !== "N/A" && driveUrl !== "#")
+      const driveHtml = (driveUrl && driveUrl !== "N/A" && driveUrl !== "#")
         ? `<a href="${driveUrl}" target="_blank" class="btn btn-sm btn-secondary"><i class="fa fa-external-link"></i> Open Drive File</a>`
         : `<span style="color:var(--gray-400);font-size:0.82rem;">Not Attached</span>`;
+      setVal("smDriveLink", driveHtml, true);
 
       // Section A fields
-      document.getElementById("valA1").textContent = bill.a1_billed_to || "N/A";
-      document.getElementById("valA2").textContent = bill.a2_our_name_correct || "N/A";
-      document.getElementById("valA3").textContent = bill.a3_address_present || "N/A";
-      document.getElementById("valA4").textContent = bill.a4_our_address || "N/A";
-      document.getElementById("valA6").textContent = bill.a6_pan_present || "N/A";
-      document.getElementById("valA7").textContent = bill.a7_our_pan || "N/A";
-      document.getElementById("valA9").textContent = bill.a9_gst_present || "N/A";
-      document.getElementById("valA10").textContent = bill.a10_our_gst || "N/A";
-      document.getElementById("valA12").textContent = bill.a12_invoice_date || "N/A";
-      document.getElementById("valA13").textContent = bill.a13_invoice_number || "N/A";
-      document.getElementById("valA14").textContent = bill.a14_vendor_name || "N/A";
-      document.getElementById("valA15").textContent = bill.a15_vendor_address || "N/A";
-      document.getElementById("valA16").textContent = bill.a16_bill_description || "N/A";
-      document.getElementById("valA18").textContent = bill.a18_rev_capital || "N/A";
-      document.getElementById("valA19").textContent = bill.a19_ledger_name || "N/A";
-      document.getElementById("valA20").textContent = Utils.formatCurrency(bill.a20_basic_amount);
-      document.getElementById("valA21").textContent = bill.a21_invoice_type || "N/A";
-      document.getElementById("valA23").textContent = bill.a23_first_time_vendor || "N/A";
+      setVal("valA1", bill.a1_billed_to);
+      setVal("valA2", bill.a2_our_name_correct);
+      setVal("valA3", bill.a3_address_present);
+      setVal("valA4", bill.a4_our_address);
+      setVal("valA6", bill.a6_pan_present);
+      setVal("valA7", bill.a7_our_pan);
+      setVal("valA9", bill.a9_gst_present);
+      setVal("valA10", bill.a10_our_gst);
+      setVal("valA12", bill.a12_invoice_date);
+      setVal("valA13", bill.a13_invoice_number);
+      setVal("valA14", bill.a14_vendor_name);
+      setVal("valA15", bill.a15_vendor_address);
+      setVal("valA16", bill.a16_bill_description);
+      setVal("valA18", bill.a18_rev_capital);
+      setVal("valA19", bill.a19_ledger_name);
+      setVal("valA20", Utils.formatCurrency(bill.a20_basic_amount));
+      setVal("valA21", bill.a21_invoice_type);
+      setVal("valA23", bill.a23_first_time_vendor);
 
       // Section B fields
-      document.getElementById("valB1").textContent = bill.b1_tds_applicable || "N/A";
-      document.getElementById("valB2").textContent = bill.b2_vendor_pan_avail || "N/A";
-      document.getElementById("valB3").textContent = bill.b3_vendor_pan || "N/A";
-      document.getElementById("valB4").textContent = bill.b4_pan_inoperative || "N/A";
-      document.getElementById("valB5").textContent = bill.b5_vendor_entity_type || "N/A";
-      document.getElementById("valB6").textContent = bill.b6_tds_section || "N/A";
-      document.getElementById("valB7").textContent = bill.b7_tds_rate || "N/A";
-      document.getElementById("valB8").textContent = Utils.formatCurrency(bill.b8_tds_amount);
+      setVal("valB1", bill.b1_tds_applicable);
+      setVal("valB2", bill.b2_vendor_pan_avail);
+      setVal("valB3", bill.b3_vendor_pan);
+      setVal("valB4", bill.b4_pan_inoperative);
+      setVal("valB5", bill.b5_vendor_entity_type);
+      setVal("valB6", bill.b6_tds_section);
+      setVal("valB7", bill.b7_tds_rate);
+      setVal("valB8", Utils.formatCurrency(bill.b8_tds_amount));
 
       // Section C fields
-      document.getElementById("valC1").textContent = bill.c1_gst_charged || "N/A";
-      document.getElementById("valC2").textContent = bill.c2_vendor_gst_avail || "N/A";
-      document.getElementById("valC3").textContent = bill.c3_vendor_gst_no || "N/A";
-      document.getElementById("valC4").textContent = bill.c4_taxpayer_type || "N/A";
-      document.getElementById("valC7").textContent = bill.c7_our_gst_correct || "N/A";
-      document.getElementById("valC8").textContent = bill.c8_place_of_supply || "N/A";
-      document.getElementById("valC9").textContent = bill.c9_correct_gst_type || "N/A";
-      document.getElementById("valC11").textContent = bill.c11_blocked_credit || "N/A";
+      setVal("valC1", bill.c1_gst_charged);
+      setVal("valC2", bill.c2_vendor_gst_avail);
+      setVal("valC3", bill.c3_vendor_gst_no);
+      setVal("valC4", bill.c4_taxpayer_type);
+      setVal("valC7", bill.c7_our_gst_correct);
+      setVal("valC8", bill.c8_place_of_supply);
+      setVal("valC9", bill.c9_correct_gst_type);
+      setVal("valC11", bill.c11_blocked_credit);
 
       // Section D fields
-      document.getElementById("valD1").textContent = Utils.formatCurrency(bill.d1_final_payable_amt || bill.a20_basic_amount);
-      document.getElementById("valD2").textContent = bill.d2_invoice_by || "N/A";
-      document.getElementById("valD3").textContent = bill.d3_received_via || "N/A";
-      document.getElementById("valD4").textContent = bill.d4_hod_name || "N/A";
-      document.getElementById("valD5").textContent = bill.d5_hod_approval || "N/A";
-      document.getElementById("valD10").textContent = bill.d10_update_email || "N/A";
-      document.getElementById("valD11").textContent = bill.d11_narration || "No narrative remarks recorded.";
-      document.getElementById("valRedFlags").textContent = bill.red_flags || "None";
+      setVal("valD1", Utils.formatCurrency(bill.d1_final_payable_amt || bill.a20_basic_amount));
+      setVal("valD2", bill.d2_invoice_by);
+      setVal("valD3", bill.d3_received_via);
+      setVal("valD4", bill.d4_hod_name);
+      setVal("valD5", bill.d5_hod_approval);
+      setVal("valD10", bill.d10_update_email);
+      setVal("valD11", bill.d11_narration || "No narrative remarks recorded.");
+      setVal("valRedFlags", bill.red_flags || "None");
 
       // Reset Remarks Input
-      document.getElementById("financeRemarkInput").value = "";
+      const remarkInput = document.getElementById("financeRemarkInput");
+      if (remarkInput) remarkInput.value = "";
 
       // Authorization & Stage Guard
       const banner = document.getElementById("stageStatusBanner");
@@ -1059,31 +1109,67 @@
       const remarksBlock = document.getElementById("financeRemarksBlock");
 
       if (bill.current_stage === "Finance") {
-        banner.style.display = "none";
-        btnApprove.style.display = "inline-flex";
-        btnReject.style.display = "inline-flex";
-        remarksBlock.style.display = "block";
+        if (banner) banner.style.display = "none";
+        if (btnApprove) btnApprove.style.display = "inline-flex";
+        if (btnReject) btnReject.style.display = "inline-flex";
+        if (remarksBlock) remarksBlock.style.display = "block";
       } else if (["HOD", "Account"].includes(bill.current_stage)) {
-        banner.style.display = "block";
-        banner.innerHTML = `<div class="alert alert-info" style="margin:0;"><i class="fa fa-info-circle"></i> Currently at <strong>${bill.current_stage} Stage</strong> (Awaiting earlier signoff — View Only mode)</div>`;
-        btnApprove.style.display = "none";
-        btnReject.style.display = "none";
-        remarksBlock.style.display = "none";
+        if (banner) {
+          banner.style.display = "block";
+          banner.innerHTML = `<div class="alert alert-info" style="margin:0;"><i class="fa fa-info-circle"></i> Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong> (Awaiting earlier signoff — View Only mode)</div>`;
+        }
+        if (btnApprove) btnApprove.style.display = "none";
+        if (btnReject) btnReject.style.display = "none";
+        if (remarksBlock) remarksBlock.style.display = "none";
       } else {
-        banner.style.display = "block";
-        banner.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fa fa-check-circle"></i> Cleared by Finance — Currently at <strong>${bill.current_stage} Stage</strong></div>`;
-        btnApprove.style.display = "none";
-        btnReject.style.display = "none";
-        remarksBlock.style.display = "none";
+        if (banner) {
+          banner.style.display = "block";
+          banner.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fa fa-check-circle"></i> Cleared by Finance — Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong></div>`;
+        }
+        if (btnApprove) btnApprove.style.display = "none";
+        if (btnReject) btnReject.style.display = "none";
+        if (remarksBlock) remarksBlock.style.display = "none";
+      }
+
+      // Populate live audit timeline if available
+      const timelineBox = document.getElementById("timelineEventsContainer");
+      if (timelineBox) {
+        timelineBox.innerHTML = '<div style="text-align:center;color:var(--gray-400);font-size:0.85rem;"><i class="fa fa-spinner fa-spin"></i> Loading audit trail...</div>';
+        const invId = bill.invoice_unique_id || bill.a13_invoice_number;
+        if (invId && typeof API !== "undefined" && API.biller && API.biller.getStatusHistory) {
+          API.biller.getStatusHistory(invId).then(res => {
+            if (res && res.success && res.data && res.data.timeline && res.data.timeline.length > 0) {
+              timelineBox.innerHTML = res.data.timeline.map(item => `
+                <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-100);font-size:0.85rem;">
+                  <div style="font-weight:700;color:var(--primary);min-width:90px;">${escapeHtml(item.stage || 'Stage')}</div>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;color:var(--gray-800);">${escapeHtml(item.action_type || 'Action')} by ${escapeHtml(item.approver_name || item.approver_email || 'Approver')}</div>
+                    ${item.remark ? `<div style="color:var(--gray-600);font-size:0.8rem;margin-top:2px;">Remark: ${escapeHtml(item.remark)}</div>` : ''}
+                  </div>
+                  <div style="color:var(--gray-400);font-size:0.75rem;white-space:nowrap;">
+                    ${item.action_taken_at ? Utils.formatDate(item.action_taken_at) : ''}
+                  </div>
+                </div>
+              `).join("");
+            } else {
+              timelineBox.innerHTML = '<div style="text-align:center;color:var(--gray-400);font-size:0.85rem;">No prior approval events recorded yet.</div>';
+            }
+          }).catch(err => {
+            timelineBox.innerHTML = '<div style="text-align:center;color:var(--gray-400);font-size:0.85rem;">Audit trail not available.</div>';
+          });
+        }
       }
 
       this.updateTimelineProgress(bill);
-      this.switchModalTab("tab-secA", document.querySelector(".detail-tab"));
-      document.getElementById("reviewModal").classList.add("active");
+      const firstTab = document.querySelector(".detail-tab");
+      this.switchModalTab("tab-secA", firstTab);
+      const modal = document.getElementById("reviewModal");
+      if (modal) modal.classList.add("active");
     },
 
     closeReviewModal() {
-      document.getElementById("reviewModal").classList.remove("active");
+      const modal = document.getElementById("reviewModal");
+      if (modal) modal.classList.remove("active");
       this.currentBill = null;
     },
 
