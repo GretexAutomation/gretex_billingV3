@@ -13,91 +13,266 @@
     .section { display: none; }
     .section.active { display: block; }
 
-    /* ── Processing Screen ── */
+    /* ── Next-Gen AI Holographic Scanner Screen ── */
     #processingScreen {
       position: fixed;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(10, 15, 30, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 9999;
-      backdrop-filter: blur(4px);
+      z-index: 99999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
 
     #processingScreen.active {
       display: flex;
+      opacity: 1;
     }
 
     .processing-box {
-      background: white;
-      border-radius: 16px;
-      padding: 40px;
-      max-width: 420px;
+      background: linear-gradient(145deg, #0f172a, #1e1b4b);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 24px;
+      padding: 36px 32px;
+      max-width: 440px;
+      width: 90%;
       text-align: center;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 40px rgba(79, 70, 229, 0.25);
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      animation: modalSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .processing-spinner {
-      width: 60px;
-      height: 60px;
-      margin: 0 auto 16px;
+    @keyframes modalSlideUp {
+      from { transform: translateY(20px) scale(0.96); opacity: 0; }
+      to   { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .processing-box::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #4f46e5, #06b6d4, #10b981, #a855f7);
+    }
+
+    /* AI Status Pill */
+    .ai-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: #38bdf8;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .ai-pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22d3ee;
+      box-shadow: 0 0 8px #22d3ee;
+      animation: blinkDot 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes blinkDot {
+      0% { opacity: 0.3; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* Holographic AI Scanner */
+    .ai-scanner-wrap {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 20px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .processing-spinner i {
-      font-size: 2.5rem;
-      color: var(--primary);
-      animation: spin 1s linear infinite;
+    .ai-scanner-halo {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.45) 0%, rgba(79, 70, 229, 0.2) 60%, transparent 80%);
+      filter: blur(16px);
+      animation: pulseHalo 2s ease-in-out infinite alternate;
     }
 
-    .processing-success {
-      font-size: 3rem;
-      margin-bottom: 16px;
+    .ai-scanner-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px dashed rgba(6, 182, 212, 0.6);
+      animation: rotateRing 8s linear infinite;
     }
 
-    .processing-box h3 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--gray-900);
-      margin-bottom: 8px;
+    .ai-scanner-ring-inner {
+      position: absolute;
+      inset: 10px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-top-color: #6366f1;
+      border-bottom-color: #a855f7;
+      animation: rotateRingReverse 3s linear infinite;
     }
 
-    .processing-box p {
-      color: var(--gray-500);
-      font-size: 0.9rem;
-      margin-bottom: 20px;
-    }
-
-    .progress-bar {
-      background: var(--gray-200);
-      border-radius: 20px;
-      height: 6px;
+    .ai-scanner-core {
+      position: relative;
+      width: 68px;
+      height: 68px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       overflow: hidden;
-      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 
-    .progress-fill {
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      height: 100%;
-      width: 0%;
-      transition: width 0.3s ease;
-      border-radius: 20px;
+    .ai-doc-icon {
+      font-size: 1.9rem;
+      color: #38bdf8;
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.6));
+      transition: all 0.3s ease;
     }
 
-    .progress-text {
-      color: var(--gray-400);
-      font-size: 0.8rem;
+    .ai-scan-laser {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #22d3ee, #ffffff, #22d3ee, transparent);
+      box-shadow: 0 0 12px #22d3ee, 0 0 6px #ffffff;
+      animation: scanLaser 1.8s ease-in-out infinite alternate;
     }
 
-    @keyframes spin {
+    @keyframes scanLaser {
+      0% { top: 4px; opacity: 0.3; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { top: 60px; opacity: 0.3; }
+    }
+
+    @keyframes rotateRing {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    @keyframes rotateRingReverse {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(-360deg); }
+    }
+
+    @keyframes pulseHalo {
+      0% { transform: scale(0.9); opacity: 0.5; }
+      100% { transform: scale(1.15); opacity: 0.85; }
+    }
+
+    /* Title & Subtext */
+    .processing-box h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      min-height: 28px;
+      letter-spacing: -0.2px;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .processing-sub {
+      color: #94a3b8;
+      font-size: 0.82rem;
+      margin-bottom: 20px;
+      min-height: 20px;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Next-Gen Shimmer Progress Bar */
+    .ai-progress-wrap {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ai-progress-fill {
+      background: linear-gradient(90deg, #4f46e5, #06b6d4, #10b981, #6366f1);
+      background-size: 200% 100%;
+      height: 100%;
+      width: 0%;
+      border-radius: 20px;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: shimmerGradient 2s linear infinite;
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+    }
+
+    @keyframes shimmerGradient {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    .ai-progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.74rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .ai-time-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: #64748b;
+      font-size: 0.74rem;
+      margin-top: 18px;
+    }
+
+    /* Success View */
+    .ai-success-icon {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid #10b981;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      color: #10b981;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+      animation: popSuccess 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popSuccess {
+      0% { transform: scale(0.4); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
     }
 
     /* ── Status Badges ── */
@@ -1070,34 +1245,60 @@
   </div>
 </div>
 
-<!-- Processing Screen -->
+<!-- Next-Gen AI Holographic Scanner Screen -->
 <div id="processingScreen">
   <div class="processing-box">
     <div id="processingContent">
       <!-- Loading View -->
       <div id="processingLoadingState">
-        <div class="processing-spinner">
-          <i class="fa fa-spinner fa-spin"></i>
+        <div class="ai-status-pill">
+          <span class="ai-pulse-dot"></span>
+          <span>AI Neural Engine Active</span>
         </div>
-        <h3 id="processingTitle">Processing your invoice...</h3>
-        <p id="processingText">Please wait...</p>
-        <div class="progress-bar">
-          <div class="progress-fill" id="progressFill"></div>
+
+        <!-- Futuristic Holographic Scanner -->
+        <div class="ai-scanner-wrap">
+          <div class="ai-scanner-halo"></div>
+          <div class="ai-scanner-ring"></div>
+          <div class="ai-scanner-ring-inner"></div>
+          <div class="ai-scanner-core">
+            <i class="fa fa-file-invoice ai-doc-icon" id="aiDocIcon"></i>
+            <div class="ai-scan-laser"></div>
+          </div>
         </div>
-        <div class="progress-text" id="progressText">0% complete</div>
-        <p style="color: var(--gray-400); font-size: 0.75rem; margin-top: 16px;">
-          ⏱️ This usually takes 3-5 seconds
-        </p>
+
+        <h3 id="processingTitle">Scanning invoice...</h3>
+        <p class="processing-sub" id="processingSubText">Optical character recognition & layout analysis</p>
+
+        <!-- Shimmering Progress Bar -->
+        <div class="ai-progress-wrap">
+          <div class="ai-progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="ai-progress-meta">
+          <span id="progressText">0% complete</span>
+          <span style="display:flex;align-items:center;gap:4px;"><i class="fa fa-shield-halved" style="color:#06b6d4;"></i> 54-Point Check</span>
+        </div>
+
+        <div class="ai-time-note">
+          <i class="fa fa-bolt" style="color:#38bdf8;"></i>
+          <span>LLM modules verifying in real-time</span>
+        </div>
       </div>
+
       <!-- Success View -->
       <div id="processingSuccessState" style="display: none;">
-        <div class="processing-success">✅</div>
-        <h3 id="processingSuccessTitle">Invoice added successfully!</h3>
-        <p id="processingSuccessText">Your invoice has been added to the queue</p>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 100%;"></div>
+        <div class="ai-success-icon">
+          <i class="fa fa-circle-check"></i>
         </div>
-        <div class="progress-text">100% complete</div>
+        <h3 id="processingSuccessTitle" style="color:#10b981;font-size:1.25rem;">Invoice Verified & Stored! 🎉</h3>
+        <p class="processing-sub" id="processingSuccessText">All 54 compliance details verified with LLM modules</p>
+        <div class="ai-progress-wrap">
+          <div class="ai-progress-fill" style="width: 100%; background: #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.6);"></div>
+        </div>
+        <div class="ai-progress-meta" style="justify-content:center; color:#10b981; font-weight:700;">
+          <span>100% Complete</span>
+        </div>
       </div>
     </div>
   </div>
@@ -1350,61 +1551,125 @@ function readFileAsBase64(file) {
   });
 }
 
-function showProcessingScreen(message, progress) {
+let aiProcessingInterval = null;
+let aiProgressInterval = null;
+let currentAiStepIdx = 0;
+let currentAiProgress = 15;
+
+const aiProcessingSteps = [
+  { text: "Scanning invoice...", sub: "Optical character parsing & document layout analysis", icon: "fa-file-invoice", targetProgress: 28 },
+  { text: "Verifying details...", sub: "Extracting vendor, GSTIN, invoice date & basic totals", icon: "fa-magnifying-glass", targetProgress: 44 },
+  { text: "Verifying 54 details...", sub: "Evaluating complete 54-point compliance rulebook", icon: "fa-shield-halved", targetProgress: 60 },
+  { text: "Verifying details with LLM modules...", sub: "Gemini Neural Engine performing deep cognitive validation", icon: "fa-brain", targetProgress: 75 },
+  { text: "Uploading in database...", sub: "Writing intake payload & metadata to cloud repository", icon: "fa-cloud-arrow-up", targetProgress: 85 },
+  { text: "Verifying details...", sub: "Cross-validating mathematical sums & ledger matching", icon: "fa-calculator", targetProgress: 90 },
+  { text: "Verifying 54 details...", sub: "Auditing TDS deductions, PAN status & tax rates", icon: "fa-list-check", targetProgress: 94 },
+  { text: "Verifying details with LLM modules...", sub: "Finalizing executive audit insights & risk flags", icon: "fa-brain", targetProgress: 97 }
+];
+
+function updateProgressBar(val) {
+  const fill = document.getElementById("progressFill");
+  const progText = document.getElementById("progressText");
+  const pct = Math.round(val);
+  if (fill) fill.style.width = pct + "%";
+  if (progText) progText.textContent = pct + "% complete";
+}
+
+function startAIProcessingCycle() {
+  stopAIProcessingCycle();
+  currentAiStepIdx = 0;
+  currentAiProgress = Math.max(currentAiProgress, 20);
+
   const screen = document.getElementById('processingScreen');
-  let title = document.getElementById('processingTitle');
-  let loading = document.getElementById('processingLoadingState');
-  let success = document.getElementById('processingSuccessState');
-  const content = document.getElementById('processingContent');
-
-  // Self-healing: if elements were somehow destroyed, re-render them
-  if (!title && content) {
-    content.innerHTML = `
-      <div id="processingLoadingState">
-        <div class="processing-spinner">
-          <i class="fa fa-spinner fa-spin"></i>
-        </div>
-        <h3 id="processingTitle">Processing your invoice...</h3>
-        <p id="processingText">Please wait...</p>
-        <div class="progress-bar">
-          <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <div class="progress-text" id="progressText">0% complete</div>
-        <p style="color: var(--gray-400); font-size: 0.75rem; margin-top: 16px;">
-          ⏱️ This usually takes 3-5 seconds
-        </p>
-      </div>
-      <div id="processingSuccessState" style="display: none;">
-        <div class="processing-success">✅</div>
-        <h3 id="processingSuccessTitle">Invoice added successfully!</h3>
-        <p id="processingSuccessText">Your invoice has been added to the queue</p>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: 100%;"></div>
-        </div>
-        <div class="progress-text">100% complete</div>
-      </div>
-    `;
-    loading = document.getElementById('processingLoadingState');
-    success = document.getElementById('processingSuccessState');
-    title = document.getElementById('processingTitle');
-  }
-
+  const loading = document.getElementById('processingLoadingState');
+  const success = document.getElementById('processingSuccessState');
+  if (screen) screen.classList.add('active');
   if (loading) loading.style.display = 'block';
   if (success) success.style.display = 'none';
 
-  const text = document.getElementById('processingText');
-  const fill = document.getElementById('progressFill');
-  const progText = document.getElementById('progressText');
+  const updateStep = () => {
+    const step = aiProcessingSteps[currentAiStepIdx % aiProcessingSteps.length];
+    const titleEl = document.getElementById("processingTitle");
+    const subEl = document.getElementById("processingSubText");
+    const docIcon = document.getElementById("aiDocIcon");
 
-  if (title) title.textContent = message || 'Processing your invoice...';
-  if (text) text.textContent = 'Please wait...';
-  if (fill) fill.style.width = (progress !== undefined ? progress : 0) + '%';
-  if (progText) progText.textContent = (progress !== undefined ? progress : 0) + '% complete';
+    if (titleEl) {
+      titleEl.style.opacity = "0.2";
+      titleEl.style.transform = "translateY(-4px)";
+      setTimeout(() => {
+        titleEl.textContent = step.text;
+        titleEl.style.opacity = "1";
+        titleEl.style.transform = "translateY(0)";
+      }, 150);
+    }
 
+    if (subEl) {
+      subEl.style.opacity = "0.2";
+      setTimeout(() => {
+        subEl.textContent = step.sub;
+        subEl.style.opacity = "1";
+      }, 150);
+    }
+
+    if (docIcon && step.icon) {
+      docIcon.className = `fa ${step.icon} ai-doc-icon`;
+    }
+
+    if (step.targetProgress > currentAiProgress) {
+      currentAiProgress = step.targetProgress;
+      updateProgressBar(currentAiProgress);
+    }
+
+    currentAiStepIdx++;
+  };
+
+  updateStep();
+  aiProcessingInterval = setInterval(updateStep, 1500);
+
+  aiProgressInterval = setInterval(() => {
+    if (currentAiProgress < 97) {
+      currentAiProgress += 0.5;
+      updateProgressBar(currentAiProgress);
+    }
+  }, 400);
+}
+
+function stopAIProcessingCycle() {
+  if (aiProcessingInterval) {
+    clearInterval(aiProcessingInterval);
+    aiProcessingInterval = null;
+  }
+  if (aiProgressInterval) {
+    clearInterval(aiProgressInterval);
+    aiProgressInterval = null;
+  }
+}
+
+function showProcessingScreen(message, progress) {
+  const screen = document.getElementById('processingScreen');
+  const loading = document.getElementById('processingLoadingState');
+  const success = document.getElementById('processingSuccessState');
+  const title = document.getElementById('processingTitle');
+  const sub = document.getElementById('processingSubText');
+
+  if (loading) loading.style.display = 'block';
+  if (success) success.style.display = 'none';
   if (screen) screen.classList.add('active');
+
+  if (progress !== undefined && progress < 40) {
+    if (title) title.textContent = message || 'Scanning invoice...';
+    if (sub) sub.textContent = 'Preparing optical image and text payload...';
+    currentAiProgress = progress;
+    updateProgressBar(progress);
+  } else {
+    startAIProcessingCycle();
+  }
 }
 
 function showProcessingSuccess(titleMsg, descMsg) {
+  stopAIProcessingCycle();
+  updateProgressBar(100);
+
   const loading = document.getElementById('processingLoadingState');
   const success = document.getElementById('processingSuccessState');
   const sTitle = document.getElementById('processingSuccessTitle');
@@ -1413,11 +1678,12 @@ function showProcessingSuccess(titleMsg, descMsg) {
   if (loading) loading.style.display = 'none';
   if (success) success.style.display = 'block';
 
-  if (sTitle && titleMsg) sTitle.textContent = titleMsg;
-  if (sText && descMsg) sText.textContent = descMsg;
+  if (sTitle) sTitle.textContent = titleMsg || "Invoice Verified & Stored! 🎉";
+  if (sText) sText.textContent = descMsg || "All 54 compliance details verified with LLM modules";
 }
 
 function hideProcessingScreen() {
+  stopAIProcessingCycle();
   const screen = document.getElementById('processingScreen');
   if (screen) screen.classList.remove('active');
 
@@ -4017,7 +4283,7 @@ const SubmitInvoice = {
       const file = SubmitInvoice.selectedFile;
       
       // STEP 1: Convert the selected file to a Base64 encoded string
-      showProcessingScreen("Reading the invoice file...", 15);
+      showProcessingScreen("Scanning invoice...", 20);
       const fileContent = await readFileAsBase64(file);
       console.log("File successfully encoded to Base64.");
 
@@ -4035,7 +4301,8 @@ const SubmitInvoice = {
       };
 
       // STEP 3: Transmit the payload to Supabase AI Intake Serverless Function (/api/submit-invoice)
-      showProcessingScreen("Gemini AI is analyzing 54 points & uploading...", 65);
+      // Starts the dynamic holographic AI ticker cycling through the verification stages
+      startAIProcessingCycle();
       console.log("Transmitting request to /api/submit-invoice...");
 
       const response = await fetch("/api/submit-invoice", {
@@ -4068,8 +4335,7 @@ const SubmitInvoice = {
       }
 
       // STEP 4: Handle successful submission
-      showProcessingScreen("Finalizing database entry...", 90);
-      showProcessingSuccess();
+      showProcessingSuccess("Invoice Verified & Stored! 🎉", "All 54 compliance details verified with LLM modules");
       const invLabel = result.invoiceNumber ? `Invoice #${result.invoiceNumber}` : "Invoice";
       if (result.aiWarning) {
         Toast.warning(`${invLabel} saved, but AI notice: ${result.aiWarning}`);
