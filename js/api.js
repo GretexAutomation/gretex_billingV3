@@ -807,11 +807,35 @@ const Utils = {
   },
 
   statusBadge(status) {
-    const map = { "PASS": "badge-pass", "REVIEW": "badge-review", "FAIL": "badge-fail" };
-    const cls  = map[status] || "badge-info";
-    const icon = status === "PASS" ? "✅" : status === "REVIEW" ? "⚠️" :
-                 status === "FAIL" ? "❌" : "•";
-    return `<span class="badge ${cls}">${icon} ${status || "N/A"}</span>`;
+    if (!status) return `<span class="badge badge-info">• N/A</span>`;
+    const s = String(status).trim();
+    if (s === "Bypassed" || s.includes("Bypass")) {
+      return `<span class="badge" style="background:#fff3e0; color:#c2410c; border:1px solid #fed7aa; font-weight:700;"><i class="fa fa-bolt"></i> Bypassed</span>`;
+    }
+    const map = {
+      "PASS": { cls: "badge-pass", icon: "✅", text: "Approved" },
+      "Approved": { cls: "badge-pass", icon: "✅", text: "Approved" },
+      "REVIEW": { cls: "badge-review", icon: "⚠️", text: "Under Review" },
+      "Pending": { cls: "badge-review", icon: "⏳", text: "Pending" },
+      "FAIL": { cls: "badge-fail", icon: "❌", text: "Rejected" },
+      "Rejected": { cls: "badge-fail", icon: "❌", text: "Rejected" },
+      "Biller": { style: "background:#f1f5f9; color:#475569;", icon: "📤", text: "At Biller" },
+      "HOD": { style: "background:#fef3c7; color:#b45309;", icon: "👔", text: "At HOD" },
+      "Account": { style: "background:#e0f2fe; color:#0369a1;", icon: "📊", text: "At Account" },
+      "Finance": { style: "background:#f3e8ff; color:#7e22ce;", icon: "💰", text: "At Finance" },
+      "CFO": { style: "background:#dbeafe; color:#1e40af;", icon: "💼", text: "At CFO" },
+      "SuperAdmin": { style: "background:#ffe4e6; color:#be123c;", icon: "👑", text: "At SuperAdmin" },
+      "Completed": { style: "background:#dcfce7; color:#15803d;", icon: "✅", text: "Completed" }
+    };
+
+    if (map[s]) {
+      const item = map[s];
+      if (item.style) {
+        return `<span class="badge" style="${item.style} font-weight:600;">${item.icon} ${item.text}</span>`;
+      }
+      return `<span class="badge ${item.cls}">${item.icon} ${item.text}</span>`;
+    }
+    return `<span class="badge badge-info">• ${s}</span>`;
   },
 
   // ✅ NEW: Approval status badge
