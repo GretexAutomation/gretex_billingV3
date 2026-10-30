@@ -4066,7 +4066,11 @@ const SubmitInvoice = {
       showProcessingScreen("Finalizing database entry...", 90);
       showProcessingSuccess();
       const invLabel = result.invoiceNumber ? `Invoice #${result.invoiceNumber}` : "Invoice";
-      Toast.success(`${invLabel} successfully submitted! 🎉`);
+      if (result.aiWarning) {
+        Toast.warning(`${invLabel} saved, but AI notice: ${result.aiWarning}`);
+      } else {
+        Toast.success(`${invLabel} successfully submitted! 🎉`);
+      }
       
       // Clear the form inputs
       SubmitInvoice.resetForm();
