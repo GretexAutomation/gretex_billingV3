@@ -4,74 +4,507 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>HOD Department Approval — Gretex</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
   <link href="css/style.css" rel="stylesheet"/>
+
   <style>
+    /* ── Basic Section & Modals ── */
     .section { display: none; }
     .section.active { display: block; }
-    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; align-items: center; justify-content: center; }
-    .modal.active { display: flex; }
-    .modal-content { background: #161b22; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; width: 90%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    .modal-box.large { max-width: 980px; width: 95%; }
+
+    /* ── Invoice Detail Tabs ── */
+    .detail-tabs {
+      display      : flex;
+      gap          : 4px;
+      padding      : 16px 20px 0;
+      border-bottom: 1px solid var(--gray-200);
+      background   : var(--gray-50);
+      flex-wrap    : wrap;
+    }
+
+    .detail-tab {
+      padding      : 8px 16px;
+      border-radius: 8px 8px 0 0;
+      font-size    : 0.82rem;
+      font-weight  : 500;
+      cursor       : pointer;
+      border       : 1px solid transparent;
+      color        : var(--gray-600);
+      transition   : var(--transition);
+      background   : transparent;
+    }
+
+    .detail-tab.active {
+      background         : var(--white);
+      color              : var(--primary);
+      border-color       : var(--gray-200);
+      border-bottom-color: var(--white);
+      font-weight        : 600;
+    }
+
+    .detail-tab-content { display: none; }
+    .detail-tab-content.active { display: block; }
+
+    /* ── Action Buttons ── */
+    .queue-action-btn {
+      display      : inline-flex;
+      align-items  : center;
+      gap          : 5px;
+      padding      : 5px 12px;
+      border-radius: 6px;
+      font-size    : 0.78rem;
+      font-weight  : 600;
+      cursor       : pointer;
+      border       : none;
+      transition   : opacity 0.15s, transform 0.1s;
+    }
+
+    .queue-action-btn:hover  { opacity: 0.88; transform: translateY(-1px); }
+    .queue-action-btn:active { transform: translateY(0); }
+
+    .btn-approve { background: #34a853; color: #fff; }
+    .btn-reject  { background: #ea4335; color: #fff; }
+
+    /* ── Modern Filter Tabs ── */
+    .filter-tabs {
+      display      : flex;
+      gap          : 6px;
+      background   : var(--gray-50);
+      padding      : 4px;
+      border-radius: 8px;
+      border       : 1px solid var(--gray-200);
+    }
+
+    .filter-tab {
+      padding      : 6px 16px;
+      border-radius: 6px;
+      font-size    : 0.82rem;
+      font-weight  : 500;
+      cursor       : pointer;
+      border       : none;
+      color        : var(--gray-600);
+      background   : transparent;
+      transition   : all 0.2s ease;
+    }
+
+    .filter-tab:hover {
+      background: rgba(0,0,0,0.04);
+    }
+
+    .filter-tab.active {
+      background : var(--white);
+      color      : var(--primary);
+      font-weight: 600;
+      box-shadow : 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    /* ── Table Rows & Spacing ── */
+    .data-table tbody tr {
+      transition: background-color 0.15s ease;
+    }
+    
+    .data-table tbody tr:hover {
+      background-color: #f8faff;
+    }
+
+    .data-table td, .data-table th {
+      padding       : 14px 16px;
+      vertical-align: middle;
+    }
+
+    /* ── Tracking Timeline ── */
+    .tracking-wrapper {
+      background: #fff;
+      padding: 24px 20px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--gray-200);
+      margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+
+    .tracking-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      position: relative;
+      width: 100%;
+    }
+
+    .track-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .track-step::before {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: -50%;
+      width: 100%;
+      height: 3px;
+      background: #e5e7eb;
+      z-index: -1;
+      transition: all 0.3s ease;
+    }
+    .track-step:first-child::before { display: none; }
+
+    .track-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #fff;
+      border: 3px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      color: transparent;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .track-step.completed .track-icon { background: #10b981; border-color: #10b981; color: #fff; }
+    .track-step.completed::before { background: #10b981; }
+    .track-step.active .track-icon { background: #4f46e5; border-color: #4f46e5; color: #fff; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
+    .track-step.active::before { background: #10b981; }
+    .track-step.rejected .track-icon { background: #ef4444; border-color: #ef4444; color: #fff; }
+    .track-text h6 { font-size: 0.75rem; margin: 0 0 4px 0; color: var(--gray-800); font-weight: 600; }
+    .track-text p { font-size: 0.65rem; margin: 0; color: var(--gray-500); line-height: 1.2; }
+
+    /* ── Reject Modal Textarea ── */
+    #rejectReason {
+      width        : 100%;
+      resize       : vertical;
+      font-size    : 0.85rem;
+      padding      : 10px 12px;
+      border       : 1.5px solid var(--gray-300);
+      border-radius: 8px;
+      font-family  : 'Inter', sans-serif;
+      outline      : none;
+      min-height   : 100px;
+      transition   : border-color 0.2s;
+    }
+
+    #rejectReason:focus {
+      border-color: #ea4335;
+      box-shadow  : 0 0 0 3px rgba(234,67,53,0.1);
+    }
+
+    .reject-modal-header {
+      background: linear-gradient(135deg, #c62828, #8b0000);
+    }
   </style>
 </head>
+
 <body>
 <div class="app-wrapper">
 
   <aside class="sidebar" id="sidebar"></aside>
 
   <div class="main-content" id="mainContent">
-    <header class="app-header" id="appHeader" style="padding:16px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <h2 style="color:#fff;font-size:1.3rem;font-weight:700;">HOD Department Approvals</h2>
-        <div style="font-size:0.85rem;color:rgba(255,255,255,0.5);">
-          Department: <span id="deptBadge" class="badge badge-primary" style="font-size:0.8rem;text-transform:uppercase;">...</span> 
-          (Showing only invoices assigned to your department)
+
+    <header class="app-header" id="appHeader"></header>
+
+    <div class="page-content">
+
+      <!-- ============================================================== -->
+      <!-- SECTION 1: DASHBOARD OVERVIEW                                  -->
+      <!-- ============================================================== -->
+      <div class="section active" id="section-dashboard">
+        
+        <!-- Department Banner Header -->
+        <div style="background:linear-gradient(135deg, #1e293b, #0f172a); border-radius:14px; padding:22px 26px; color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px; box-shadow:0 4px 14px rgba(15,23,42,0.12);">
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+              <span style="background:rgba(99,102,241,0.25); border:1px solid rgba(165,180,252,0.4); color:#c7d2fe; padding:2px 10px; border-radius:12px; font-size:0.72rem; font-weight:700; letter-spacing:0.5px; text-transform:uppercase;">
+                <i class="fa fa-building-user"></i> HOD Approvals
+              </span>
+              <span style="color:#94a3b8; font-size:0.75rem;">Department: <strong id="deptBannerBadge" style="color:#fff; text-transform:uppercase;">...</strong></span>
+            </div>
+            <h2 style="font-size:1.35rem; font-weight:800; color:#fff; margin:0 0 4px 0;">Department Billing Portal</h2>
+            <div style="font-size:0.82rem; color:#94a3b8;">Review, authorize, and track all vendor invoices assigned to your department</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <button class="btn btn-primary btn-sm" onclick="Dashboard.loadAllData()" style="padding:8px 16px; border-radius:8px; font-weight:600; display:flex; align-items:center; gap:6px;">
+              <i class="fa fa-rotate-right"></i> Refresh Bills
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Metric Cards -->
+        <div class="stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:24px;">
+          
+          <div class="stat-card" style="cursor:pointer;" onclick="Dashboard.showSection('invoices')">
+            <div class="stat-icon" style="background:#e0e7ff; color:#4338ca;"><i class="fa fa-file-invoice"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statAllBills">0</div>
+              <div class="stat-label">All Department Bills</div>
+            </div>
+          </div>
+
+          <div class="stat-card" style="cursor:pointer; border-left:4px solid #f59e0b;" onclick="Dashboard.showSection('approval')">
+            <div class="stat-icon" style="background:#fef3c7; color:#b45309;"><i class="fa fa-sparkles"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statPendingMe" style="color:#b45309;">0</div>
+              <div class="stat-label">Approval Pending For Me</div>
+            </div>
+          </div>
+
+          <div class="stat-card" style="cursor:pointer; border-left:4px solid #3b82f6;" onclick="Dashboard.showSection('pending')">
+            <div class="stat-icon" style="background:#dbeafe; color:#1d4ed8;"><i class="fa fa-clock"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statInProcess" style="color:#1d4ed8;">0</div>
+              <div class="stat-label">Pending (In Process)</div>
+            </div>
+          </div>
+
+          <div class="stat-card" style="cursor:pointer; border-left:4px solid #10b981;" onclick="Dashboard.showSection('completed')">
+            <div class="stat-icon" style="background:#d1fae5; color:#047857;"><i class="fa fa-circle-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-value" id="statCompleted" style="color:#047857;">0</div>
+              <div class="stat-label">Completed Bills</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Recent Pending Authorization Preview -->
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-clock" style="color:#f59e0b;"></i> Needs Immediate HOD Signoff
+              <span id="quickPendingCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.showSection('approval')">
+              View All <i class="fa fa-arrow-right" style="margin-left:4px;"></i>
+            </button>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Invoice No</th><th>Vendor Name</th><th>Invoice Date</th><th>Basic Amount</th><th>Red Flags</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="quickPendingBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading pending invoices...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION 2: ALL BILLS (Full Department History)                 -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-invoices">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchAllBills" autocomplete="off" placeholder="Search vendor, invoice no, unique ID..." style="padding-left:36px;" oninput="Dashboard.filterAllBills()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-list"></i> All Department Bills
+              <span id="allBillsCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">All bills shared with your department</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Date</th><th>Basic Amount</th><th>Current Stage</th><th>Red Flags</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="allBillsBody">
+                <tr><td colspan="8" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading all bills...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION 3: APPROVAL PENDING FOR ME (New Bills at HOD stage)   -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-approval">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchPendingMe" autocomplete="off" placeholder="Search pending bills..." style="padding-left:36px;" oninput="Dashboard.filterPendingMe()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-sparkles" style="color:#f59e0b;"></i> Approval Pending For Me
+              <span id="pendingMeCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">New bills submitted for your approval</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Date</th><th>Basic Amount</th><th>Red Flags</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pendingMeBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading pending queue...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION 4: PENDING (IN PROCESS) — Approved by HOD, moving forward -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-pending">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchInProcess" autocomplete="off" placeholder="Search bills in process..." style="padding-left:36px;" oninput="Dashboard.filterInProcess()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-clock" style="color:#3b82f6;"></i> Pending (In Process)
+              <span id="inProcessCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">Bills approved by HOD, currently under Account/Finance/CFO/SuperAdmin review</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Basic Amount</th><th>Current Pipeline Stage</th><th>Date</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inProcessBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading bills in process...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION 5: COMPLETED — Final Approved Bills                    -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-completed">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchCompleted" autocomplete="off" placeholder="Search completed bills..." style="padding-left:36px;" oninput="Dashboard.filterCompleted()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-circle-check" style="color:#10b981;"></i> Completed Bills
+              <span id="completedCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">Invoices that received final approval</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Basic Amount</th><th>Final Payable</th><th>Status</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="completedBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading completed bills...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION 6: PROFILE & PASSWORD                                  -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-profile">
+        <div class="card" style="max-width:500px">
+          <div class="card-header"><div class="card-title"><i class="fa fa-user"></i> My Profile</div></div>
+          <div class="card-body" id="profileBody">
+            <div class="text-center" style="padding:24px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i></div>
+          </div>
         </div>
       </div>
-      <div style="display:flex;gap:12px;">
-        <button class="btn btn-secondary" onclick="Dashboard.loadQueue()"><i class="fa fa-rotate"></i> Refresh</button>
-      </div>
-    </header>
 
-    <div class="page-content" style="padding:24px;">
-
-      <!-- STATS -->
-      <div class="stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
-        <div class="stat-card total" style="background:#161b22;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Pending In Queue</div>
-          <div style="font-size:1.8rem;font-weight:800;color:#6366f1;margin-top:4px;" id="statPending">0</div>
-        </div>
-        <div class="stat-card amount" style="background:#161b22;padding:20px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);">Department Total Value</div>
-          <div style="font-size:1.8rem;font-weight:800;color:#10b981;margin-top:4px;" id="statAmount">₹0</div>
-        </div>
-      </div>
-
-      <!-- QUEUE TABLE -->
-      <div class="card" style="background:#161b22;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
-        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-weight:700;color:#fff;font-size:1.05rem;"><i class="fa fa-inbox"></i> Pending HOD Reviews</div>
-          <input type="text" id="searchInput" placeholder="Search vendor, invoice no..." oninput="Dashboard.filterQueue()" 
-            style="padding:8px 14px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#fff;font-size:0.85rem;width:250px;"/>
-        </div>
-        <div class="card-body" style="padding:0;overflow-x:auto;">
-          <table class="data-table" style="width:100%;border-collapse:collapse;text-align:left;font-size:0.88rem;">
-            <thead>
-              <tr style="background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);">
-                <th style="padding:14px 16px;">Unique ID</th>
-                <th style="padding:14px 16px;">Invoice No</th>
-                <th style="padding:14px 16px;">Vendor Name</th>
-                <th style="padding:14px 16px;">Date</th>
-                <th style="padding:14px 16px;">Basic Amount</th>
-                <th style="padding:14px 16px;">Red Flags</th>
-                <th style="padding:14px 16px;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="queueTableBody">
-              <tr><td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,0.4);">Loading queue...</td></tr>
-            </tbody>
-          </table>
+      <div class="section" id="section-password">
+        <div class="card" style="max-width:440px">
+          <div class="card-header"><div class="card-title"><i class="fa fa-lock"></i> Change Password</div></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="oldPassword" placeholder="Enter current password"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" id="newPassword" placeholder="Min 6 characters"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="confirmPassword" placeholder="Re-enter new password"/>
+            </div>
+            <button class="btn btn-primary w-100" onclick="Dashboard.changePassword()">
+              <i class="fa fa-key"></i> Update Password
+            </button>
+          </div>
         </div>
       </div>
 
@@ -79,60 +512,95 @@
   </div>
 </div>
 
-<!-- REVIEW & APPROVAL MODAL -->
-<div class="modal" id="reviewModal">
-  <div class="modal-content">
-    <div class="modal-header" style="padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;">
-      <h3 style="color:#fff;font-size:1.15rem;font-weight:700;" id="modalTitle">Review Invoice</h3>
-      <button onclick="Dashboard.closeModal()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:1.2rem;cursor:pointer;">&times;</button>
+<!-- ============================================================== -->
+<!-- INVOICE DETAIL & REVIEW MODAL                                  -->
+<!-- ============================================================== -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal-box large">
+    <div class="modal-header" style="background:linear-gradient(135deg,#1a73e8,#0d47a1)">
+      <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+        <i class="fa fa-file-invoice"></i> Invoice —
+        <span id="modalInvoiceNo"></span><span id="modalStatus" style="margin-left:8px"></span>
+      </h5>
+      <button class="modal-close" onclick="Dashboard.closeModal()">✕</button>
     </div>
-    
-    <div class="modal-body" style="padding:24px;overflow-y:auto;flex:1;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Invoice Number</div>
-          <div style="font-size:1.05rem;font-weight:700;color:#fff;" id="mInvNo">--</div>
-        </div>
-        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Basic Amount</div>
-          <div style="font-size:1.05rem;font-weight:700;color:#10b981;" id="mAmt">--</div>
-        </div>
-        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Vendor Name</div>
-          <div style="font-size:0.95rem;font-weight:600;color:#fff;" id="mVendor">--</div>
-        </div>
-        <div style="background:#0d1117;padding:14px;border-radius:10px;border:1px solid #30363d;">
-          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">Invoice Date</div>
-          <div style="font-size:0.95rem;font-weight:600;color:#fff;" id="mDate">--</div>
-        </div>
-      </div>
 
-      <div style="margin-bottom:20px;">
-        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">Description / Purpose:</div>
-        <div style="background:#0d1117;padding:12px;border-radius:8px;border:1px solid #30363d;color:#c9d1d9;" id="mDesc">--</div>
-      </div>
+    <!-- Live Tracking Timeline Container -->
+    <div id="modalTrackingTimeline" style="padding: 20px 20px 0; background: var(--white);"></div>
 
-      <div style="margin-bottom:20px;">
-        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">Invoice PDF / Attachment:</div>
-        <a id="mDriveLink" href="#" target="_blank" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:8px;">
-          <i class="fa fa-external-link"></i> View Original Invoice on Google Drive
+    <!-- Review Tabs -->
+    <div class="detail-tabs">
+      <button class="detail-tab active" data-tab="tab-attachment" onclick="Dashboard.switchTab(this, 'tab-attachment')">📎 Attachment</button>
+      <button class="detail-tab" data-tab="tab-accounting" onclick="Dashboard.switchTab(this, 'tab-accounting')">📊 Accounting</button>
+      <button class="detail-tab" data-tab="tab-tds" onclick="Dashboard.switchTab(this, 'tab-tds')">💰 TDS</button>
+      <button class="detail-tab" data-tab="tab-gst" onclick="Dashboard.switchTab(this, 'tab-gst')">🧾 GST</button>
+      <button class="detail-tab" data-tab="tab-process" onclick="Dashboard.switchTab(this, 'tab-process')">⚙️ Process</button>
+      <button class="detail-tab" data-tab="tab-flags" onclick="Dashboard.switchTab(this, 'tab-flags')">🚩 Red Flags</button>
+    </div>
+
+    <!-- Tab Contents with Responsive Document Preview -->
+    <div style="max-height:calc(88vh - 140px);min-height:480px;overflow-y:auto;background:var(--white);">
+      <div class="detail-tab-content active" id="tab-attachment"></div>
+      <div class="detail-tab-content" id="tab-accounting"></div>
+      <div class="detail-tab-content" id="tab-tds"></div>
+      <div class="detail-tab-content" id="tab-gst"></div>
+      <div class="detail-tab-content" id="tab-process"></div>
+      <div class="detail-tab-content" id="tab-flags"></div>
+    </div>
+
+    <!-- Decision & Footer Actions -->
+    <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <div>
+        <a id="driveLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none">
+          <i class="fa fa-external-link"></i> View Original
         </a>
       </div>
-
-      <div style="margin-bottom:20px;">
-        <label style="display:block;font-size:0.85rem;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600;">HOD Decision Remark / Notes:</label>
-        <textarea id="mRemark" placeholder="e.g. Verified with work order / approved for processing" rows="3"
-          style="width:100%;padding:12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#fff;font-size:0.9rem;resize:vertical;"></textarea>
+      
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-sm btn-approve" id="modalApproveBtn" onclick="Dashboard.approveFromModal()" style="display:none; font-weight:600; padding:7px 16px; border-radius:6px;">
+          <i class="fa fa-check"></i> Approve &amp; Forward
+        </button>
+        <button class="btn btn-sm btn-reject" id="modalRejectBtn" onclick="Dashboard.rejectFromModal()" style="display:none; font-weight:600; padding:7px 16px; border-radius:6px;">
+          <i class="fa fa-xmark"></i> Reject
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeModal()">
+          <i class="fa fa-xmark"></i> Close
+        </button>
       </div>
     </div>
+  </div>
+</div>
 
-    <div class="modal-footer" style="padding:18px 24px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:flex-end;gap:12px;">
-      <button class="btn btn-danger" onclick="Dashboard.submitDecision('reject')">
-        <i class="fa fa-times"></i> Reject Bill
-      </button>
-      <button class="btn btn-primary" onclick="Dashboard.submitDecision('approve')">
-        <i class="fa fa-check"></i> Approve & Forward to Account
-      </button>
+<!-- ============================================================== -->
+<!-- REJECT MODAL                                                   -->
+<!-- ============================================================== -->
+<div class="modal-overlay" id="rejectModal">
+  <div class="modal-box" style="max-width:440px">
+    <div class="modal-header reject-modal-header">
+      <h5 class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+        <i class="fa fa-circle-xmark"></i> Reject Invoice
+        <span id="rejectModalInvoiceNo" style="font-size:0.85rem;opacity:0.85;margin-left:4px"></span>
+      </h5>
+      <button class="modal-close" onclick="Dashboard.closeRejectModal()">✕</button>
+    </div>
+    <div style="padding:20px">
+      <p style="font-size:0.85rem;color:var(--gray-600);margin-bottom:14px;line-height:1.5">
+        <i class="fa fa-circle-info" style="color:#ea4335;margin-right:6px"></i>
+        Please provide a specific reason for rejecting this invoice so the biller can correct it.
+      </p>
+      <div class="form-group" style="margin-bottom:14px">
+        <label class="form-label">Rejection Reason <span style="color:#ea4335">*</span></label>
+        <textarea id="rejectReason" placeholder="Describe the discrepancy or why this bill is not approved..."></textarea>
+        <div id="rejectReasonError" style="display:none;color:#ea4335;font-size:0.75rem;margin-top:4px">
+          <i class="fa fa-triangle-exclamation"></i> Rejection reason is required
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeRejectModal()">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="confirmRejectBtn" onclick="Dashboard.confirmReject()">
+          <i class="fa fa-circle-xmark"></i> Confirm Reject
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -141,120 +609,634 @@
 <script src="js/sidebar.js"></script>
 <script>
   const Dashboard = {
-    bills: [],
+    allBills: [],
+    pendingBills: [],
+    inProcessBills: [],
+    completedBills: [],
     currentBill: null,
+    pendingRejectId: null,
+    pendingRejectInvoiceNo: "",
 
     async init() {
       if (!Auth.requireAuth(["HOD", "SuperAdmin"])) return;
       const user = Auth.getUser();
-      document.getElementById("deptBadge").textContent = user.department || "General";
-      Sidebar.render("approval");
-      await this.loadQueue();
+      
+      const deptBanner = document.getElementById("deptBannerBadge");
+      if (deptBanner) deptBanner.textContent = user.department || "General";
+
+      // Render standard Header and Sidebar
+      Header.render(user, "HOD Department Approvals");
+      Sidebar.init("dashboard");
+
+      // Handle Hash Navigation
+      window.addEventListener("hashchange", () => {
+        const hash = window.location.hash.replace("#", "") || "dashboard";
+        Dashboard.showSection(hash);
+      });
+
+      const initialHash = window.location.hash.replace("#", "") || "dashboard";
+      this.showSection(initialHash);
+
+      await this.loadAllData();
     },
 
-    async loadQueue() {
-      const tbody = document.getElementById("queueTableBody");
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;">Loading department queue...</td></tr>';
+    async loadAllData() {
+      Loader.show("Loading department bills...");
+      try {
+        const res = await API.approval.getQueue("All");
+        if (res && res.success) {
+          const list = res.data.queue || [];
+          this.allBills = list;
+          
+          // Categorize bills for HOD view
+          // 1. New / Pending for Me: current_stage === "HOD"
+          this.pendingBills = list.filter(b => (b.current_stage || b["Current_Stage"]) === "HOD");
 
-      const res = await API.approval.getQueue("HOD");
-      if (res && res.success) {
-        this.bills = res.data.queue || [];
-        this.renderTable(this.bills);
-        this.updateStats();
-      } else {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:#ef4444;">Failed to load queue.</td></tr>';
+          // 2. Pending (In Process): HOD approved, currently moving through later stages
+          const laterStages = ["Account", "Finance", "CFO", "SuperAdmin"];
+          this.inProcessBills = list.filter(b => {
+            const st = b.current_stage || b["Current_Stage"];
+            return laterStages.includes(st) && (b["Approval Status"] !== "Rejected" && b["overall_status"] !== "Rejected");
+          });
+
+          // 3. Completed: final stage approved
+          this.completedBills = list.filter(b => {
+            const st = b.current_stage || b["Current_Stage"];
+            return st === "Completed" && (b["Approval Status"] !== "Rejected");
+          });
+
+          // Update Dashboard Stats
+          this.updateStats();
+
+          // Render tables
+          this.renderAllBillsTable(this.allBills);
+          this.renderPendingMeTable(this.pendingBills);
+          this.renderInProcessTable(this.inProcessBills);
+          this.renderCompletedTable(this.completedBills);
+          this.renderQuickPendingTable(this.pendingBills.slice(0, 5));
+        } else {
+          Toast.error(res?.message || "Failed to load department invoices");
+        }
+      } catch (err) {
+        console.error("HOD Data Load Error:", err);
+        Toast.error("Failed to load department data");
+      } finally {
+        Loader.hide();
       }
     },
 
-    renderTable(list) {
-      const tbody = document.getElementById("queueTableBody");
+    updateStats() {
+      document.getElementById("statAllBills").textContent = this.allBills.length;
+      document.getElementById("statPendingMe").textContent = this.pendingBills.length;
+      document.getElementById("statInProcess").textContent = this.inProcessBills.length;
+      document.getElementById("statCompleted").textContent = this.completedBills.length;
+
+      document.getElementById("allBillsCount").textContent = `(${this.allBills.length} invoices)`;
+      document.getElementById("pendingMeCount").textContent = `(${this.pendingBills.length} invoices)`;
+      document.getElementById("inProcessCount").textContent = `(${this.inProcessBills.length} invoices)`;
+      document.getElementById("completedCount").textContent = `(${this.completedBills.length} invoices)`;
+      document.getElementById("quickPendingCount").textContent = `(${this.pendingBills.length} pending)`;
+
+      // Update sidebar approval badge
+      const badge = document.getElementById("badge-approval");
+      if (badge) {
+        if (this.pendingBills.length > 0) {
+          badge.textContent = this.pendingBills.length > 99 ? "99+" : this.pendingBills.length;
+          badge.style.display = "inline-block";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+    },
+
+    // ─────────────────────────────────────────────
+    // TABLE RENDERING
+    // ─────────────────────────────────────────────
+    renderQuickPendingTable(list) {
+      const tbody = document.getElementById("quickPendingBody");
+      if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:rgba(255,255,255,0.4);">No pending bills in your department queue 🎉</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No pending invoices awaiting your review 🎉</td></tr>';
         return;
       }
-
-      tbody.innerHTML = list.map(b => `
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
-          <td style="padding:14px 16px;font-weight:600;color:#6366f1;">${b.invoice_unique_id || 'N/A'}</td>
-          <td style="padding:14px 16px;font-weight:600;color:#fff;">${b["A13. Invoice Number"] || 'N/A'}</td>
-          <td style="padding:14px 16px;">${b["A14. Vendor Name"] || 'N/A'}</td>
-          <td style="padding:14px 16px;">${b["A12. Invoice Date"] || 'N/A'}</td>
-          <td style="padding:14px 16px;font-weight:600;color:#10b981;">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
-          <td style="padding:14px 16px;">${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
-          <td style="padding:14px 16px;">
-            <button class="btn btn-primary" style="padding:6px 14px;font-size:0.8rem;" onclick="Dashboard.openModal('${b.id}')">
-              Review & Signoff
+      tbody.innerHTML = list.map((b, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td>${b["A12. Invoice Date"] || 'N/A'}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td>${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
+          <td>
+            <button class="queue-action-btn btn-approve" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-signature"></i> Review &amp; Signoff
             </button>
           </td>
         </tr>
       `).join("");
     },
 
-    updateStats() {
-      document.getElementById("statPending").textContent = this.bills.length;
-      const totalAmt = this.bills.reduce((sum, b) => sum + (Number(b["A20. Basic Amount"]) || 0), 0);
-      document.getElementById("statAmount").textContent = Utils.formatCurrency(totalAmt);
+    renderAllBillsTable(list) {
+      const tbody = document.getElementById("allBillsBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:32px; color:var(--gray-400);">No department bills found</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td>${b["A12. Invoice Date"] || 'N/A'}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td>${Utils.statusBadge(b.current_stage || b["Current_Stage"] || 'N/A')}</td>
+          <td>${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-eye"></i> View
+            </button>
+          </td>
+        </tr>
+      `).join("");
     },
 
-    filterQueue() {
-      const q = document.getElementById("searchInput").value.toLowerCase();
-      const filtered = this.bills.filter(b => 
+    renderPendingMeTable(list) {
+      const tbody = document.getElementById("pendingMeBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No bills pending for your review 🎉</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td>${b["A12. Invoice Date"] || 'N/A'}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td>${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
+          <td>
+            <button class="queue-action-btn btn-approve" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-signature"></i> Review &amp; Signoff
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    renderInProcessTable(list) {
+      const tbody = document.getElementById("inProcessBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No bills currently in subsequent stages</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td>${Utils.statusBadge(b.current_stage || b["Current_Stage"] || 'N/A')}</td>
+          <td>${b["A12. Invoice Date"] || 'N/A'}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-timeline"></i> Track
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    renderCompletedTable(list) {
+      const tbody = document.getElementById("completedBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No completed bills yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td>${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["D1. Final Payable Amt"] || b["A20. Basic Amount"])}</td>
+          <td><span class="badge badge-success"><i class="fa fa-check"></i> Completed</span></td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-eye"></i> View
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    // ─────────────────────────────────────────────
+    // SEARCH FILTERS
+    // ─────────────────────────────────────────────
+    filterAllBills() {
+      const q = (document.getElementById("searchAllBills").value || "").toLowerCase();
+      const filtered = this.allBills.filter(b =>
         (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
         (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
         (b.invoice_unique_id || "").toLowerCase().includes(q)
       );
-      this.renderTable(filtered);
+      this.renderAllBillsTable(filtered);
     },
 
-    openModal(id) {
-      const bill = this.bills.find(b => b.id === id);
-      if (!bill) return;
-      this.currentBill = bill;
-
-      document.getElementById("modalTitle").textContent = `Review Invoice — ${bill.invoice_unique_id || ''}`;
-      document.getElementById("mInvNo").textContent = bill["A13. Invoice Number"] || "N/A";
-      document.getElementById("mAmt").textContent = Utils.formatCurrency(bill["A20. Basic Amount"]);
-      document.getElementById("mVendor").textContent = bill["A14. Vendor Name"] || "N/A";
-      document.getElementById("mDate").textContent = bill["A12. Invoice Date"] || "N/A";
-      document.getElementById("mDesc").textContent = bill["A16. Bill Description"] || "No description provided";
-      document.getElementById("mDriveLink").href = bill["Drive URL"] || "#";
-      document.getElementById("mRemark").value = "";
-
-      document.getElementById("reviewModal").classList.add("active");
+    filterPendingMe() {
+      const q = (document.getElementById("searchPendingMe").value || "").toLowerCase();
+      const filtered = this.pendingBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderPendingMeTable(filtered);
     },
 
-    closeModal() {
-      document.getElementById("reviewModal").classList.remove("active");
+    filterInProcess() {
+      const q = (document.getElementById("searchInProcess").value || "").toLowerCase();
+      const filtered = this.inProcessBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderInProcessTable(filtered);
     },
 
-    async submitDecision(action) {
-      if (!this.currentBill) return;
-      const remark = document.getElementById("mRemark").value.trim();
+    filterCompleted() {
+      const q = (document.getElementById("searchCompleted").value || "").toLowerCase();
+      const filtered = this.completedBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderCompletedTable(filtered);
+    },
 
-      if (action === "reject" && !remark) {
-        alert("Please enter a remark explaining why this bill is being rejected.");
+    // ─────────────────────────────────────────────
+    // SECTION NAVIGATION
+    // ─────────────────────────────────────────────
+    showSection(id) {
+      if (id === "new") id = "approval";
+      if (id === "mybills") id = "invoices";
+
+      document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+      const target = document.getElementById(`section-${id}`);
+      if (target) {
+        target.classList.add("active");
+        Sidebar.setActive(id);
+      } else {
+        document.getElementById("section-dashboard")?.classList.add("active");
+        Sidebar.setActive("dashboard");
+      }
+
+      if (id === "profile") this.loadProfile();
+    },
+
+    loadProfile() {
+      const user = Auth.getUser();
+      const el = document.getElementById("profileBody");
+      if (!el || !user) return;
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+          <div style="width:60px;height:60px;border-radius:50%;background:${Utils.getRoleColor(user.role)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;">
+            ${Utils.getInitials(user.name)}
+          </div>
+          <div>
+            <div style="font-size:1.1rem;font-weight:700;">${user.name}</div>
+            <div style="font-size:0.85rem;color:var(--gray-500);">${user.email}</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--gray-200);padding-top:16px;">
+          <div style="margin-bottom:10px;"><strong style="font-size:0.8rem;color:var(--gray-600);">Role:</strong> ${Utils.roleBadge(user.role)}</div>
+          <div style="margin-bottom:10px;"><strong style="font-size:0.8rem;color:var(--gray-600);">Department:</strong> <span class="badge badge-primary">${user.department || "General"}</span></div>
+        </div>
+      `;
+    },
+
+    async changePassword() {
+      const oldPassword = document.getElementById("oldPassword").value;
+      const newPassword = document.getElementById("newPassword").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      if (!oldPassword || !newPassword || !confirmPassword) {
+        Toast.error("Please fill all password fields");
+        return;
+      }
+      if (newPassword.length < 6) {
+        Toast.error("New password must be at least 6 characters");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        Toast.error("Passwords do not match");
         return;
       }
 
-      const confirmMsg = action === "approve"
-        ? "Approve this invoice and forward to Accounts team?"
-        : "Are you sure you want to REJECT this invoice?";
-
-      if (!confirm(confirmMsg)) return;
-
-      const res = action === "approve"
-        ? await API.approval.approve(this.currentBill.id, remark)
-        : await API.approval.reject(this.currentBill.id, remark);
+      Loader.show("Updating password...");
+      const res = await API.auth.changePassword(oldPassword, newPassword);
+      Loader.hide();
 
       if (res && res.success) {
-        Toast.success(action === "approve" ? "Invoice approved & sent to Accounts!" : "Invoice rejected.");
-        this.closeModal();
-        await this.loadQueue();
+        Toast.success("Password updated successfully!");
+        document.getElementById("oldPassword").value = "";
+        document.getElementById("newPassword").value = "";
+        document.getElementById("confirmPassword").value = "";
+      } else {
+        Toast.error(res?.message || "Failed to update password");
       }
     },
 
-    showSection(s) {
-      if (s === "invoices" || s === "approval") this.loadQueue();
+    // ─────────────────────────────────────────────
+    // DETAIL & REVIEW MODAL
+    // ─────────────────────────────────────────────
+    openDetail(idOrRow) {
+      let inv = this.allBills.find(b => b.id === idOrRow || String(b.rowIndex) === String(idOrRow));
+      if (!inv) return;
+      this.currentBill = inv;
+
+      document.getElementById("modalInvoiceNo").textContent = inv["A13. Invoice Number"] || "N/A";
+      document.getElementById("modalStatus").innerHTML = Utils.statusBadge(inv.current_stage || inv["Current_Stage"] || "N/A");
+
+      // Tracking timeline
+      const trackingBox = document.getElementById("modalTrackingTimeline");
+      if (trackingBox) {
+        trackingBox.innerHTML = typeof generateTrackingTimeline === "function"
+          ? generateTrackingTimeline(inv)
+          : "";
+
+        if ((!inv.approval_history || inv.approval_history.length === 0) && (inv.invoice_unique_id || inv["A13. Invoice Number"])) {
+          API.biller.getStatusHistory(inv.invoice_unique_id || inv["A13. Invoice Number"]).then(res => {
+            if (res && res.success && res.data && res.data.timeline && res.data.timeline.length > 0) {
+              inv.approval_history = res.data.timeline;
+              if (typeof generateTrackingTimeline === "function") {
+                trackingBox.innerHTML = generateTrackingTimeline(inv);
+              }
+            }
+          }).catch(e => console.warn("Live timeline fetch error:", e));
+        }
+      }
+
+      // Drive URL
+      const driveUrl = inv["Drive URL"];
+      const driveBtn = document.getElementById("driveLink");
+      if (driveUrl && driveUrl !== "N/A" && driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
+        driveBtn.href = driveUrl;
+        driveBtn.style.display = "inline-flex";
+      } else {
+        driveBtn.style.display = "none";
+      }
+
+      // Show Approve / Reject buttons ONLY if current_stage === "HOD"
+      const isPendingAtHOD = (inv.current_stage || inv["Current_Stage"]) === "HOD";
+      document.getElementById("modalApproveBtn").style.display = isPendingAtHOD ? "inline-flex" : "none";
+      document.getElementById("modalRejectBtn").style.display  = isPendingAtHOD ? "inline-flex" : "none";
+
+      this.buildAttachmentTab(inv);
+      this.buildAccountingTab(inv);
+      this.buildTdsTab(inv);
+      this.buildGstTab(inv);
+      this.buildProcessTab(inv);
+      this.buildFlagsTab(inv);
+
+      document.querySelectorAll(".detail-tab").forEach((t, i) => t.classList.toggle("active", i === 0));
+      document.querySelectorAll(".detail-tab-content").forEach((c, i) => c.classList.toggle("active", i === 0));
+      document.getElementById("detailModal").classList.add("active");
+    },
+
+    closeModal() {
+      document.getElementById("detailModal").classList.remove("active");
+    },
+
+    switchTab(btn, tabId) {
+      document.querySelectorAll(".detail-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".detail-tab-content").forEach(c => c.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById(tabId)?.classList.add("active");
+    },
+
+    field(label, val) {
+      return `
+        <div class="field-group" style="padding:10px 14px; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px;">
+          <div style="font-size:0.72rem; color:var(--gray-500); font-weight:600; text-transform:uppercase; margin-bottom:4px;">${label}</div>
+          <div style="font-size:0.88rem; font-weight:600; color:var(--gray-900); word-break:break-word;">${val || "—"}</div>
+        </div>
+      `;
+    },
+
+    buildAttachmentTab(inv) {
+      const driveUrl = inv["Drive URL"];
+      const attachmentName = inv["Attachment Name"] || "Invoice File";
+      let html = `<div style="padding:20px">`;
+      if (driveUrl && driveUrl !== "N/A" && driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
+        const isImage = attachmentName.toLowerCase().endsWith(".jpg") || attachmentName.toLowerCase().endsWith(".jpeg") || attachmentName.toLowerCase().endsWith(".png") || attachmentName.toLowerCase().endsWith(".webp");
+        let embedUrl = (typeof Utils !== "undefined" && Utils.getPreviewEmbedUrl)
+          ? Utils.getPreviewEmbedUrl(driveUrl)
+          : driveUrl;
+        if (!embedUrl || embedUrl === driveUrl) {
+          const m1 = driveUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+          const m2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+          if (m1 && m1[1]) embedUrl = `https://drive.google.com/file/d/${m1[1]}/preview`;
+          else if (m2 && m2[1]) embedUrl = `https://drive.google.com/file/d/${m2[1]}/preview`;
+        }
+        html += `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div><div style="font-weight:600;font-size:0.95rem">📎 ${attachmentName}</div><div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px">Live Document Preview • Click button to view in full tab</div></div>
+            <a href="${driveUrl}" target="_blank" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;"><i class="fa fa-external-link"></i> Open Full Size</a>
+          </div>
+          <div style="border:1.5px solid var(--gray-200);border-radius:12px;overflow:hidden;background:#f8f9fa;min-height:550px;display:flex;align-items:center;justify-content:center">
+            ${isImage
+              ? `<div style="padding:16px;text-align:center;width:100%;">
+                   <img src="${driveUrl}" alt="Invoice" style="max-width:100%;max-height:600px;object-fit:contain;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin:auto;display:block;"/>
+                 </div>`
+              : `<iframe src="${embedUrl}" style="width:100%;height:640px;border:none;display:block;background:#fff;" frameborder="0" allow="autoplay; fullscreen" loading="lazy"></iframe>`}
+          </div>`;
+      } else {
+        html += `<div style="background:#f8f9fa;border:1px solid var(--gray-200);border-radius:12px;padding:48px 24px;text-align:center"><div style="font-size:4rem;margin-bottom:16px">📎</div><div style="font-weight:600;font-size:1rem;margin-bottom:6px;color:var(--gray-700)">No Attachment</div><div style="font-size:0.85rem;color:var(--gray-500)">Invoice file not uploaded to Drive</div></div>`;
+      }
+      html += `</div>`;
+      document.getElementById("tab-attachment").innerHTML = html;
+    },
+
+    buildAccountingTab(inv) {
+      document.getElementById("tab-accounting").innerHTML = `
+        <div style="padding:20px;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:14px;color:var(--gray-800);">📉 Accounting Checks</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+            ${Dashboard.field("A1. Billed To", inv["A1. Billed To"])}
+            ${Dashboard.field("A2. Our Name Correct", inv["A2. Our Name Correct"])}
+            ${Dashboard.field("A3. Address Present", inv["A3. Address Present"])}
+            ${Dashboard.field("A4. Our Address", inv["A4. Our Address"])}
+            ${Dashboard.field("A5. Address Correct", inv["A5. Address Correct"])}
+            ${Dashboard.field("A6. PAN Present", inv["A6. PAN Present"])}
+            ${Dashboard.field("A7. Our PAN", inv["A7. Our PAN"])}
+            ${Dashboard.field("A8. PAN Correct", inv["A8. PAN Correct"])}
+            ${Dashboard.field("A9. GST Present", inv["A9. GST Present"])}
+            ${Dashboard.field("A10. Our GST", inv["A10. Our GST"])}
+            ${Dashboard.field("A11. GST Correct", inv["A11. GST Correct"])}
+            ${Dashboard.field("A12. Invoice Date", inv["A12. Invoice Date"])}
+            ${Dashboard.field("A13. Invoice Number", inv["A13. Invoice Number"])}
+            ${Dashboard.field("A14. Vendor Name", inv["A14. Vendor Name"])}
+            ${Dashboard.field("A15. Vendor Address", inv["A15. Vendor Address"])}
+            ${Dashboard.field("A16. Bill Description", inv["A16. Bill Description"])}
+            ${Dashboard.field("A17. Notes", inv["A17. Notes"])}
+            ${Dashboard.field("A18. Rev/Capital", inv["A18. Rev/Capital"])}
+            ${Dashboard.field("A19. Ledger Name", inv["A19. Ledger Name"])}
+            ${Dashboard.field("A20. Basic Amount", Utils.formatCurrency(inv["A20. Basic Amount"]))}
+            ${Dashboard.field("A21. Invoice Type", inv["A21. Invoice Type"])}
+            ${Dashboard.field("A22. Final Invoice By", inv["A22. Final Invoice By"])}
+          </div>
+        </div>
+      `;
+    },
+
+    buildTdsTab(inv) {
+      document.getElementById("tab-tds").innerHTML = `
+        <div style="padding:20px;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:14px;color:var(--gray-800);">🔥 TDS Checks</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+            ${Dashboard.field("B1. TDS Applicable", inv["B1. TDS Applicable"])}
+            ${Dashboard.field("B2. Vendor PAN Avail", inv["B2. Vendor PAN Avail"])}
+            ${Dashboard.field("B3. Vendor PAN", inv["B3. Vendor PAN"])}
+            ${Dashboard.field("B4. PAN Inoperative", inv["B4. PAN Inoperative"])}
+            ${Dashboard.field("B5. Entity Type", inv["B5. Vendor Entity Type"])}
+            ${Dashboard.field("B6. TDS Section", inv["B6. TDS Section"])}
+            ${Dashboard.field("B7. TDS Rate", inv["B7. TDS Rate"])}
+            ${Dashboard.field("B8. TDS Amount", Utils.formatCurrency(inv["B8. TDS Amount"]))}
+          </div>
+        </div>
+      `;
+    },
+
+    buildGstTab(inv) {
+      document.getElementById("tab-gst").innerHTML = `
+        <div style="padding:20px;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:14px;color:var(--gray-800);">📑 GST Checks</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+            ${Dashboard.field("C1. GST Charged", inv["C1. GST Charged"])}
+            ${Dashboard.field("C2. Vendor GST Avail", inv["C2. Vendor GST Avail"])}
+            ${Dashboard.field("C3. Vendor GST No", inv["C3. Vendor GST No"])}
+            ${Dashboard.field("C4. Taxpayer Type", inv["C4. Taxpayer Type"])}
+            ${Dashboard.field("C5. Comp GST Wrong", inv["C5. Comp GST Wrong"])}
+            ${Dashboard.field("C6. GST Returns Filed", inv["C6. GST Returns Filed"])}
+            ${Dashboard.field("C7. Our GST Correct", inv["C7. Our GST Correct"])}
+            ${Dashboard.field("C8. Place of Supply", inv["C8. Place of Supply"])}
+            ${Dashboard.field("C9. Correct GST Type", inv["C9. Correct GST Type"])}
+            ${Dashboard.field("C10. Prior GST Pending", inv["C10. Prior GST Pending"])}
+          </div>
+        </div>
+      `;
+    },
+
+    buildProcessTab(inv) {
+      document.getElementById("tab-process").innerHTML = `
+        <div style="padding:20px;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:14px;color:var(--gray-800);">⚙️ Process Checks</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+            ${Dashboard.field("D1. Final Payable", Utils.formatCurrency(inv["D1. Final Payable Amt"]))}
+            ${Dashboard.field("D2. Invoice By", inv["D2. Invoice By"])}
+            ${Dashboard.field("D3. Received Via", inv["D3. Received Via"])}
+            ${Dashboard.field("D4. HOD Name", inv["D4. HOD Name"])}
+            ${Dashboard.field("D5. HOD Approval", inv["D5. HOD Approval"])}
+            ${Dashboard.field("D6. HOD Screenshot", inv["D6. HOD Screenshot"])}
+            ${Dashboard.field("D7. Arvind/Alok Apprvl", inv["D7. Arvind/Alok Apprvl"])}
+            ${Dashboard.field("D8. Arvind/Alok SS", inv["D8. Arvind/Alok SS"])}
+            ${Dashboard.field("D9. Update Person", inv["D9. Update Person"])}
+            ${Dashboard.field("D10. Update Email", inv["D10. Update Email"])}
+            ${Dashboard.field("D11. Narration", inv["D11. Narration"])}
+          </div>
+        </div>
+      `;
+    },
+
+    buildFlagsTab(inv) {
+      const flags  = inv["🚩 Red Flags"] || "";
+      const status = inv.current_stage || inv["Current_Stage"] || "N/A";
+      document.getElementById("tab-flags").innerHTML = `
+        <div style="padding:20px;">
+          <div style="font-weight:700;font-size:0.95rem;margin-bottom:14px;color:var(--gray-800);">🚩 Red Flags & Overall Status</div>
+          <div style="margin-bottom:20px;padding:16px;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200)">
+            <label style="font-size:0.72rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px">Current Stage</label>
+            <div style="font-size:1.2rem">${Utils.statusBadge(status)}</div>
+          </div>
+          <div>
+            <label style="font-size:0.72rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:10px">Red Flags Detected</label>
+            <div>${flags ? `<span class="badge badge-danger" style="font-size:0.9rem;padding:6px 14px;">${flags}</span>` : '<span style="color:#10b981;font-weight:600;"><i class="fa fa-circle-check"></i> No red flags detected</span>'}</div>
+          </div>
+        </div>
+      `;
+    },
+
+    // ─────────────────────────────────────────────
+    // APPROVE & REJECT ACTIONS
+    // ─────────────────────────────────────────────
+    async approveFromModal() {
+      if (!this.currentBill) return;
+      const invNo = this.currentBill["A13. Invoice Number"] || "this invoice";
+      if (!confirm(`Are you sure you want to approve invoice ${invNo} and forward it to Accounts?`)) return;
+
+      Loader.show("Submitting HOD approval...");
+      const res = await API.approval.approve(this.currentBill.id || this.currentBill.rowIndex, "Approved by HOD");
+      Loader.hide();
+
+      if (res && res.success) {
+        Toast.success(`✅ Invoice ${invNo} approved & forwarded to Accounts team!`);
+        this.closeModal();
+        await this.loadAllData();
+      } else {
+        Toast.error(res?.message || "Failed to approve invoice");
+      }
+    },
+
+    rejectFromModal() {
+      if (!this.currentBill) return;
+      this.pendingRejectId = this.currentBill.id || this.currentBill.rowIndex;
+      this.pendingRejectInvoiceNo = this.currentBill["A13. Invoice Number"] || "";
+      this.closeModal();
+
+      document.getElementById("rejectReason").value = "";
+      document.getElementById("rejectReasonError").style.display = "none";
+      document.getElementById("rejectModalInvoiceNo").textContent = this.pendingRejectInvoiceNo ? `— ${this.pendingRejectInvoiceNo}` : "";
+      document.getElementById("rejectModal").classList.add("active");
+      setTimeout(() => document.getElementById("rejectReason").focus(), 150);
+    },
+
+    closeRejectModal() {
+      document.getElementById("rejectModal").classList.remove("active");
+      this.pendingRejectId = null;
+      this.pendingRejectInvoiceNo = "";
+    },
+
+    async confirmReject() {
+      const reason = document.getElementById("rejectReason").value.trim();
+      const errorDiv = document.getElementById("rejectReasonError");
+      const btn = document.getElementById("confirmRejectBtn");
+
+      if (!reason) {
+        errorDiv.style.display = "block";
+        document.getElementById("rejectReason").focus();
+        return;
+      }
+      errorDiv.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Rejecting...";
+
+      Loader.show("Rejecting invoice...");
+      const res = await API.approval.reject(this.pendingRejectId, reason);
+      Loader.hide();
+
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
+
+      if (res && res.success) {
+        this.closeRejectModal();
+        Toast.success(`❌ Invoice rejected successfully.`);
+        await this.loadAllData();
+      } else {
+        Toast.error(res?.message || "Failed to reject invoice");
+      }
     }
   };
 
