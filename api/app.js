@@ -637,8 +637,11 @@ module.exports = async function handler(req, res) {
         // Ensure unique ID exists
         const uniqueId = billData.invoice_unique_id || `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
 
-        // Next stage is HOD (or Account if HOD not assigned/bypassed)
-        const nextStage = hodEmail ? "HOD" : "Account";
+        // Next stage defaults to targetRole or HOD (or Account if HOD not assigned/bypassed)
+        const targetRole = params.targetRole || (hodEmail ? "HOD" : "Account");
+        const nextStage = ["HOD", "Account", "Finance", "CFO", "SuperAdmin"].includes(targetRole)
+          ? targetRole
+          : (hodEmail ? "HOD" : "Account");
 
         // Insert into Master Invoices
         const masterPayload = {
@@ -734,7 +737,7 @@ module.exports = async function handler(req, res) {
           approver_role: "Biller",
           action_type: "Submitted",
           next_stage: nextStage,
-          target_assignee: hodEmail || "Accounts Team",
+          target_assignee: hodEmail || `${nextStage} Team`,
           received_at: new Date().toISOString(),
           action_taken_at: new Date().toISOString(),
           remark: remark
