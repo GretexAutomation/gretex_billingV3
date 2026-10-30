@@ -624,7 +624,7 @@ module.exports = async function handler(req, res) {
         });
 
         return Response.success(res, {
-          total: (newCount || 0) + filteredMaster.length,
+          total: user.role === "Biller" ? (newCount || 0) : ((newCount || 0) + filteredMaster.length),
           newBills: newCount || 0,
           pending: sent,
           sent: sent,
@@ -648,40 +648,24 @@ module.exports = async function handler(req, res) {
 
       // ── Biller Specific Operations ──
       case "getBillerQueue": {
-        const { data: newBills } = await supabase
+        const { data: newBills, error } = await supabase
           .from("invoices")
           .select("*")
           .eq("biller_status", "New")
           .order("created_at", { ascending: false });
 
-        const { data: masterBills } = await supabase
-          .from("master_invoices")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        const masterIds = (masterBills || []).map(b => b.invoice_unique_id).filter(Boolean);
-        let approvalsMap = {};
-        if (masterIds.length > 0) {
-          const { data: allApprovals } = await supabase
-            .from("invoice_approvals")
-            .select("*")
-            .in("invoice_unique_id", masterIds)
-            .order("action_taken_at", { ascending: true });
-          (allApprovals || []).forEach(a => {
-            if (!approvalsMap[a.invoice_unique_id]) approvalsMap[a.invoice_unique_id] = [];
-            approvalsMap[a.invoice_unique_id].push(a);
-          });
+        if (error) {
+          console.error("[getBillerQueue] Error fetching new bills:", error.message);
+          return Response.error(res, "Failed to fetch biller queue: " + error.message);
         }
 
         const formattedNew = (newBills || []).map(b => formatInvoiceForUI(b, true));
-        const formattedMaster = (masterBills || []).map(b => formatInvoiceForUI(b, false, approvalsMap[b.invoice_unique_id] || []));
-        const combined = [...formattedNew, ...formattedMaster];
 
         return Response.success(res, {
-          queue: combined,
+          queue: formattedNew,
           invoices: formattedNew,
-          masterInvoices: formattedMaster,
-          total: combined.length
+          masterInvoices: [],
+          total: formattedNew.length
         });
       }
 
