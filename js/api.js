@@ -336,6 +336,7 @@ const API = {
     async approveBill(queueRowIndex, note = "") {
       return await API.request("approveBill", {
         queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
         note: note
       });
     },
@@ -343,7 +344,54 @@ const API = {
     async rejectBill(queueRowIndex, reason = "") {
       return await API.request("rejectBill", {
         queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
         reason: reason
+      });
+    },
+
+    async bypassBill(queueRowIndex, note = "", targetStage = "Completed") {
+      return await API.request("approveBill", {
+        queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
+        note: note,
+        bypass: true,
+        targetStage: targetStage
+      });
+    }
+  },
+
+  // ═════════════════════════════════════════════
+  // 👑 SUPER ADMIN APPROVALS & MULTI-STAGE BYPASS
+  // ═════════════════════════════════════════════
+  superadmin: {
+
+    async getQueue(filters = {}) {
+      return await API.request("getApprovalQueue", filters);
+    },
+
+    async approveBill(queueRowIndex, note = "") {
+      return await API.request("approveBill", {
+        queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
+        note: note
+      });
+    },
+
+    async rejectBill(queueRowIndex, reason = "") {
+      return await API.request("rejectBill", {
+        queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
+        reason: reason
+      });
+    },
+
+    async bypassBill(queueRowIndex, note = "", targetStage = "Completed") {
+      return await API.request("approveBill", {
+        queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
+        note: note,
+        bypass: true,
+        targetStage: targetStage
       });
     }
   },

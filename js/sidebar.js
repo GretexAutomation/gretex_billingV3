@@ -152,24 +152,40 @@ const Sidebar = {
         section: "Main",
         items: [
           { id: "dashboard", icon: "fa-gauge",         label: "Dashboard",       page: "superadmin.html"  },
-          { id: "master",    icon: "fa-database",      label: "Master",          page: "superadmin.html#master" },
-          { id: "invoices",  icon: "fa-file-invoice",  label: "All Invoices",    page: "superadmin.html#invoices" },
-          { id: "approve",   icon: "fa-list-check",    label: "Approval Pending By Me",  page: "superadmin.html#approve", badge: "approval" },
+          {
+            id: "pipeline",
+            icon: "fa-diagram-project",
+            label: "Pipeline Monitor",
+            page: "superadmin.html#invoices",
+            badge: "approval",
+            children: [
+              { id: "invoices",   label: "All Pipeline Bills",  page: "superadmin.html#invoices",   icon: "fa-list" },
+              { id: "atbiller",   label: "At Biller",           page: "superadmin.html#atbiller",   icon: "fa-receipt" },
+              { id: "athod",      label: "At HODs (By HOD)",    page: "superadmin.html#athod",      icon: "fa-users-gear" },
+              { id: "ataccount",  label: "At Account",          page: "superadmin.html#ataccount",  icon: "fa-calculator" },
+              { id: "atfinance",  label: "At Finance",          page: "superadmin.html#atfinance",  icon: "fa-money-bill-transfer" },
+              { id: "atcfo",      label: "At CFO",              page: "superadmin.html#atcfo",      icon: "fa-user-tie" },
+              { id: "approve",    label: "Pending SA Signoff",  page: "superadmin.html#approve",    icon: "fa-stamp" },
+              { id: "completed",  label: "Completed",           page: "superadmin.html#completed",  icon: "fa-circle-check" }
+            ]
+          },
+          { id: "master",    icon: "fa-database",      label: "Master Registry", page: "superadmin.html#master" },
           { id: "redflags",  icon: "fa-flag",          label: "Red Flags",       page: "superadmin.html#redflags", badge: "redflags" }
         ]
       },
       {
-        section: "Management",
+        section: "Organization",
         items: [
-          { id: "users",     icon: "fa-users",         label: "User Management", page: "superadmin.html#users" },
-          { id: "audit",     icon: "fa-shield",        label: "Audit Log",       page: "superadmin.html#audit" },
-          { id: "settings",  icon: "fa-gear",          label: "Settings",        page: "superadmin.html#settings" }
+          { id: "users",       icon: "fa-users",         label: "User Management",    page: "superadmin.html#users" },
+          { id: "departments", icon: "fa-sitemap",       label: "Department Directory", page: "superadmin.html#departments" },
+          { id: "audit",       icon: "fa-shield",        label: "System Audit Log",   page: "superadmin.html#audit" },
+          { id: "settings",    icon: "fa-gear",          label: "Master Settings",    page: "superadmin.html#settings" }
         ]
       },
       {
-        section: "Reports",
+        section: "Reports & Audits",
         items: [
-          { id: "reports",   icon: "fa-chart-bar",     label: "Reports",         page: "superadmin.html#reports" },
+          { id: "reports",   icon: "fa-chart-bar",     label: "Reports Hub",     page: "superadmin.html#reports" },
           { id: "tds",       icon: "fa-percent",       label: "TDS Summary",     page: "superadmin.html#tds" },
           { id: "gst",       icon: "fa-receipt",       label: "GST Summary",     page: "superadmin.html#gst" }
         ]
