@@ -12,7 +12,7 @@
   <style>
     .section { display: none; }
     .section.active { display: block; }
-    .modal-box.large { max-width: 900px; }
+    .modal-box.large { max-width: 980px; width: 95%; }
 
     /* ── Tracking Timeline Styles ── */
     .tracking-wrapper { background: #fff; padding: 24px 20px 10px; border-radius: 12px; border: 1px solid var(--gray-200); margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
@@ -634,7 +634,7 @@
       <button class="detail-tab" data-tab="tab-process" onclick="Dashboard.switchTab(this, 'tab-process')">⚙️ Process</button>
       <button class="detail-tab" data-tab="tab-flags" onclick="Dashboard.switchTab(this, 'tab-flags')">🚩 Red Flags</button>
     </div>
-    <div style="max-height:55vh;overflow-y:auto;background:var(--white);">
+    <div style="max-height:calc(88vh - 140px);min-height:480px;overflow-y:auto;background:var(--white);">
       <div class="detail-tab-content active" id="tab-attachment"></div>
       <div class="detail-tab-content" id="tab-accounting"></div>
       <div class="detail-tab-content" id="tab-tds"></div>
@@ -1297,12 +1297,29 @@ const Dashboard = {
     const driveUrl = inv["Drive URL"]; const attachmentName = inv["Attachment Name"] || "Invoice File";
     let html = `<div style="padding:20px">`;
     if (driveUrl && driveUrl !== "N/A" && driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
-      const isImage = attachmentName.toLowerCase().endsWith(".jpg") || attachmentName.toLowerCase().endsWith(".jpeg") || attachmentName.toLowerCase().endsWith(".png");
-      html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div><div style="font-weight:600;font-size:0.95rem">📎 ${attachmentName}</div></div><a href="${driveUrl}" target="_blank" class="btn btn-primary btn-sm"><i class="fa fa-external-link"></i> Open Full Size</a></div>
-        <div style="border:2px solid var(--gray-200);border-radius:12px;overflow:hidden;background:#f8f9fa;min-height:320px;display:flex;align-items:center;justify-content:center">
-          ${isImage ? `<img src="${driveUrl}" alt="Invoice" style="max-width:100%;max-height:500px;object-fit:contain"/>` : `<div style="text-align:center"><a href="${driveUrl}" target="_blank" class="btn btn-primary">View PDF</a></div>`}
+      const isImage = attachmentName.toLowerCase().endsWith(".jpg") || attachmentName.toLowerCase().endsWith(".jpeg") || attachmentName.toLowerCase().endsWith(".png") || attachmentName.toLowerCase().endsWith(".webp");
+      let embedUrl = (typeof Utils !== "undefined" && Utils.getPreviewEmbedUrl)
+        ? Utils.getPreviewEmbedUrl(driveUrl)
+        : driveUrl;
+      if (!embedUrl || embedUrl === driveUrl) {
+        const m1 = driveUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        const m2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (m1 && m1[1]) embedUrl = `https://drive.google.com/file/d/${m1[1]}/preview`;
+        else if (m2 && m2[1]) embedUrl = `https://drive.google.com/file/d/${m2[1]}/preview`;
+      }
+      html += `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div><div style="font-weight:600;font-size:0.95rem">📎 ${attachmentName}</div><div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px">Live Document Preview • Click button to view in full tab</div></div>
+          <a href="${driveUrl}" target="_blank" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;"><i class="fa fa-external-link"></i> Open Full Size</a>
+        </div>
+        <div style="border:1.5px solid var(--gray-200);border-radius:12px;overflow:hidden;background:#f8f9fa;min-height:550px;display:flex;align-items:center;justify-content:center">
+          ${isImage
+            ? `<div style="padding:16px;text-align:center;width:100%;">
+                 <img src="${driveUrl}" alt="Invoice" style="max-width:100%;max-height:600px;object-fit:contain;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin:auto;display:block;"/>
+               </div>`
+            : `<iframe src="${embedUrl}" style="width:100%;height:640px;border:none;display:block;background:#fff;" frameborder="0" allow="autoplay; fullscreen" loading="lazy"></iframe>`}
         </div>`;
-    } else { html += `<div class="empty-state">No Attachment</div>`; }
+    } else { html += `<div class="empty-state" style="padding:48px 24px;text-align:center;"><div style="font-size:3rem;margin-bottom:12px">📎</div><div style="font-weight:600;color:var(--gray-700)">No Attachment</div></div>`; }
     document.getElementById("tab-attachment").innerHTML = html + `</div>`;
   },
     buildAccountingTab(inv) {

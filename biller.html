@@ -109,7 +109,7 @@
     .status-pending  { background:#fff2cc;color:#7f6000;font-weight:700;padding:4px 12px;border-radius:20px;font-size:0.72rem }
 
     /* ── Modal ── */
-    .modal-box.xlarge { max-width: 900px; }
+    .modal-box.xlarge { max-width: 980px; width: 95%; }
 
     /* ── Review Modal Tabs ── */
     .rev-tab {
@@ -1156,7 +1156,7 @@
       </button>
     </div>
 
-    <div style="max-height:60vh;overflow-y:auto">
+    <div style="max-height:calc(88vh - 140px);min-height:480px;overflow-y:auto">
 
       <div class="rev-tab-content active" id="rtab-attachment">
         <div id="attachmentPreview" style="padding:20px"></div>
@@ -3024,49 +3024,54 @@ const Dashboard = {
       const name    = (bill["Attachment Name"] || "").toLowerCase();
       const isImage = name.endsWith(".jpg") ||
                       name.endsWith(".jpeg") ||
-                      name.endsWith(".png");
+                      name.endsWith(".png") ||
+                      name.endsWith(".webp");
+
+      let embedUrl = (typeof Utils !== "undefined" && Utils.getPreviewEmbedUrl)
+        ? Utils.getPreviewEmbedUrl(driveUrl)
+        : driveUrl;
+      if (!embedUrl || embedUrl === driveUrl) {
+        const m1 = driveUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        const m2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (m1 && m1[1]) embedUrl = `https://drive.google.com/file/d/${m1[1]}/preview`;
+        else if (m2 && m2[1]) embedUrl = `https://drive.google.com/file/d/${m2[1]}/preview`;
+      }
+
       attEl.innerHTML = `
         <div style="display:flex;align-items:center;
-          justify-content:space-between;margin-bottom:12px">
+          justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
           <div>
-            <div style="font-weight:600;font-size:0.9rem">
+            <div style="font-weight:600;font-size:0.92rem">
               📎 ${bill["Attachment Name"]||"Invoice File"}
             </div>
-            <div style="font-size:0.72rem;color:var(--gray-500)">
-              Click button to open full size
+            <div style="font-size:0.74rem;color:var(--gray-500)">
+              Live Document Preview • Click button to view in full tab
             </div>
           </div>
-          <a href="${driveUrl}" target="_blank"
-            class="btn btn-primary btn-sm">
-            <i class="fa fa-external-link"></i> Open Full Size
-          </a>
+          <div style="display:flex;gap:8px;align-items:center">
+            <a href="${driveUrl}" target="_blank"
+              class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;">
+              <i class="fa fa-external-link"></i> Open Full Size
+            </a>
+          </div>
         </div>
-        <div style="border:2px solid var(--gray-200);
+        <div style="border:1.5px solid var(--gray-200);
           border-radius:12px;overflow:hidden;
-          background:#f8f9fa;min-height:320px;
+          background:#f8f9fa;min-height:550px;
           display:flex;align-items:center;
           justify-content:center">
           ${isImage
-            ? `<img src="${driveUrl}" alt="Invoice"
-                 style="max-width:100%;max-height:500px;
-                 object-fit:contain"/>`
-            : `<div style="text-align:center;padding:48px 24px">
-                 <div style="font-size:5rem;margin-bottom:16px">
-                   📄
-                 </div>
-                 <div style="font-weight:600;font-size:1rem;
-                   margin-bottom:6px">
-                   ${bill["Attachment Name"]||"Invoice PDF"}
-                 </div>
-                 <div style="color:var(--gray-500);font-size:0.82rem;
-                   margin-bottom:20px">
-                   PDF preview not available here
-                 </div>
-                 <a href="${driveUrl}" target="_blank"
-                   class="btn btn-primary">
-                   <i class="fa fa-eye"></i> View Invoice PDF
-                 </a>
-               </div>`}
+            ? `<div style="padding:16px;text-align:center;width:100%;">
+                 <img src="${driveUrl}" alt="Invoice"
+                   style="max-width:100%;max-height:600px;
+                   object-fit:contain;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin:auto;display:block;"/>
+               </div>`
+            : `<iframe src="${embedUrl}" 
+                 style="width:100%;height:640px;border:none;display:block;background:#fff;"
+                 frameborder="0"
+                 allow="autoplay; fullscreen"
+                 loading="lazy">
+               </iframe>`}
         </div>`;
     } else {
       attEl.innerHTML = `<div class="empty-state" style="padding:40px">
