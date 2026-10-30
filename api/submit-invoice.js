@@ -7,9 +7,8 @@
 
 const { createClient } = require("@supabase/supabase-js");
 
-// Vercel Serverless Timeout: Extend to 60 seconds (prevents 504 Timeout)
-export const maxDuration = 60;
-export const config = {
+// Vercel Serverless Configuration (CommonJS compatible)
+const config = {
   maxDuration: 60,
   api: {
     bodyParser: {
@@ -17,6 +16,7 @@ export const config = {
     },
   },
 };
+
 
 let supabaseInstance = null;
 function getSupabase() {
@@ -423,7 +423,7 @@ overallStatus: PASS, REVIEW, or FAIL
 // ─────────────────────────────────────────────
 // 4. Handler
 // ─────────────────────────────────────────────
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
