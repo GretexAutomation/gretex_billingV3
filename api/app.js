@@ -880,13 +880,22 @@ module.exports = async function handler(req, res) {
 
         if (!id) return Response.error(res, "Invoice ID required");
 
-        const { data: bill, error: findErr } = await supabase
+        let { data: bill, error: findErr } = await supabase
           .from("master_invoices")
           .select("*")
           .eq("id", id)
-          .single();
+          .maybeSingle();
 
-        if (findErr || !bill) return Response.error(res, "Invoice not found");
+        if (!bill) {
+          const { data: billByUid } = await supabase
+            .from("master_invoices")
+            .select("*")
+            .eq("invoice_unique_id", id)
+            .maybeSingle();
+          bill = billByUid;
+        }
+
+        if (!bill) return Response.error(res, "Invoice not found");
 
         // Determine Next Stage in Pipeline:
         // HOD -> Account -> Finance -> CFO -> SuperAdmin -> Completed
@@ -916,7 +925,7 @@ module.exports = async function handler(req, res) {
           updatePayload.close_at = new Date().toISOString();
         }
 
-        await supabase.from("master_invoices").update(updatePayload).eq("id", id);
+        await supabase.from("master_invoices").update(updatePayload).eq("id", bill.id);
 
         // Record in normalized invoice_approvals audit table
         await supabase.from("invoice_approvals").insert({
@@ -944,7 +953,11 @@ module.exports = async function handler(req, res) {
 
         if (!id) return Response.error(res, "Invoice ID required");
 
-        const { data: bill } = await supabase.from("master_invoices").select("*").eq("id", id).single();
+        let { data: bill } = await supabase.from("master_invoices").select("*").eq("id", id).maybeSingle();
+        if (!bill) {
+          const { data: billByUid } = await supabase.from("master_invoices").select("*").eq("invoice_unique_id", id).maybeSingle();
+          bill = billByUid;
+        }
         if (!bill) return Response.error(res, "Invoice not found");
 
         await supabase.from("master_invoices").update({
@@ -952,7 +965,7 @@ module.exports = async function handler(req, res) {
           overall_status: "FAIL",
           d11_narration: `${bill.d11_narration || ""} | ${user.role} Rejected: ${remark}`.trim(),
           close_at: new Date().toISOString()
-        }).eq("id", id);
+        }).eq("id", bill.id);
 
         await supabase.from("invoice_approvals").insert({
           invoice_unique_id: bill.invoice_unique_id,
