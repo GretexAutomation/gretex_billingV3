@@ -1489,7 +1489,14 @@ function escapeHtml(str) {
   if (str === undefined || str === null) return "—";
   return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
-if (typeof Utils !== "undefined") Utils.escapeHtml = escapeHtml;
+function escapeJsString(str) {
+  if (!str) return "";
+  return String(str).replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+if (typeof Utils !== "undefined") {
+  Utils.escapeHtml = escapeHtml;
+  Utils.escapeJsString = escapeJsString;
+}
 
 const Dashboard = {
   queueData: [],
@@ -1939,7 +1946,7 @@ const Dashboard = {
       const rowId = inv.rowIndex;
       const invNo = inv["A13. Invoice Number"] || "—";
 
-      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+      return `<tr onclick="Dashboard.openDetail('${rowId}')" style="cursor:pointer;">
         <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
         <td>
           <div style="font-weight:700;color:var(--gray-900);font-size:0.83rem;"><i class="fa fa-user-tie" style="color:#f59e0b;margin-right:4px;"></i>${escapeHtml(hodName)}</div>
@@ -1956,10 +1963,10 @@ const Dashboard = {
         <td>${Utils.statusBadge("HOD")}</td>
         <td style="text-align:right;" onclick="event.stopPropagation()">
           <div style="display:inline-flex;gap:6px;">
-            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal(${rowId}, '${String(invNo).replace(/'/g, "\\'")}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
+            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal('${rowId}', '${escapeJsString(invNo)}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
               <i class="fa fa-bolt"></i> Bypass
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${rowId}')" title="View Details">
               <i class="fa fa-eye"></i>
             </button>
           </div>
@@ -1995,7 +2002,7 @@ const Dashboard = {
       const rowId = inv.rowIndex;
       const invNo = inv["A13. Invoice Number"] || "—";
 
-      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+      return `<tr onclick="Dashboard.openDetail('${rowId}')" style="cursor:pointer;">
         <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
         <td><span class="badge" style="background:#eff6ff;color:#1e40af;font-size:0.74rem;font-weight:600;">${escapeHtml(dept)}</span></td>
         <td>
@@ -2009,10 +2016,10 @@ const Dashboard = {
         <td>${Utils.statusBadge("Account")}</td>
         <td style="text-align:right;" onclick="event.stopPropagation()">
           <div style="display:inline-flex;gap:6px;">
-            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal(${rowId}, '${String(invNo).replace(/'/g, "\\'")}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
+            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal('${rowId}', '${escapeJsString(invNo)}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
               <i class="fa fa-bolt"></i> Bypass
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${rowId}')" title="View Details">
               <i class="fa fa-eye"></i>
             </button>
           </div>
@@ -2048,7 +2055,7 @@ const Dashboard = {
       const rowId = inv.rowIndex;
       const invNo = inv["A13. Invoice Number"] || "—";
 
-      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+      return `<tr onclick="Dashboard.openDetail('${rowId}')" style="cursor:pointer;">
         <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
         <td><span class="badge" style="background:#f5f3ff;color:#6d28d9;font-size:0.74rem;font-weight:600;">${escapeHtml(dept)}</span></td>
         <td>
@@ -2062,10 +2069,10 @@ const Dashboard = {
         <td>${Utils.statusBadge("Finance")}</td>
         <td style="text-align:right;" onclick="event.stopPropagation()">
           <div style="display:inline-flex;gap:6px;">
-            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal(${rowId}, '${String(invNo).replace(/'/g, "\\'")}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
+            <button class="btn btn-sm btn-warning" onclick="Dashboard.openBypassModal('${rowId}', '${escapeJsString(invNo)}')" style="background:#f59e0b;color:#fff;border:none;padding:3px 10px;font-size:0.75rem;font-weight:700;border-radius:6px;" title="Execute CFO Bypass on this bill">
               <i class="fa fa-bolt"></i> Bypass
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+            <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${rowId}')" title="View Details">
               <i class="fa fa-eye"></i>
             </button>
           </div>
@@ -2103,7 +2110,7 @@ const Dashboard = {
       const invNo = inv["A13. Invoice Number"] || "—";
       const clearedAt = inv["close_at"] || inv["SA_Approved_At"] || inv["CFO_Send_At"] || inv["Timestamp"] || "—";
 
-      return `<tr onclick="Dashboard.openDetail(${rowId})" style="cursor:pointer;">
+      return `<tr onclick="Dashboard.openDetail('${rowId}')" style="cursor:pointer;">
         <td style="color:var(--gray-500);font-size:0.83rem">#${inv.rowIndex || idx + 1}</td>
         <td><span class="badge" style="background:#ecfdf5;color:#047857;font-size:0.74rem;font-weight:600;">${escapeHtml(dept)}</span></td>
         <td>
@@ -2116,7 +2123,7 @@ const Dashboard = {
         <td style="font-size:0.78rem;color:var(--gray-600);white-space:nowrap;">${clearedAt}</td>
         <td>${Utils.statusBadge("Completed")}</td>
         <td style="text-align:right;" onclick="event.stopPropagation()">
-          <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${rowId})" title="View Details">
+          <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${rowId}')" title="View Details">
             <i class="fa fa-eye"></i> View
           </button>
         </td>
@@ -2291,13 +2298,13 @@ const Dashboard = {
           recentBody.innerHTML = recent.length === 0 
             ? `<tr><td colspan="6" class="text-center" style="padding:28px;color:var(--gray-400)">No invoices recorded yet</td></tr>`
             : recent.map(inv => `
-              <tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
-                <td><strong style="font-size:0.83rem; color:var(--primary);">${inv["A13. Invoice Number"]||"—"}</strong></td>
-                <td style="font-size:0.82rem; font-weight:500;">${Utils.truncate(inv["A14. Vendor Name"], 20)}</td>
+              <tr style="cursor:pointer" onclick="Dashboard.openDetail('${inv.rowIndex}')">
+                <td><strong style="font-size:0.83rem; color:var(--primary);">${escapeHtml(inv["A13. Invoice Number"]||"—")}</strong></td>
+                <td style="font-size:0.82rem; font-weight:500;">${escapeHtml(Utils.truncate(inv["A14. Vendor Name"], 20))}</td>
                 <td style="font-size:0.82rem; color:var(--gray-600);">${Utils.formatCurrency(inv["A20. Basic Amount"])}</td>
                 <td style="font-size:0.83rem; font-weight:700; color:var(--gray-900);">${Utils.formatCurrency(inv["D1. Final Payable Amt"] || inv["A20. Basic Amount"])}</td>
                 <td>${Utils.statusBadge(inv["Current_Stage"])}</td>
-                <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})" title="View Details"><i class="fa fa-eye"></i></button></td>
+                <td style="text-align:right;"><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail('${inv.rowIndex}')" title="View Details"><i class="fa fa-eye"></i></button></td>
               </tr>
             `).join("");
         }
@@ -2309,14 +2316,14 @@ const Dashboard = {
           redFlagsPanel.innerHTML = flagged.length === 0
             ? `<div class="empty-state" style="padding:28px 0"><div class="empty-icon">✅</div><div class="empty-title">No red flags detected!</div><div style="font-size:0.75rem; color:var(--gray-400); margin-top:4px;">All invoices meet compliance checks</div></div>`
             : flagged.slice(0, 6).map(inv => `
-              <div style="padding:10px 12px; margin-bottom:8px; border:1px solid #fee2e2; background:#fff5f5; border-radius:8px; cursor:pointer; transition:transform 0.15s;" onclick="Dashboard.openDetail(${inv.rowIndex})">
+              <div style="padding:10px 12px; margin-bottom:8px; border:1px solid #fee2e2; background:#fff5f5; border-radius:8px; cursor:pointer; transition:transform 0.15s;" onclick="Dashboard.openDetail('${inv.rowIndex}')">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                  <strong style="font-size:0.82rem; color:#b91c1c;">${inv["A13. Invoice Number"] || "—"}</strong>
+                  <strong style="font-size:0.82rem; color:#b91c1c;">${escapeHtml(inv["A13. Invoice Number"] || "—")}</strong>
                   <span style="font-size:0.72rem; font-weight:700; color:#b91c1c;">${Utils.formatCurrency(inv["D1. Final Payable Amt"] || inv["A20. Basic Amount"])}</span>
                 </div>
-                <div style="font-size:0.78rem; color:var(--gray-700); margin-bottom:4px;">${Utils.truncate(inv["A14. Vendor Name"], 24)}</div>
+                <div style="font-size:0.78rem; color:var(--gray-700); margin-bottom:4px;">${escapeHtml(Utils.truncate(inv["A14. Vendor Name"], 24))}</div>
                 <div style="font-size:0.72rem; color:var(--danger); display:flex; align-items:center; gap:4px; font-weight:600;">
-                  <i class="fa fa-triangle-exclamation"></i> ${Utils.truncate(inv["🚩 Red Flags"], 42)}
+                  <i class="fa fa-triangle-exclamation"></i> ${escapeHtml(Utils.truncate(inv["🚩 Red Flags"], 42))}
                 </div>
               </div>
             `).join("");
@@ -2328,12 +2335,12 @@ const Dashboard = {
           const flagged = all.filter(i => i["🚩 Red Flags"] && String(i["🚩 Red Flags"]).trim() !== "");
           rfBody.innerHTML = flagged.length === 0 
             ? `<tr><td colspan="7" class="text-center" style="padding:32px"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">No red flags!</div></div></td></tr>`
-            : flagged.map(inv => `<tr style="cursor:pointer" onclick="Dashboard.openDetail(${inv.rowIndex})">
-                <td><strong>${inv["A13. Invoice Number"]||"—"}</strong></td><td>${Utils.truncate(inv["A14. Vendor Name"], 20)}</td>
+            : flagged.map(inv => `<tr style="cursor:pointer" onclick="Dashboard.openDetail('${inv.rowIndex}')">
+                <td><strong>${escapeHtml(inv["A13. Invoice Number"]||"—")}</strong></td><td>${escapeHtml(Utils.truncate(inv["A14. Vendor Name"], 20))}</td>
                 <td>${Utils.formatCurrency(inv["A20. Basic Amount"])}</td>
-                <td>${(inv["🚩 Red Flags"]||"").split("|").map(f => `<div class="red-flag-item" style="margin-bottom:4px">🚩 ${f.trim()}</div>`).join("")}</td>
+                <td>${(inv["🚩 Red Flags"]||"").split("|").map(f => `<div class="red-flag-item" style="margin-bottom:4px">🚩 ${escapeHtml(f.trim())}</div>`).join("")}</td>
                 <td>${Utils.statusBadge(inv["Current_Stage"])}</td><td style="white-space:nowrap;font-size:0.8rem">${inv["Timestamp"] || "—"}</td>
-                <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail(${inv.rowIndex})"><i class="fa fa-eye"></i> View</button></td>
+                <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); Dashboard.openDetail('${inv.rowIndex}')"><i class="fa fa-eye"></i> View</button></td>
               </tr>`).join("");
         }
 
@@ -2663,7 +2670,7 @@ const Dashboard = {
 
     count.textContent = ` (${filtered.length})`;
     tbody.innerHTML = filtered.map((inv, idx) => `
-      <tr onclick="Dashboard.openDetail(${inv.rowIndex});" style="cursor:pointer;transition:all 0.2s ease">
+      <tr onclick="Dashboard.openDetail('${inv.rowIndex}');" style="cursor:pointer;transition:all 0.2s ease">
         <td style="color:var(--gray-500);font-size:0.85rem">${idx + 1}</td>
         <td style="font-weight:600;color:var(--primary)">${inv["A13. Invoice Number"] || "—"}</td>
         <td>${Utils.truncate(inv["A14. Vendor Name"], 25)}</td>
@@ -2763,10 +2770,11 @@ const Dashboard = {
       const status = item["Approval Status"] || "Pending";
       const isPending = status === "Pending" || status === "";
       const rowIdx = item.queueRowIndex;
-      return `<tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail(${rowIdx})">
+      const invNo = item["A13. Invoice Number"] || "";
+      return `<tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail('${rowIdx}')">
         <td style="color:var(--gray-400);font-size:0.75rem">${start + i+1}</td>
-        <td><strong>${item["A13. Invoice Number"]||"—"}</strong></td>
-        <td>${Utils.truncate(item["A14. Vendor Name"], 18)}</td>
+        <td><strong>${escapeHtml(invNo || "—")}</strong></td>
+        <td>${escapeHtml(Utils.truncate(item["A14. Vendor Name"], 18))}</td>
         <td>${Utils.formatCurrency(item["A20. Basic Amount"])}</td>
         <td>${item["B1. TDS Applicable"]==="Yes" ? Utils.formatCurrency(item["B8. TDS Amount"]) : "N/A"}</td>
         <td><strong>${Utils.formatCurrency(item["D1. Final Payable Amt"])}</strong></td>
@@ -2774,10 +2782,10 @@ const Dashboard = {
         <td>${isPending ? '<span style="background:#fff3e0;color:#f9a825;padding:4px 10px;border-radius:12px;font-size:0.75rem;font-weight:600">Pending</span>' : status}</td>
         <td onclick="event.stopPropagation()">${isPending ? `<div style="display:flex;gap:6px;align-items:center">
           <button class="btn btn-sm" style="background:#34a853;color:#fff;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:600" 
-            onclick="Dashboard.openApproveModal(${rowIdx}, '${String(item["A13. Invoice Number"]||"").replace(/'/g,"\\'")}')">✅ Approve</button>
+            onclick="Dashboard.openApproveModal('${rowIdx}', '${escapeJsString(invNo)}')">✅ Approve</button>
           ${(!Utils.isBillBypassed(item) && item["Current_Stage"] !== "Account")
             ? `<button class="btn btn-sm" style="background:#ea4335;color:#fff;padding:4px 10px;border:none;border-radius:6px;cursor:pointer;font-size:0.72rem;font-weight:600"
-                onclick="Dashboard.openRejectModal(${rowIdx}, '${String(item["A13. Invoice Number"]||"").replace(/'/g,"\\'")}')">❌ Reject</button>`
+                onclick="Dashboard.openRejectModal('${rowIdx}', '${escapeJsString(invNo)}')">❌ Reject</button>`
             : `<span class="badge" style="background:#fff3e0;color:#e65100;font-size:0.7rem;padding:3px 6px;font-weight:600" title="Bypassed invoices can only be approved">⚡ Bypassed</span>`}
         </div>` : ""}</td>
       </tr>`;
@@ -4552,7 +4560,7 @@ const Dashboard = {
                       </td>
                       <td style="text-align:center"><span class="badge" style="background:#e0f2fe;color:#0369a1">${inv.stage}</span></td>
                       <td style="text-align:center">
-                        <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail(${inv.rowIndex})"><i class="fa fa-eye"></i> View</button>
+                        <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${inv.rowIndex}')"><i class="fa fa-eye"></i> View</button>
                       </td>
                     </tr>
                   `).join("")}
@@ -4921,7 +4929,7 @@ const Dashboard = {
                 ${detailed.length === 0 ? `
                   <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--gray-400);">No invoices match the filter criteria</td></tr>
                 ` : detailed.slice(0, 50).map((r, i) => `
-                  <tr onclick="Dashboard.openDetail(${r.rowIndex})" style="cursor:pointer;" title="Click to view full detail & tracking timeline">
+                  <tr onclick="Dashboard.openDetail('${r.rowIndex}')" style="cursor:pointer;" title="Click to view full detail & tracking timeline">
                     <td style="color:var(--gray-400);font-size:0.75rem;">${i+1}</td>
                     <td><strong>${r.invNo}</strong></td>
                     <td>${Utils.truncate(r.vendor, 24)}</td>
@@ -5027,9 +5035,10 @@ const Dashboard = {
 
   getInvoiceById(id) {
     if (id === null || id === undefined) return null;
-    let inv = (Dashboard.queueData || []).find(b => b.rowIndex === id || b.queueRowIndex === id || b.id === id || b.id == id);
-    if (!inv) inv = (Dashboard.allInvoicesData || []).find(b => b.rowIndex === id || b.queueRowIndex === id || b.id === id || b.id == id || b["A13. Invoice Number"] === id);
-    if (!inv) inv = (Dashboard.billerInvoicesData || []).find(b => b.id === id || b.id == id || b.rowIndex === id || b.invoice_number === id);
+    const sId = String(id).trim();
+    let inv = (Dashboard.queueData || []).find(b => String(b.rowIndex) === sId || String(b.queueRowIndex) === sId || String(b.id) === sId || String(b["A13. Invoice Number"]) === sId);
+    if (!inv) inv = (Dashboard.allInvoicesData || []).find(b => String(b.rowIndex) === sId || String(b.queueRowIndex) === sId || String(b.id) === sId || String(b["A13. Invoice Number"]) === sId);
+    if (!inv) inv = (Dashboard.billerInvoicesData || []).find(b => String(b.id) === sId || String(b.rowIndex) === sId || String(b.invoice_number) === sId);
     return inv;
   },
 
