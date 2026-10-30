@@ -1164,7 +1164,7 @@
 
       <div class="rev-tab-content" id="rtab-accounting">
         <div style="padding:16px 20px">
-          <div style="font-size:0.72rem;font-weight:700;
+          <div id="editNoticeBanner" style="font-size:0.72rem;font-weight:700;
             color:var(--primary);text-transform:uppercase;
             letter-spacing:0.5px;margin-bottom:12px;
             display:flex;align-items:center;gap:6px">
@@ -2951,6 +2951,12 @@ const Dashboard = {
     const sheet    = bill._sourceSheet || "Invoices";
     const rowNum   = bill._sheetRowIndex || bill.queueRowIndex || bill.rowIndex;
 
+    // 🔒 RULE: Biller ek bar bill aage send kr dega approval ke liye phir wo usme koi change ni kr skta.
+    // Only raw intake bills that are 'New' (in Invoices sheet) can be edited!
+    const isFromMaster = (bill._sourceSheet === "Master_Invoices" || sheet === "Master_Invoices" || !bill.isNew || bill.biller_status !== "New");
+    const isSentOrCompleted = (status === "Approved" || status === "Rejected" || status.startsWith("Sent") || (bill.current_stage && bill.current_stage !== "Biller"));
+    const isEditable = !isFromMaster && !isSentOrCompleted;
+
     document.getElementById("modalInvoiceNo").textContent = invNo;
 
     const sheetBadge = sheet === "Invoices"
@@ -3106,7 +3112,7 @@ const Dashboard = {
         type:"select",options:["","Yes","No","Cannot Determine"]},
       {key:"a24",label:"A24. Amount Justified",  field:"A24. Amount Justified",  val:bill["A24. Amount Justified"],
         type:"select",options:["","Yes","No","Cannot Determine"]}
-    ].map(f => Dashboard.buildEditField(f)).join("");
+    ].map(f => Dashboard.buildEditField(f, isEditable)).join("");
 
     document.getElementById("tdsFields").innerHTML = [
       {key:"b1",label:"B1. TDS Applicable",    field:"B1. TDS Applicable",    val:bill["B1. TDS Applicable"],
@@ -3124,7 +3130,7 @@ const Dashboard = {
       {key:"b7",label:"B7. TDS Rate",          field:"B7. TDS Rate",          val:bill["B7. TDS Rate"],
         type:"select",options:["","0.20%","0.50%","1%","2%","5%","10%","30%","NA"]},
       {key:"b8",label:"B8. TDS Amount",        field:"B8. TDS Amount",        val:bill["B8. TDS Amount"],        type:"number"}
-    ].map(f => Dashboard.buildEditField(f)).join("");
+    ].map(f => Dashboard.buildEditField(f, isEditable)).join("");
 
     document.getElementById("gstFields").innerHTML = [
       {key:"c1", label:"C1. GST Charged",        field:"C1. GST Charged",
@@ -3155,7 +3161,7 @@ const Dashboard = {
       {key:"c11",label:"C11. Blocked Credit",    field:"C11. Blocked Credit",
         val:bill["C11. Blocked Credit"],type:"select",
         options:["","Yes","No","Cannot Determine"]}
-    ].map(f => Dashboard.buildEditField(f)).join("");
+    ].map(f => Dashboard.buildEditField(f, isEditable)).join("");
 
     document.getElementById("processFields").innerHTML = [
       {key:"d1", label:"D1. Final Payable",       field:"D1. Final Payable Amt",
@@ -3183,7 +3189,7 @@ const Dashboard = {
         val:bill["D10. Update Email"]},
       {key:"d11",label:"D11. Narration",          field:"D11. Narration",
         val:bill["D11. Narration"],wide:true,type:"textarea"}
-    ].map(f => Dashboard.buildEditField(f)).join("");
+    ].map(f => Dashboard.buildEditField(f, isEditable)).join("");
 
     const flagsEl = document.getElementById("flagsContent");
     if (redFlags && redFlags.trim() !== "") {
@@ -3240,11 +3246,29 @@ const Dashboard = {
       dBtn.style.display = "none";
     }
 
+    // 🔒 TABS & BUTTONS LOCKDOWN
     const sendTab = document.getElementById("sendApprovalTab");
-    if (status === "Approved" || status === "Rejected" || status.startsWith("Sent")) {
-      if (sendTab) sendTab.style.display = "none";
-    } else {
-      if (sendTab) sendTab.style.display = "inline-block";
+    if (sendTab) sendTab.style.display = isEditable ? "inline-block" : "none";
+
+    const saveBtn = document.getElementById("modalSaveBtn");
+    if (saveBtn) saveBtn.style.display = isEditable ? "inline-flex" : "none";
+
+    const bannerEl = document.getElementById("editNoticeBanner");
+    if (bannerEl) {
+      if (isEditable) {
+        bannerEl.style.color = "var(--primary)";
+        bannerEl.style.background = "transparent";
+        bannerEl.style.border = "none";
+        bannerEl.style.padding = "0";
+        bannerEl.innerHTML = `<i class="fa fa-pencil" style="font-size:0.7rem"></i> All fields are editable — changes tracked in yellow`;
+      } else {
+        bannerEl.style.color = "#92400e";
+        bannerEl.style.background = "#fef3c7";
+        bannerEl.style.border = "1px solid #fcd34d";
+        bannerEl.style.padding = "8px 12px";
+        bannerEl.style.borderRadius = "8px";
+        bannerEl.innerHTML = `<i class="fa fa-lock" style="font-size:0.85rem;color:#d97706"></i> <span><strong>LOCKED / READ-ONLY:</strong> This bill has been forwarded for approval (${bill.current_stage || status}). Fields cannot be modified.</span>`;
+      }
     }
 
     document.querySelectorAll(".rev-tab")
@@ -3257,7 +3281,7 @@ const Dashboard = {
 
     // --- DELETE BUTTON VISIBILITY LOGIC ---
     const delBtn = document.getElementById("modalDeleteBtn");
-    if (status === "New") {
+    if (isEditable) {
       if (delBtn) delBtn.style.display = "inline-flex";
     } else {
       if (delBtn) delBtn.style.display = "none";
@@ -3271,10 +3295,24 @@ const Dashboard = {
     document.getElementById("reviewModal").classList.add("active");
   },
 
-  buildEditField(f) {
+  buildEditField(f, isEditable = true) {
     const val  = (f.val !== undefined && f.val !== null &&
       f.val !== "") ? String(f.val) : "";
     const wide = f.wide ? "grid-column:1/-1" : "";
+
+    // 🔒 READ-ONLY MODE: For forwarded bills, render clean, non-editable summary boxes without pencil emojis
+    if (!isEditable) {
+      const displayVal = val || "—";
+      return `<div class="edit-field readonly-field" id="ef-${f.key}"
+        style="${wide}; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px;">
+        <label style="color: #64748b; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; display: block;">
+          ${f.label}
+        </label>
+        <div style="font-size: 0.88rem; font-weight: 500; color: #1e293b; word-break: break-word;">
+          ${displayVal}
+        </div>
+      </div>`;
+    }
 
     let input = "";
     if (f.type === "select") {
@@ -3317,6 +3355,10 @@ const Dashboard = {
   },
 
   onFieldChange(el) {
+    if (!Dashboard.currentBill) return;
+    const isNew = Dashboard.currentBill.isNew === true || Dashboard.currentBill.biller_status === "New" || Dashboard.currentBill._sourceSheet === "Invoices";
+    if (!isNew) return;
+
     Dashboard.pendingEdits[el.dataset.field] = el.value;
     const fieldDiv = document.getElementById("ef-" + el.dataset.key);
     if (fieldDiv) fieldDiv.classList.add("changed");
@@ -3375,6 +3417,13 @@ const Dashboard = {
     const bill = Dashboard.currentBill;
     if (!bill) return;
 
+    // 🔒 LOCKDOWN GUARD: If bill is already submitted, prevent any changes
+    const isNew = bill.isNew === true || bill.biller_status === "New" || bill._sourceSheet === "Invoices";
+    if (!isNew) {
+      Toast.error("Locked: This bill has already been submitted for approval and cannot be modified.");
+      return;
+    }
+
     const notesElem = document.getElementById("editReviewNotes");
     const notes = notesElem ? notesElem.value : "";
     
@@ -3427,6 +3476,15 @@ const Dashboard = {
 
   async sendForApproval() {
     const bill = Dashboard.currentBill;
+    if (!bill) return;
+
+    // 🔒 LOCKDOWN GUARD: If bill is already submitted, prevent duplicate submission
+    const isNew = bill.isNew === true || bill.biller_status === "New" || bill._sourceSheet === "Invoices";
+    if (!isNew) {
+      Toast.error("Locked: This bill has already been submitted for approval.");
+      return;
+    }
+
     const targetRole = document.getElementById("sendToRole").value || "HOD";
     const deptElem = document.getElementById("sendDepartment");
     const department = deptElem ? deptElem.value : "General";
