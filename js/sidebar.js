@@ -747,22 +747,40 @@ const Header = {
   // ─────────────────────────────────────────────
   async syncNow() {
     const btn = document.getElementById("syncBtn");
-    if (!btn) return;
-
-    btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i>`;
-    btn.disabled  = true;
+    if (btn) {
+      btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i>`;
+      btn.disabled  = true;
+    }
 
     try {
-      Toast.info("Syncing invoices...");
+      Toast.info("Syncing data...");
       if (typeof Dashboard !== "undefined") {
-        await Dashboard.loadCurrentSection();
+        if (typeof Dashboard.loadCurrentSection === "function") {
+          await Dashboard.loadCurrentSection();
+        } else if (typeof Dashboard.loadDashboardData === "function") {
+          await Dashboard.loadDashboardData();
+        } else if (typeof Dashboard.loadAllData === "function") {
+          await Dashboard.loadAllData();
+        } else if (typeof Dashboard.loadReports === "function" && window.location.hash.includes("reports")) {
+          await Dashboard.loadReports();
+        } else if (typeof Dashboard.init === "function") {
+          await Dashboard.init();
+        }
+
+        const hash = (window.location.hash || "").replace("#", "");
+        if (hash && typeof Dashboard.showSection === "function") {
+          Dashboard.showSection(hash);
+        }
       }
-      Toast.success("Invoices synced successfully!");
+      Toast.success("Data synced successfully!");
     } catch (e) {
-      Toast.error("Sync failed: " + e.message);
+      console.error("Sync error:", e);
+      Toast.error("Sync failed: " + (e?.message || e));
     } finally {
-      btn.innerHTML = `<i class="fa fa-rotate"></i>`;
-      btn.disabled  = false;
+      if (btn) {
+        btn.innerHTML = `<i class="fa fa-rotate"></i>`;
+        btn.disabled  = false;
+      }
     }
   },
 
