@@ -982,6 +982,26 @@
 
       <!-- APPROVE QUEUE SECTION -->
       <div class="section" id="section-approve">
+        <!-- Sticky / Top Bulk Action Bar -->
+        <div id="bulkActionBar" style="display:none; margin-bottom:14px; padding:12px 18px; background:linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); border:1.5px solid #c7d2fe; border-radius:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; box-shadow:0 4px 12px rgba(67, 56, 202, 0.08);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="background:#4338ca; color:#fff; font-weight:700; border-radius:50%; width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem;" id="selectedCountBadge">0</span>
+            <div>
+              <strong style="color:#1e1b4b; font-size:0.92rem;"><span id="selectedCountText">0</span> Invoices Selected</strong>
+              <div style="color:#6366f1; font-size:0.78rem;">Committed Clearance: <strong id="selectedTotalAmt">₹0.00</strong></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-sm" style="background:#10b981; color:#fff; font-weight:700; padding:6px 16px; border-radius:6px; border:none; cursor:pointer;" onclick="Dashboard.openBulkApproveModal()">
+              <i class="fa fa-check-double"></i> Bulk Approve (<span class="selectedCountNum">0</span>)
+            </button>
+            <button class="btn btn-sm" style="background:#ef4444; color:#fff; font-weight:700; padding:6px 16px; border-radius:6px; border:none; cursor:pointer;" onclick="Dashboard.openBulkRejectModal()">
+              <i class="fa fa-times-circle"></i> Bulk Reject (<span class="selectedCountNum">0</span>)
+            </button>
+            <button class="btn btn-sm btn-ghost" onclick="Dashboard.clearQueueSelection()">Deselect All</button>
+          </div>
+        </div>
+
         <div class="card" style="margin-bottom:16px">
           <div class="card-body" style="padding:14px 20px">
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -1005,7 +1025,7 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <i class="fa fa-list-check"></i> CFO Approval Queue
+              <i class="fa fa-user-clock"></i> Pending for me
               <span id="cfoQueueCount" style="font-weight:400;color:var(--gray-500);font-size:0.8rem"></span>
             </div>
           </div>
@@ -1014,11 +1034,11 @@
             <table class="data-table">
               <thead style="position: sticky; top: 0; z-index: 10;">
                 <tr>
-                  <th>#</th><th>Invoice No</th><th>Vendor</th><th>Basic Amt</th><th>TDS</th><th>Final Payable</th><th>🚩</th><th>Queue Status</th><th>Actions</th>
+                  <th style="width:36px;text-align:center;"><input type="checkbox" id="selectAllQueueCheck" onchange="Dashboard.toggleSelectAllQueue(this.checked)" title="Select / Deselect All"/></th><th>#</th><th>Invoice No</th><th>Vendor</th><th>Basic Amt</th><th>TDS</th><th>Final Payable</th><th>🚩</th><th>Queue Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody id="cfoQueueBody">
-                <tr><td colspan="9" class="text-center" style="padding:32px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i> Loading queue...</td></tr>
+                <tr><td colspan="10" class="text-center" style="padding:32px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i> Loading queue...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1478,6 +1498,50 @@
       </button>
       <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeRejectModal()">Cancel</button>
     </div>
+<!-- BULK APPROVE MODAL -->
+<div class="modal-overlay" id="bulkApproveModal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#059669,#047857);color:#fff">
+      <h5 class="modal-title"><i class="fa fa-check-double"></i> Bulk CFO Approval</h5>
+      <button class="modal-close" style="color:#fff" onclick="Dashboard.closeBulkApproveModal()">✕</button>
+    </div>
+    <div style="padding:20px">
+      <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:12px; margin-bottom:14px; color:#065f46; font-size:0.85rem;">
+        You are about to approve <strong id="bulkApproveModalCount">0</strong> selected invoices. These will be forwarded to SuperAdmin for final clearance.
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" style="font-size:0.8rem;font-weight:600">Approval Narration / Audit Note</label>
+        <textarea id="bulkApproveNote" class="form-control" rows="2" style="font-size:0.85rem;">Approved by CFO</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="confirmBulkApproveBtn" style="background:#10b981;border:none;" onclick="Dashboard.confirmBulkApprove()"><i class="fa fa-check-double"></i> Confirm Bulk Approval</button>
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeBulkApproveModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK REJECT MODAL -->
+<div class="modal-overlay" id="bulkRejectModal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header" style="background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff">
+      <h5 class="modal-title"><i class="fa fa-times-circle"></i> Bulk Reject Invoices</h5>
+      <button class="modal-close" style="color:#fff" onclick="Dashboard.closeBulkRejectModal()">✕</button>
+    </div>
+    <div style="padding:20px">
+      <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px; margin-bottom:14px; color:#991b1b; font-size:0.85rem;">
+        You are about to reject <strong id="bulkRejectModalCount">0</strong> selected invoices. These invoices will be permanently closed.
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label class="form-label" style="font-size:0.8rem;font-weight:600">Mandatory Rejection Reason *</label>
+        <textarea id="bulkRejectReason" class="form-control" rows="3" placeholder="Provide reason for bulk rejection..." style="font-size:0.85rem;"></textarea>
+        <div id="bulkRejectError" style="display:none;color:#dc2626;font-size:0.78rem;margin-top:4px;">Please provide a rejection reason.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="confirmBulkRejectBtn" onclick="Dashboard.confirmBulkReject()"><i class="fa fa-times"></i> Confirm Bulk Rejection</button>
+      <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeBulkRejectModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -1500,6 +1564,7 @@ if (typeof Utils !== "undefined") {
 
 const Dashboard = {
   queueData: [],
+  selectedQueueIds: new Set(),
   queueFiltered: [],
   queueCurrentPage: 1, 
   queuePageSize: 15,
@@ -1774,6 +1839,8 @@ const Dashboard = {
   },
 
   showSection(id) {
+    if(!id) id = "dashboard";
+    if(id === "pendingforme") id = "approve";
     if(id === "tds-summary") id = "tds";
     if(id === "gst-summary") id = "gst";
 
@@ -1787,7 +1854,8 @@ const Dashboard = {
       athod: "Pipeline: Bills with Department Heads (HOD)",
       ataccount: "Pipeline: Bills with Accounts",
       atfinance: "Pipeline: Bills with Finance",
-      approve: "CFO Clearance Queue",
+      approve: "Pending for me",
+      pendingforme: "Pending for me",
       completed: "Completed & Payment Cleared Invoices",
       redflags: "Red Flagged Invoices",
       reports: "Executive Spend & Operations Reports",
@@ -1800,12 +1868,13 @@ const Dashboard = {
     
     // Attempt to map back to sidebar IDs properly
     let sbId = id;
+    if(id === "pendingforme") sbId = "approve";
     if(id === "tds") sbId = "tds-summary";
     if(id === "gst") sbId = "gst-summary";
     Sidebar.setActive(sbId);
     
     if (id === "dashboard") Dashboard.renderDashboardCharts();
-    if (id === "approve") Dashboard.loadApprovalQueue();
+    if (id === "approve" || id === "pendingforme") Dashboard.loadApprovalQueue();
     if (id === "atbiller") Dashboard.renderAtBillerTable();
     if (id === "athod") Dashboard.renderAtHodTable();
     if (id === "ataccount") Dashboard.renderAtAccountTable();
@@ -2370,6 +2439,17 @@ const Dashboard = {
           if (sId === "completed") Dashboard.renderCompletedTable();
         }
 
+        // Sync Pending for me badge in sidebar
+        const approvalBadges = document.querySelectorAll("[id^='badge-approval']");
+        approvalBadges.forEach(b => {
+          if (cfoPendingCount > 0) {
+            b.textContent = cfoPendingCount > 99 ? "99+" : cfoPendingCount;
+            b.style.display = "inline-block";
+          } else {
+            b.style.display = "none";
+          }
+        });
+
         // Render all 4 Dashboard Charts!
         Dashboard.renderDashboardCharts();
       }
@@ -2702,18 +2782,22 @@ const Dashboard = {
   async loadApprovalQueue(isSilent = false) {
     const tbody = document.getElementById("cfoQueueBody");
     if (!isSilent && tbody) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:32px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i> Loading queue...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding:32px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i> Loading queue...</td></tr>`;
     }
 
-    const res = await API.cfo.getQueue();
+    const res = await API.cfo.getQueue({ stage: "CFO" });
     if (!res?.success) {
       if (!isSilent && tbody) {
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:32px">Failed to load.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding:32px">Failed to load.</td></tr>`;
       }
       return;
     }
 
-    Dashboard.queueData = (res.data.queue || []).map(item => {
+    // 🛡️ Filter strictly for bills currently pending at CFO stage
+    Dashboard.queueData = (res.data.queue || []).filter(item => {
+      const stage = item.current_stage || item["Current_Stage"] || "";
+      return stage === "CFO";
+    }).map(item => {
       const accStatus   = (item["Account_Status"] || "").toString();
       const cfoStatus   = (item["CFO_Status"] || "").toString();
       const adminStatus = (item["Admin_Status"] || "").toString();
@@ -2721,12 +2805,26 @@ const Dashboard = {
       const isRejectedAnywhere = [accStatus, cfoStatus, adminStatus, saStatus].some(s => s === "Rejected");
       if (isRejectedAnywhere) { item["Approval Status"] = "Rejected"; } 
       else if (cfoStatus.includes("Approved")) { item["Approval Status"] = "Approved"; } 
-      else if (item["Current_Stage"] === "CFO") { item["Approval Status"] = "Pending"; }
+      else if (item["Current_Stage"] === "CFO" || item.current_stage === "CFO") { item["Approval Status"] = "Pending"; }
       return item;
     });
+
+    Dashboard.clearQueueSelection();
     Dashboard.queueFiltered = [...Dashboard.queueData];
     Dashboard.queueCurrentPage = 1;
     Dashboard.renderQueue();
+
+    // Sync Pending for me badge in sidebar
+    const approvalBadges = document.querySelectorAll("[id^='badge-approval']");
+    const pendingCfoCount = Dashboard.queueData.filter(i => (i["Approval Status"] || "Pending") === "Pending").length;
+    approvalBadges.forEach(b => {
+      if (pendingCfoCount > 0) {
+        b.textContent = pendingCfoCount > 99 ? "99+" : pendingCfoCount;
+        b.style.display = "inline-block";
+      } else {
+        b.style.display = "none";
+      }
+    });
 
     const input = document.getElementById("cfoQueueSearch");
     if (input && !input._bound) {
@@ -2770,7 +2868,7 @@ const Dashboard = {
     if(count) count.textContent = `(${data.length} items)`;
     
     if (data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:40px"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Queue is empty</div></div></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding:40px"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Queue is empty</div></div></td></tr>`;
       Dashboard.renderQueuePagination(0, 0);
       return;
     }
@@ -2790,6 +2888,7 @@ const Dashboard = {
       const isPending = (status === "Pending" || status === "") && !isRejected && !isCompleted;
       const rowIdx = item.queueRowIndex;
       const invNo = item["A13. Invoice Number"] || "";
+      const isSelected = Dashboard.selectedQueueIds.has(String(rowIdx));
 
       let actionTd = "";
       if (isRejected) {
@@ -2810,6 +2909,11 @@ const Dashboard = {
       }
 
       return `<tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail('${rowIdx}')">
+        <td style="text-align:center;" onclick="event.stopPropagation()">
+          ${isPending 
+            ? `<input type="checkbox" class="queue-row-chk" value="${rowIdx}" ${isSelected ? 'checked' : ''} onchange="Dashboard.toggleSelectQueue('${rowIdx}', this.checked)"/>` 
+            : `<span style="color:var(--gray-300)">-</span>`}
+        </td>
         <td style="color:var(--gray-400);font-size:0.75rem">${start + i+1}</td>
         <td><strong>${escapeHtml(invNo || "—")}</strong></td>
         <td>${escapeHtml(Utils.truncate(item["A14. Vendor Name"], 18))}</td>
@@ -2823,6 +2927,176 @@ const Dashboard = {
     }).join("");
 
     Dashboard.renderQueuePagination(total, end);
+  },
+
+  toggleSelectQueue(id, checked) {
+    if (checked) {
+      Dashboard.selectedQueueIds.add(String(id));
+    } else {
+      Dashboard.selectedQueueIds.delete(String(id));
+    }
+    Dashboard.updateBulkActionBar();
+  },
+
+  toggleSelectAllQueue(checked) {
+    const pendingItems = (Dashboard.queueFiltered || []).filter(item => {
+      const status = item["Approval Status"] || "Pending";
+      const isRejected = item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected";
+      const currentStage = item.current_stage || item["Current_Stage"] || "";
+      const isCompleted = currentStage === "Completed" || status === "Approved" || item.overall_status === "PASS";
+      return !isRejected && !isCompleted && (status === "Pending" || status === "");
+    });
+
+    if (checked) {
+      pendingItems.forEach(item => {
+        Dashboard.selectedQueueIds.add(String(item.queueRowIndex));
+      });
+    } else {
+      Dashboard.selectedQueueIds.clear();
+    }
+    Dashboard.updateBulkActionBar();
+    Dashboard.renderQueue();
+  },
+
+  updateBulkActionBar() {
+    const bar = document.getElementById("bulkActionBar");
+    const countBadge = document.getElementById("selectedCountBadge");
+    const countText = document.getElementById("selectedCountText");
+    const countNums = document.querySelectorAll(".selectedCountNum");
+    const count = Dashboard.selectedQueueIds.size;
+
+    if (!bar) return;
+
+    if (count > 0) {
+      bar.style.display = "flex";
+      if (countBadge) countBadge.textContent = count;
+      if (countText) countText.textContent = count;
+      countNums.forEach(el => el.textContent = count);
+    } else {
+      bar.style.display = "none";
+    }
+
+    let totalAmt = 0;
+    Dashboard.selectedQueueIds.forEach(id => {
+      const inv = (Dashboard.queueData || []).find(b => String(b.queueRowIndex) === String(id) || String(b.id) === String(id));
+      if (inv) {
+        totalAmt += Number(inv["D1. Final Payable Amt"] || inv.d1_final_payable_amt || inv["A20. Basic Amount"] || inv.a20_basic_amount || 0);
+      }
+    });
+    const amtEl = document.getElementById("selectedTotalAmt");
+    if (amtEl) amtEl.textContent = Utils.formatCurrency(totalAmt);
+  },
+
+  clearQueueSelection() {
+    Dashboard.selectedQueueIds.clear();
+    const chkAll = document.getElementById("selectAllQueueCheck");
+    if (chkAll) chkAll.checked = false;
+    Dashboard.updateBulkActionBar();
+    Dashboard.renderQueue();
+  },
+
+  openBulkApproveModal() {
+    if (Dashboard.selectedQueueIds.size === 0) return Toast.warning("Please select at least one invoice.");
+    document.getElementById("bulkApproveModalCount").textContent = Dashboard.selectedQueueIds.size;
+    document.getElementById("bulkApproveModal").classList.add("active");
+  },
+
+  closeBulkApproveModal() {
+    document.getElementById("bulkApproveModal").classList.remove("active");
+  },
+
+  async confirmBulkApprove() {
+    const note = document.getElementById("bulkApproveNote")?.value.trim() || "Bulk Approved by CFO";
+    const ids = Array.from(Dashboard.selectedQueueIds);
+    if (ids.length === 0) return;
+
+    Dashboard.closeBulkApproveModal();
+    Loader.show(`Approving ${ids.length} invoices...`);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      Loader.show(`Approving invoice ${i + 1} of ${ids.length}...`);
+      try {
+        const res = await API.cfo.approveBill(id, note);
+        if (res?.success) successCount++;
+        else failCount++;
+      } catch (e) {
+        failCount++;
+      }
+    }
+
+    Loader.hide();
+    Dashboard.selectedQueueIds.clear();
+    Dashboard.updateBulkActionBar();
+
+    if (successCount > 0) {
+      Toast.success(`Successfully approved ${successCount} invoices! Forwarded to SuperAdmin.`);
+    }
+    if (failCount > 0) {
+      Toast.error(`Failed to approve ${failCount} invoices.`);
+    }
+
+    await Dashboard.loadApprovalQueue(true);
+    await Dashboard.loadDashboardData();
+  },
+
+  openBulkRejectModal() {
+    if (Dashboard.selectedQueueIds.size === 0) return Toast.warning("Please select at least one invoice.");
+    document.getElementById("bulkRejectModalCount").textContent = Dashboard.selectedQueueIds.size;
+    document.getElementById("bulkRejectReason").value = "";
+    document.getElementById("bulkRejectError").style.display = "none";
+    document.getElementById("bulkRejectModal").classList.add("active");
+  },
+
+  closeBulkRejectModal() {
+    document.getElementById("bulkRejectModal").classList.remove("active");
+  },
+
+  async confirmBulkReject() {
+    const reason = document.getElementById("bulkRejectReason")?.value.trim();
+    if (!reason) {
+      document.getElementById("bulkRejectError").style.display = "block";
+      return;
+    }
+    document.getElementById("bulkRejectError").style.display = "none";
+
+    const ids = Array.from(Dashboard.selectedQueueIds);
+    if (ids.length === 0) return;
+
+    Dashboard.closeBulkRejectModal();
+    Loader.show(`Rejecting ${ids.length} invoices...`);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      Loader.show(`Rejecting invoice ${i + 1} of ${ids.length}...`);
+      try {
+        const res = await API.cfo.rejectBill(id, reason);
+        if (res?.success) successCount++;
+        else failCount++;
+      } catch (e) {
+        failCount++;
+      }
+    }
+
+    Loader.hide();
+    Dashboard.selectedQueueIds.clear();
+    Dashboard.updateBulkActionBar();
+
+    if (successCount > 0) {
+      Toast.success(`Successfully rejected ${successCount} invoices.`);
+    }
+    if (failCount > 0) {
+      Toast.error(`Failed to reject ${failCount} invoices.`);
+    }
+
+    await Dashboard.loadApprovalQueue(true);
+    await Dashboard.loadDashboardData();
   },
 
   renderQueuePagination(total, end) {
