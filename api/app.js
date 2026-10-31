@@ -191,6 +191,13 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
     "🚩 Red Flags": b.red_flags || "",
     Timestamp: b.timestamp || b.created_at || new Date().toISOString(),
 
+    // Field aliases for backward compatibility & direct property access
+    invoice_number: b.a13_invoice_number || b.invoice_unique_id || "",
+    invoice_date: b.a12_invoice_date || "",
+    vendor_name: b.a14_vendor_name || "",
+    description: b.a16_bill_description || "",
+    total_amount: Number(b.d1_final_payable_amt || b.a20_basic_amount) || 0,
+
     "Biller_Send_At": billerAction?.action_taken_at || (isNew ? "" : (b.created_at || b.timestamp)),
     "HOD_Send_At": hodAction?.action_taken_at || "",
     "HOD_Status": (() => {
