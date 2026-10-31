@@ -2170,7 +2170,7 @@ const Dashboard = {
     if (!tbody) return;
     const search = (document.getElementById("completedSearchInput")?.value || "").toLowerCase();
     let completedInvoices = (Dashboard.allInvoicesData || []).filter(inv => 
-      (inv["Current_Stage"] || "").trim() === "Completed" || (inv["Approval Status"] || "").trim() === "Approved" || (inv["overall_status"] || "").trim() === "PASS"
+      (inv["Current_Stage"] || "").trim() === "Completed"
     );
 
     if (search) {
@@ -2269,12 +2269,12 @@ const Dashboard = {
           totalPayable += payable;
           totalTds += tds;
 
-          if (stage === "Completed" || appStatus === "Approved" || inv["overall_status"] === "PASS") {
+          if (stage === "Completed") {
             approvedCount++;
             completedCount++;
             completedVal += payable;
             totalApprovedVal += payable;
-          } else if (stage.includes("Reject") || appStatus.includes("Reject")) {
+          } else if (stage.includes("Reject") || appStatus.includes("Reject") || ((inv["overall_status"] === "FAIL" || inv["overall_status"] === "Rejected") && stage === "Completed")) {
             rejectedCount++;
             totalRejectedVal += payable;
           } else {
@@ -2795,17 +2795,11 @@ const Dashboard = {
 
     // 🛡️ Filter strictly for bills currently pending at CFO stage
     Dashboard.queueData = (res.data.queue || []).filter(item => {
-      const stage = item.current_stage || item["Current_Stage"] || "";
-      return stage === "CFO";
+      const stage = (item.current_stage || item["Current_Stage"] || "").trim();
+      const isRejected = (item.overall_status === "FAIL" || item.overall_status === "Rejected") && stage === "Completed";
+      return stage === "CFO" && !isRejected;
     }).map(item => {
-      const accStatus   = (item["Account_Status"] || "").toString();
-      const cfoStatus   = (item["CFO_Status"] || "").toString();
-      const adminStatus = (item["Admin_Status"] || "").toString();
-      const saStatus    = (item["SA_Status"] || "").toString();
-      const isRejectedAnywhere = [accStatus, cfoStatus, adminStatus, saStatus].some(s => s === "Rejected");
-      if (isRejectedAnywhere) { item["Approval Status"] = "Rejected"; } 
-      else if (cfoStatus.includes("Approved")) { item["Approval Status"] = "Approved"; } 
-      else if (item["Current_Stage"] === "CFO" || item.current_stage === "CFO") { item["Approval Status"] = "Pending"; }
+      item["Approval Status"] = "Pending";
       return item;
     });
 
@@ -2881,9 +2875,9 @@ const Dashboard = {
 
     tbody.innerHTML = pageData.map((item, i) => {
       const status = item["Approval Status"] || "Pending";
-      const isRejected = item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected";
       const currentStage = item.current_stage || item["Current_Stage"] || "";
-      const isCompleted = currentStage === "Completed" || status === "Approved" || item.overall_status === "PASS";
+      const isRejected = (item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected") && currentStage === "Completed";
+      const isCompleted = currentStage === "Completed";
       const isBypassed = (typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(item) : false;
       const isPending = (status === "Pending" || status === "") && !isRejected && !isCompleted;
       const rowIdx = item.queueRowIndex;
@@ -2941,9 +2935,9 @@ const Dashboard = {
   toggleSelectAllQueue(checked) {
     const pendingItems = (Dashboard.queueFiltered || []).filter(item => {
       const status = item["Approval Status"] || "Pending";
-      const isRejected = item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected";
       const currentStage = item.current_stage || item["Current_Stage"] || "";
-      const isCompleted = currentStage === "Completed" || status === "Approved" || item.overall_status === "PASS";
+      const isRejected = (item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected") && currentStage === "Completed";
+      const isCompleted = currentStage === "Completed";
       return !isRejected && !isCompleted && (status === "Pending" || status === "");
     });
 
@@ -5398,8 +5392,8 @@ const Dashboard = {
     const approveBtn = document.getElementById("modalApproveBtn");
     const rejectBtn = document.getElementById("modalRejectBtn");
 
-    const isRejected = inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected";
-    const isCompleted = currentStage === "Completed" || inv["Approval Status"] === "Approved" || inv["overall_status"] === "PASS";
+    const isRejected = (inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected") && currentStage === "Completed";
+    const isCompleted = currentStage === "Completed";
     const isAtCfo = currentStage === "CFO";
     const isBypassed = (typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(inv) : false;
 
