@@ -942,9 +942,11 @@ module.exports = async function handler(req, res) {
             query = query.eq("current_stage", "CFO");
           }
         } else if (user.role === "SuperAdmin") {
-          // SuperAdmin can filter by requested stage or see active
+          // SuperAdmin can filter by requested stage or default to SuperAdmin pending queue
           if (params.stage && params.stage !== "All") {
             query = query.eq("current_stage", params.stage);
+          } else if (action === "getApprovalQueue" && !params.stage) {
+            query = query.eq("current_stage", "SuperAdmin");
           }
         }
 
