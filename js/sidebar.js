@@ -29,7 +29,7 @@ const Sidebar = {
               { id: "completed", label: "Completed",   page: "biller.html#completed", icon: "fa-circle-check" }
             ]
           },
-          { id: "flowup",    icon: "fa-network-wired", label: "Invoice Flow & Live Update", page: "biller.html#flowup" },
+          { id: "flowup",    icon: "fa-timeline",     label: "Flowup",        page: "biller.html#flowup" },
           { id: "approved",  icon: "fa-check-double", label: "Approved",      page: "biller.html#approved" }
         ]
       },
@@ -299,7 +299,6 @@ const Sidebar = {
     Sidebar.render(user, activeId);
     Sidebar.setupToggle();
     Sidebar.setupMobile();
-    Sidebar.setupClickListeners();
     Sidebar.loadBadges();
   },
 
@@ -432,81 +431,30 @@ const Sidebar = {
   // ─────────────────────────────────────────────
   // NAVIGATE: Go to page/section
   // ─────────────────────────────────────────────
-  navigate(id, page = "") {
-    if (typeof Sidebar !== "undefined" && Sidebar.setActive) {
-      Sidebar.setActive(id);
-    }
+  navigate(id, page) {
+    Sidebar.setActive(id);
 
-    const rawCurrent = (window.location.pathname.split("/").pop() || "biller").toLowerCase();
-    const currentPage = rawCurrent.replace(/\.html$/, "");
+    const currentPage = window.location.pathname.split("/").pop();
+    const targetPage  = page.split("#")[0];
+    const hash        = page.includes("#") ? page.split("#")[1] : "dashboard";
 
-    const targetUrl = page || `#${id}`;
-    const rawTarget = (targetUrl.split("#")[0] || "").toLowerCase();
-    const targetPage = rawTarget.replace(/\.html$/, "");
-    
-    const hash = targetUrl.includes("#") ? targetUrl.split("#")[1] : (id || "dashboard");
+    // 2. Check if we are staying on the same page
+    if (currentPage === targetPage || targetPage === "" || (currentPage === "" && targetPage === "biller.html")) {
 
-    // Same page check: if targetPage is empty (just a hash), or matches currentPage, or both are biller / admin / cfo / etc.
-    const isSamePage = !targetPage || 
-                       currentPage === targetPage || 
-                       (currentPage === "" && (targetPage === "biller" || targetPage === "index")) ||
-                       (currentPage === "biller" && targetPage === "biller");
-
-    if (isSamePage) {
-      if (typeof Dashboard !== "undefined" && typeof Dashboard.showSection === "function") {
+      if (typeof Dashboard !== "undefined") {
         Dashboard.showSection(hash);
 
-        try {
-          if (hash === "dashboard") {
-            history.pushState(null, null, window.location.pathname);
-          } else {
-            window.location.hash = hash;
-          }
-        } catch (e) {
-          console.warn("Could not update state:", e);
+        // URL hash update without page reload
+        if (hash === "dashboard") {
+          history.pushState(null, null, window.location.pathname);
+        } else {
+          window.location.hash = hash;
         }
-      } else {
-        window.location.hash = hash;
       }
     } else {
-      window.location.href = targetUrl;
+      // 3. Different page — navigate properly
+      window.location.href = page;
     }
-  },
-
-  setupClickListeners() {
-    const sidebar = document.getElementById("sidebar");
-    if (!sidebar) return;
-
-    // Direct event delegation for all nav items (bulletproof fallback if inline onclick is intercepted)
-    sidebar.addEventListener("click", (e) => {
-      const item = e.target.closest(".nav-item, .nav-sub-item");
-      if (!item) return;
-
-      // If it's a parent menu with children, handleParentNav handles it
-      if (item.classList.contains("has-sub")) return;
-
-      const fullId = item.id || "";
-      const id = fullId.replace(/^nav-(sub-)?/, "");
-      if (!id) return;
-
-      const user = (typeof Auth !== "undefined" && Auth.getUser) ? Auth.getUser() : null;
-      const role = user?.role || "Biller";
-      const sections = Sidebar.menuConfig[role] || [];
-      let targetPage = "";
-      for (const sec of sections) {
-        for (const it of (sec.items || [])) {
-          if (it.id === id) { targetPage = it.page; break; }
-          if (it.children) {
-            for (const ch of it.children) {
-              if (ch.id === id) { targetPage = ch.page; break; }
-            }
-          }
-        }
-        if (targetPage) break;
-      }
-
-      Sidebar.navigate(id, targetPage || `#${id}`);
-    });
   },
 
   // ─────────────────────────────────────────────
