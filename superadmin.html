@@ -925,7 +925,7 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <i class="fa fa-list-check"></i> Super Admin Approval Queue
+              <i class="fa fa-user-clock"></i> Pending for me
               <span id="queueCount" style="font-weight:400;color:var(--gray-500);font-size:0.8rem"></span>
             </div>
           </div>
@@ -1923,6 +1923,8 @@ const Dashboard = {
       return;
     }
 
+    if (id === "pendingforme" || id === "pending-for-me") id = "approve";
+
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     const secEl = document.getElementById(`section-${id}`);
     if (secEl) secEl.classList.add("active");
@@ -1936,7 +1938,8 @@ const Dashboard = {
       ataccount: "3. Bills At Account Stage",
       atfinance: "4. Bills At Finance Stage",
       atcfo: "5. Bills At CFO Stage",
-      approve: "6. Pending Super Admin Final Signoff",
+      approve: "Pending for me",
+      pendingforme: "Pending for me",
       completed: "7. Completed & Cleared Invoices",
       redflags: "Red Flag Invoices Risk Audit",
       users: "System User Directory & Roles",
@@ -2112,6 +2115,16 @@ const Dashboard = {
     setTxt("statPendingAmt", `${Utils.formatCurrency(pipelinePendingAmt)} in progress`);
     setTxt("statPass", completedCount);
     setTxt("statApprovedAmt", `${Utils.formatCurrency(completedVal)} settled`);
+
+    // Sync Pending for me badge in sidebar
+    document.querySelectorAll("[id^='badge-approval']").forEach(el => {
+      if (saPendingCount > 0) {
+        el.textContent = saPendingCount > 99 ? "99+" : saPendingCount;
+        el.style.display = "inline-block";
+      } else {
+        el.style.display = "none";
+      }
+    });
 
     // Render Recent Submissions
     const recentBody = document.getElementById("recentBody");
@@ -2575,19 +2588,20 @@ const Dashboard = {
     }).join("");
   },
 
-  // ── 9. SUPER ADMIN QUEUE ──
+  // ── 9. SUPER ADMIN QUEUE (Pending for me) ──
   async loadApprovalQueue(isSilent = false) {
     const tbody = document.getElementById("queueBody");
     if (!isSilent && tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:32px;color:var(--gray-400)"><i class="fa fa-spinner fa-spin"></i> Loading queue...</td></tr>`;
-    const res = await API.admin.getQueue();
+    const res = await API.admin.getQueue({ stage: "SuperAdmin" });
     if (!res?.success) { if (!isSilent && tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center">Failed to load</td></tr>`; return; }
     
-    Dashboard.queueData = (res.data.queue || []).map(item => {
-      const saStatus = (item["SA_Status"] || "").toString();
-      const isRejectedAnywhere = item.overall_status === "FAIL" || [item["Account_Status"], item["CFO_Status"], item["SA_Status"]].some(s => s === "Rejected");
-      if (isRejectedAnywhere) { item["Approval Status"] = "Rejected"; } 
-      else if (saStatus === "Approved" || item.current_stage === "Completed") { item["Approval Status"] = "Approved"; } 
-      else { item["Approval Status"] = "Pending"; }
+    // Strict requirement: ONLY bills currently pending for SuperAdmin!
+    Dashboard.queueData = (res.data.queue || []).filter(item => {
+      const stage = (item.current_stage || item["Current_Stage"] || "").trim();
+      const isRejected = item.overall_status === "FAIL" || item.overall_status === "Rejected";
+      return stage === "SuperAdmin" && !isRejected;
+    }).map(item => {
+      item["Approval Status"] = "Pending";
       return item;
     });
 
@@ -2617,7 +2631,7 @@ const Dashboard = {
     if (!tbody) return;
 
     if (data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:40px"><div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Queue is empty</div></div></td></tr>`; 
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:40px"><div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-title">No pending bills for Super Admin</div><div class="empty-text">All invoices have been cleared or forwarded.</div></div></td></tr>`; 
       Dashboard.updateBulkActionBar();
       return;
     }
@@ -2632,22 +2646,20 @@ const Dashboard = {
       const isChecked = Dashboard.selectedQueueIds.has(String(rowIdx));
 
       return `
-        <tr style="cursor:pointer; ${isPending ? '' : 'opacity:0.75'}" onclick="Dashboard.openDetail('${rowIdx}')">
+        <tr style="cursor:pointer;" onclick="Dashboard.openDetail('${rowIdx}')" title="Click to review invoice details">
           <td style="text-align:center;" onclick="event.stopPropagation()">
-            ${isPending ? `<input type="checkbox" class="queue-row-checkbox" value="${rowIdx}" ${isChecked ? 'checked' : ''} onchange="Dashboard.onQueueRowCheckboxChange('${rowIdx}', this.checked)"/>` : '<span style="color:var(--gray-300)">•</span>'}
+            ${isPending ? `<input type="checkbox" class="queue-row-checkbox" value="${rowIdx}" ${isChecked ? 'checked' : ''} onchange="Dashboard.onQueueRowCheckboxChange('${rowIdx}', this.checked)" title="Select for bulk action"/>` : '<span style="color:var(--gray-300)">•</span>'}
           </td>
-          <td><strong style="color:var(--primary);">${Dashboard.escapeHtml(invNo)}</strong></td>
+          <td><strong style="color:var(--primary);text-decoration:underline;">${Dashboard.escapeHtml(invNo)}</strong></td>
           <td>${Dashboard.escapeHtml(Utils.truncate(item["A14. Vendor Name"], 20))}</td>
           <td>${Utils.formatCurrency(item["A20. Basic Amount"])}</td>
           <td><strong>${Utils.formatCurrency(item["D1. Final Payable Amt"] || item["A20. Basic Amount"])}</strong></td>
-          <td>${isPending ? '<span class="queue-status-badge status-pending">Pending Final</span>' : `<span class="queue-status-badge status-${status.toLowerCase()}">${status}</span>`}</td>
+          <td><span class="queue-status-badge status-pending">Pending Final</span></td>
           <td onclick="event.stopPropagation()">
-            ${isPending ? `
-              <div style="display:flex;gap:6px;align-items:center">
-                <button class="action-btn-pill" style="background:#34a853;color:#fff;" onclick="Dashboard.openApproveModal('${rowIdx}', '${Dashboard.escapeJsString(invNo)}')">✅ Approve</button>
-                <button class="action-btn-pill" style="background:#ea4335;color:#fff;" onclick="Dashboard.openRejectModal('${rowIdx}', '${Dashboard.escapeJsString(invNo)}')">❌ Reject</button>
-              </div>
-            ` : `<button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${rowIdx}')"><i class="fa fa-eye"></i></button>`}
+            <div style="display:flex;gap:6px;align-items:center">
+              <button class="action-btn-pill" style="background:#34a853;color:#fff;" onclick="Dashboard.openApproveModal('${rowIdx}', '${Dashboard.escapeJsString(invNo)}')">✅ Approve</button>
+              <button class="action-btn-pill" style="background:#ea4335;color:#fff;" onclick="Dashboard.openRejectModal('${rowIdx}', '${Dashboard.escapeJsString(invNo)}')">❌ Reject</button>
+            </div>
           </td>
         </tr>
       `;
