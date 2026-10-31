@@ -152,12 +152,12 @@ const Sidebar = {
         section: "Main",
         items: [
           { id: "dashboard", icon: "fa-gauge",         label: "Dashboard",       page: "superadmin.html"  },
+          { id: "approve",   icon: "fa-user-clock",    label: "Pending for me",  page: "superadmin.html#approve", badge: "approval" },
           {
             id: "pipeline",
             icon: "fa-diagram-project",
             label: "Pipeline Monitor",
             page: "superadmin.html#invoices",
-            badge: "approval",
             children: [
               { id: "invoices",   label: "All Pipeline Bills",  page: "superadmin.html#invoices",   icon: "fa-list" },
               { id: "atbiller",   label: "At Biller",           page: "superadmin.html#atbiller",   icon: "fa-receipt" },
@@ -165,7 +165,6 @@ const Sidebar = {
               { id: "ataccount",  label: "At Account",          page: "superadmin.html#ataccount",  icon: "fa-calculator" },
               { id: "atfinance",  label: "At Finance",          page: "superadmin.html#atfinance",  icon: "fa-money-bill-transfer" },
               { id: "atcfo",      label: "At CFO",              page: "superadmin.html#atcfo",      icon: "fa-user-tie" },
-              { id: "approve",    label: "Pending SA Signoff",  page: "superadmin.html#approve",    icon: "fa-stamp" },
               { id: "completed",  label: "Completed",           page: "superadmin.html#completed",  icon: "fa-circle-check" }
             ]
           },
@@ -538,9 +537,9 @@ const Sidebar = {
     }
 
     try {
-      // Approval Queue pending badge (Account, Finance & HOD roles)
-      const approvalBadge = document.getElementById("badge-approval");
-      if (approvalBadge) {
+      // Approval Queue pending badge (Account, Finance, CFO & SuperAdmin roles)
+      const approvalBadges = document.querySelectorAll("[id^='badge-approval']");
+      if (approvalBadges.length > 0) {
         const user = Auth.getUser();
         let qRes;
         if (user?.role === "HOD") {
@@ -549,22 +548,26 @@ const Sidebar = {
           qRes = await API.approval.getQueue("Finance");
         } else if (user?.role === "CFO") {
           qRes = await API.approval.getQueue("CFO");
+        } else if (user?.role === "SuperAdmin") {
+          qRes = await API.admin.getQueue({ stage: "SuperAdmin" });
         } else {
           qRes = await API.account.getQueue();
         }
         if (qRes?.success) {
           const queue = qRes.data.queue || [];
-          const targetStage = user?.role === "HOD" ? "HOD" : (user?.role === "Finance" ? "Finance" : (user?.role === "CFO" ? "CFO" : "Account"));
+          const targetStage = user?.role === "HOD" ? "HOD" : (user?.role === "Finance" ? "Finance" : (user?.role === "CFO" ? "CFO" : (user?.role === "SuperAdmin" ? "SuperAdmin" : "Account")));
           const pending = queue.filter(i =>
             (i.current_stage === targetStage || i["Current_Stage"] === targetStage || (i["Approval Status"] || "Pending") === "Pending")
           ).length;
 
-          if (pending > 0) {
-            approvalBadge.textContent   = pending > 99 ? "99+" : pending;
-            approvalBadge.style.display = "inline-block";
-          } else {
-            approvalBadge.style.display = "none";
-          }
+          approvalBadges.forEach(badge => {
+            if (pending > 0) {
+              badge.textContent   = pending > 99 ? "99+" : pending;
+              badge.style.display = "inline-block";
+            } else {
+              badge.style.display = "none";
+            }
+          });
         }
       }
     } catch (e) {
