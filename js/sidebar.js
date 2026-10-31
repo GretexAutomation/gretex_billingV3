@@ -29,7 +29,7 @@ const Sidebar = {
               { id: "completed", label: "Completed",   page: "biller.html#completed", icon: "fa-circle-check" }
             ]
           },
-          { id: "flowup",    icon: "fa-timeline",     label: "Flowup",        page: "biller.html#flowup" },
+          { id: "flowup",    icon: "fa-network-wired", label: "Invoice Flow & Live Update", page: "biller.html#flowup" },
           { id: "approved",  icon: "fa-check-double", label: "Approved",      page: "biller.html#approved" }
         ]
       },
