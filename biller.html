@@ -966,19 +966,154 @@
       </div>
 
       <!-- ══════════════════════════════════════════════════════════════ -->
-      <!-- FLOWUP SECTION ═══════════════════════════════════════════════ -->
+      <!-- INVOICE FLOW & LIVE UPDATE SECTION ════════════════════════════ -->
       <!-- ══════════════════════════════════════════════════════════════ -->
-      <div class="section" id="section-flowup" style="width: 100%; overflow: hidden;">
-        <div class="card" style="max-width: 100%; overflow: hidden;">
-          <div class="card-header">
-            <div class="card-title" style="color:var(--primary)">
-              <i class="fa fa-list"></i> Flowup - All Bills Status
+      <div class="section" id="section-flowup" style="width: 100%;">
+        <!-- Header & KPI Card -->
+        <div class="card" style="margin-bottom: 20px; border-left: 4px solid var(--primary); box-shadow: 0 2px 10px rgba(0,0,0,0.04);">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 18px 24px;">
+            <div>
+              <div class="card-title" style="color: var(--primary); font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                <i class="fa fa-network-wired" style="color: #4f46e5;"></i> Invoice Flow & Live Update
+                <span class="badge" style="background: #eef2ff; color: #4338ca; font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; font-weight: 600;">Super Advance View</span>
+              </div>
+              <div style="font-size: 0.85rem; color: var(--gray-500); margin-top: 4px;">
+                Role & User-wise invoice progression matrix with real-time sync, subtotals, and drilldowns.
+              </div>
             </div>
-            <button class="btn btn-outline btn-sm" onclick="Dashboard.syncBills()">
-              <i class="fa fa-rotate"></i> Sync
-            </button>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div style="font-size: 0.82rem; color: var(--gray-500); display: flex; align-items: center; gap: 6px; background: var(--gray-50); padding: 6px 12px; border-radius: 6px; border: 1px solid var(--gray-200);">
+                <i class="fa fa-clock" style="color: var(--gray-400);"></i>
+                <span>Last Updated: <strong id="flowLastUpdatedText" style="color: var(--gray-700);">Just now</strong></span>
+              </div>
+              <button class="btn btn-primary btn-sm" id="flowLiveRefreshBtn" onclick="Dashboard.refreshFlowMatrix(true)" style="background: linear-gradient(135deg, #4f46e5, #1a73e8); border: none; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(79,70,229,0.3);">
+                <i class="fa fa-rotate" id="flowRefreshIcon"></i> <span>Live Update</span>
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.exportFlowMatrixCSV()" style="background: #fff; color: var(--gray-700); border-color: var(--gray-300);">
+                <i class="fa fa-file-excel" style="color: #107c41;"></i> Export Matrix
+              </button>
+            </div>
           </div>
-          <div class="card-body">
+
+          <!-- KPI Strip -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; padding: 0 24px 20px 24px;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'ALL')" title="Click to view all bills">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa fa-receipt"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: var(--gray-500); letter-spacing: 0.5px;">Total Pipeline</div>
+                <div id="flowKpiTotal" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+              </div>
+            </div>
+
+            <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'PENDING')" title="Click to view all pending bills">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa fa-hourglass-half"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: #92400e; letter-spacing: 0.5px;">Pending Action</div>
+                <div id="flowKpiPending" style="font-size: 1.4rem; font-weight: 700; color: #b45309;">0</div>
+              </div>
+            </div>
+
+            <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'COMPLETED')" title="Click to view completed bills">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa fa-circle-check"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: #166534; letter-spacing: 0.5px;">Completed / Approved</div>
+                <div id="flowKpiCompleted" style="font-size: 1.4rem; font-weight: 700; color: #15803d;">0</div>
+              </div>
+            </div>
+
+            <div style="background: #fef2f2; border: 1px solid #fee2e2; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'REJECTED')" title="Click to view rejected bills">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa fa-circle-xmark"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: #991b1b; letter-spacing: 0.5px;">Rejected</div>
+                <div id="flowKpiRejected" style="font-size: 1.4rem; font-weight: 700; color: #b91c1c;">0</div>
+              </div>
+            </div>
+
+            <div style="background: #f5f3ff; border: 1px solid #ede9fe; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'BYPASS')" title="Click to view bypassed bills">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: #ede9fe; color: #7c3aed; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                <i class="fa fa-forward-step"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.72rem; font-weight: 600; text-transform: uppercase; color: #5b21b6; letter-spacing: 0.5px;">Bypassed</div>
+                <div id="flowKpiBypass" style="font-size: 1.4rem; font-weight: 700; color: #6d28d9;">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- View Switcher & Toolbar Card -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--gray-200);">
+            <!-- View Tabs -->
+            <div style="display: flex; gap: 6px; background: var(--gray-100); padding: 4px; border-radius: 8px;">
+              <button class="btn btn-sm" id="flowTabMatrixBtn" onclick="Dashboard.switchFlowView('matrix')" style="background: #fff; color: var(--primary); font-weight: 600; border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 6px; padding: 6px 14px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <i class="fa fa-table-cells"></i> Advance Flow Matrix (Subtotals & Totals)
+              </button>
+              <button class="btn btn-sm" id="flowTabDetailedBtn" onclick="Dashboard.switchFlowView('detailed')" style="background: transparent; color: var(--gray-600); font-weight: 500; border: none; border-radius: 6px; padding: 6px 14px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <i class="fa fa-list-check"></i> Detailed Invoices List
+              </button>
+            </div>
+
+            <!-- Matrix Search & Role Filter Bar -->
+            <div id="flowMatrixToolbar" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div style="position: relative; width: 260px;">
+                <i class="fa fa-search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 0.85rem;"></i>
+                <input type="text" id="flowMatrixSearchInput" class="form-control" placeholder="Search user, role, dept..." style="padding-left: 32px; height: 34px; font-size: 0.85rem;" oninput="Dashboard.filterFlowMatrix()" />
+              </div>
+              <select id="flowMatrixRoleSelect" class="form-control" style="width: auto; height: 34px; font-size: 0.85rem; padding: 4px 10px;" onchange="Dashboard.filterFlowMatrix()">
+                <option value="ALL">All Roles</option>
+                <option value="Biller">Biller</option>
+                <option value="HOD">HOD</option>
+                <option value="Account">Account</option>
+                <option value="Finance">Finance</option>
+                <option value="CFO">CFO</option>
+                <option value="SuperAdmin">Super Admin</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- CONTAINER 1: SUPER ADVANCE FLOW MATRIX VIEW -->
+          <div id="flowMatrixViewContainer" style="padding: 20px;">
+            <div class="table-wrapper" style="overflow-x: auto; width: 100%; border: 1px solid var(--gray-200); border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.03);">
+              <table class="data-table" id="flowMatrixTable" style="width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 0.88rem;">
+                <thead style="position: sticky; top: 0; z-index: 3; background: #f8fafc;">
+                  <tr style="border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 14px 18px; font-weight: 700; color: #334155; width: 140px; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px;">Role</th>
+                    <th style="padding: 14px 18px; font-weight: 700; color: #334155; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px;">User / Department</th>
+                    <th style="padding: 14px 18px; font-weight: 700; color: #334155; text-align: center; width: 100px; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px;">Total</th>
+                    <th style="padding: 14px 18px; font-weight: 700; color: #b45309; text-align: center; width: 110px; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; background: #fffbeb;">Pending</th>
+                    <th style="padding: 14px 18px; font-weight: 700; color: #15803d; text-align: center; width: 120px; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; background: #f0fdf4;">Completed</th>
+                    <th style="padding: 14px 18px; font-weight: 700; color: #b91c1c; text-align: center; width: 110px; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; background: #fef2f2;">Rejected</th>
+                    <th style="padding: 14px 18px; font-weight: 700; color: #6d28d9; text-align: center; width: 110px; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; background: #f5f3ff;">Bypass</th>
+                    <th style="padding: 14px 18px; font-weight: 700; color: #334155; text-align: center; width: 100px; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="flowMatrixTableBody">
+                  <tr>
+                    <td colspan="8" class="text-center" style="padding: 40px; color: var(--gray-400);">
+                      <i class="fa fa-spinner fa-spin fa-2x"></i>
+                      <div style="margin-top: 10px; font-size: 0.9rem;">Building Live Invoice Flow Matrix...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top: 12px; font-size: 0.8rem; color: var(--gray-500); display: flex; align-items: center; justify-content: space-between;">
+              <div><i class="fa fa-info-circle" style="color: #4f46e5;"></i> Tip: Click on any count badge (Total, Pending, Completed, Rejected, Bypass) or Subtotal/Grand Total to open direct drilldown with full bill details.</div>
+              <div id="flowMatrixRowCount" style="font-weight: 600;"></div>
+            </div>
+          </div>
+
+          <!-- CONTAINER 2: DETAILED INVOICES LIST (PRESERVED) -->
+          <div id="flowDetailedViewContainer" style="display: none; padding: 20px;">
             <div style="margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
               <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                 <button class="btn btn-outline btn-sm" onclick="const el = document.getElementById('columnSelector'); el.style.display = el.style.display === 'none' ? 'flex' : 'none';">
@@ -1300,6 +1435,65 @@
           <span>100% Complete</span>
         </div>
       </div>
+    </div>
+  </div>
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- FLOW DRILLDOWN MODAL ══════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="flowDrilldownModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center;">
+  <div class="modal-box xlarge" style="max-width: 1000px; width: 92%; max-height: 85vh; background: #fff; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.25); overflow: hidden;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #1e293b, #334155); color: #fff; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h5 class="modal-title" style="color: #fff; display: flex; align-items: center; gap: 10px; font-size: 1.15rem; margin: 0; font-weight: 700;">
+          <i class="fa fa-filter" style="color: #38bdf8;"></i>
+          <span id="flowDrilldownTitle">Invoice Flow Drilldown</span>
+        </h5>
+        <div id="flowDrilldownSubtitle" style="font-size: 0.82rem; color: #cbd5e1; margin-top: 4px;">
+          Showing bills for selected role & user
+        </div>
+      </div>
+      <button class="modal-close" onclick="Dashboard.closeFlowDrilldown()" style="background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">✕</button>
+    </div>
+
+    <!-- Drilldown Body -->
+    <div class="modal-body" style="padding: 18px 22px; overflow-y: auto; flex: 1;">
+      <!-- Stats summary banner -->
+      <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+        <div style="background: #f8fafc; padding: 12px 18px; border-radius: 8px; flex: 1; min-width: 160px; border-left: 4px solid #4f46e5; border-top: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;">
+          <div style="font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Filtered Invoices</div>
+          <div id="flowDrilldownCount" style="font-size: 1.4rem; font-weight: 700; color: #1e293b;">0</div>
+        </div>
+        <div style="background: #f0fdf4; padding: 12px 18px; border-radius: 8px; flex: 1; min-width: 160px; border-left: 4px solid #10b981; border-top: 1px solid #dcfce7; border-right: 1px solid #dcfce7; border-bottom: 1px solid #dcfce7;">
+          <div style="font-size: 0.72rem; color: #166534; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Amount</div>
+          <div id="flowDrilldownAmount" style="font-size: 1.4rem; font-weight: 700; color: #047857;">₹0</div>
+        </div>
+      </div>
+
+      <!-- Bills List Table -->
+      <div style="overflow-x: auto; border: 1px solid var(--gray-200); border-radius: 8px; max-height: 48vh;">
+        <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+          <thead style="position: sticky; top: 0; z-index: 2; background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+            <tr>
+              <th style="padding: 10px 12px; text-align: center; width: 40px; color: #475569;">#</th>
+              <th style="padding: 10px 14px; color: #475569;">Invoice No</th>
+              <th style="padding: 10px 14px; color: #475569;">Vendor Name</th>
+              <th style="padding: 10px 14px; color: #475569;">Department</th>
+              <th style="padding: 10px 14px; text-align: right; color: #475569;">Payable Amt</th>
+              <th style="padding: 10px 12px; text-align: center; color: #475569;">Stage</th>
+              <th style="padding: 10px 12px; text-align: center; color: #475569;">Status</th>
+              <th style="padding: 10px 12px; text-align: center; color: #475569;">Invoice Date</th>
+              <th style="padding: 10px 12px; text-align: center; width: 90px; color: #475569;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="flowDrilldownTableBody">
+            <tr><td colspan="9" class="text-center" style="padding: 30px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding: 12px 22px; border-top: 1px solid var(--gray-200); display: flex; justify-content: flex-end; gap: 10px; background: #fafafa;">
+      <button class="btn btn-outline btn-sm" onclick="Dashboard.closeFlowDrilldown()">Close</button>
     </div>
   </div>
 </div>
@@ -1944,6 +2138,13 @@ const Dashboard = {
     const hash = window.location.hash.replace("#","");
     if (hash) Dashboard.showSection(hash);
 
+    window.addEventListener("hashchange", () => {
+      const h = (window.location.hash || "").replace("#", "").trim();
+      if (h && typeof Dashboard !== "undefined" && typeof Dashboard.showSection === "function") {
+        Dashboard.showSection(h);
+      }
+    });
+
     document.getElementById("searchInput")
       ?.addEventListener("input",
         Utils.debounce(() => Dashboard.filterBills("all"), 400));
@@ -1987,6 +2188,7 @@ const Dashboard = {
   },
 
   showSection(id) {
+    if (id === "invoiceflow" || id === "flow" || id === "invoice-flow") id = "flowup";
     console.log("Switching to section:", id);
 
     document.querySelectorAll(".section").forEach(s => {
@@ -2014,7 +2216,7 @@ const Dashboard = {
         track: "Track Bills",
         profile: "My Profile",
         password: "Change Password",
-        flowup: "Flowup - All Bills Status"
+        flowup: "Invoice Flow & Live Update"
     };
     Header.setTitle(titles[id] || "Dashboard");
     Sidebar.setActive(id);
@@ -2133,6 +2335,13 @@ const Dashboard = {
 
   approvedFilterStatus: "ALL",
   flowupCloseFilter: "ALL",
+  flowView: "matrix",
+  flowMatrixData: null,
+  flowMatrixSubtotals: {},
+  flowMatrixGrandTotal: { total: 0, pending: 0, completed: 0, rejected: 0, bypass: 0 },
+  flowUsersList: [],
+  flowLastUpdated: null,
+  flowDrilldownCurrentBills: [],
 
   isClosedBill(b) {
     if (!b) return false;
@@ -2267,65 +2476,947 @@ const Dashboard = {
     }
   },
 
-  async loadFlowupSection() {
-    const el = document.getElementById("flowupTableBody");
-    if (el) el.innerHTML = `<tr><td colspan="100%" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>`;
+  // ══════════════════════════════════════════════════════════════
+  // INVOICE FLOW & LIVE UPDATE METHODS
+  // ══════════════════════════════════════════════════════════════
+  switchFlowView(view) {
+    Dashboard.flowView = view;
+    const isMatrix = view === "matrix";
     
-    await Dashboard.ensureQueue();
-    
-    if (Dashboard.queue.length === 0) {
-      if (el) el.innerHTML = `<tr><td colspan="100%" class="text-center" style="padding: 32px;">No bills found.</td></tr>`;
-      return;
+    const matView = document.getElementById("flowMatrixViewContainer");
+    const detView = document.getElementById("flowDetailedViewContainer");
+    const matBar  = document.getElementById("flowMatrixToolbar");
+    const tabMat  = document.getElementById("flowTabMatrixBtn");
+    const tabDet  = document.getElementById("flowTabDetailedBtn");
+
+    if (matView) matView.style.display = isMatrix ? "block" : "none";
+    if (detView) detView.style.display = isMatrix ? "none" : "block";
+    if (matBar)  matBar.style.display  = isMatrix ? "flex" : "none";
+
+    if (tabMat) {
+      tabMat.style.background = isMatrix ? "#fff" : "transparent";
+      tabMat.style.color = isMatrix ? "var(--primary)" : "var(--gray-600)";
+      tabMat.style.fontWeight = isMatrix ? "600" : "500";
+      tabMat.style.boxShadow = isMatrix ? "0 1px 3px rgba(0,0,0,0.1)" : "none";
+    }
+    if (tabDet) {
+      tabDet.style.background = !isMatrix ? "#fff" : "transparent";
+      tabDet.style.color = !isMatrix ? "var(--primary)" : "var(--gray-600)";
+      tabDet.style.fontWeight = !isMatrix ? "600" : "500";
+      tabDet.style.boxShadow = !isMatrix ? "0 1px 3px rgba(0,0,0,0.1)" : "none";
     }
 
-    // Compute Rejection Virtual Columns & initialize export state
-    Dashboard.queue.forEach(b => {
-      b._uid = b._uid || Math.random().toString(36).substr(2, 9);
-      if (b._exportChecked === undefined) b._exportChecked = true;
+    if (!isMatrix && Dashboard.queue && Dashboard.queue.length > 0) {
+      Dashboard.renderFlowupTable();
+    }
+  },
 
-      let rBy = "", rRem = "";
-      if ((b["HOD_Status"] || "").includes("Rejected")) { 
-          rBy = "HOD"; rRem = b["HOD_Remark"] || ""; 
-      }
-      else if ((b["Account_Status"] || "").includes("Rejected")) { 
-          rBy = "Account"; rRem = b["Account_Remark"] || ""; 
-      }
-      else if ((b["Finance_Status"] || "").includes("Rejected")) { 
-          rBy = "Finance"; rRem = b["Finance_Remark"] || ""; 
-      }
-      else if ((b["CFO_Status"] || "").includes("Rejected")) { 
-          rBy = "CFO"; rRem = b["CFO_Remark"] || ""; 
-      }
-      else if ((b["Admin_Status"] || "").includes("Rejected") || (b["SA_Status"] || "").includes("Rejected")) { 
-          rBy = "Super Admin"; rRem = b["SA_Remark"] || b["Admin_Remark"] || ""; 
-      }
-      else if (b["Approval Status"] === "Rejected" || b.overall_status === "FAIL" || b.overall_status === "Rejected") {
-          rBy = "Rejected"; rRem = b["Rejection Remark"] || "—";
-      }
-      
-      b["Rejection By"] = rBy;
-      b["Rejection Remark"] = rRem;
-    });
+  async loadFlowupSection(isLive = false) {
+    await Dashboard.refreshFlowMatrix(isLive);
+  },
 
-    
-    // Build column selector if not built yet
-    const colSelector = document.getElementById("columnSelector");
-    if (colSelector && colSelector.children.length === 0) {
-        // extract all keys from the first item
+  async refreshFlowMatrix(isLive = false) {
+    const refreshIcon = document.getElementById("flowRefreshIcon");
+    const refreshBtn = document.getElementById("flowLiveRefreshBtn");
+    if (refreshIcon) refreshIcon.classList.add("fa-spin");
+    if (refreshBtn) refreshBtn.disabled = true;
+
+    try {
+      if (isLive || !Dashboard.queue || Dashboard.queue.length === 0) {
+        const res = await API.biller.getQueue();
+        if (res?.success) {
+          Dashboard.setQueue(res.data.queue, res.data.invoices, res.data.masterInvoices);
+        }
+      } else {
+        await Dashboard.ensureQueue();
+      }
+
+      // Fetch users list for active user mapping if not already fetched
+      if (!Dashboard.flowUsersList || Dashboard.flowUsersList.length === 0 || isLive) {
+        try {
+          const userRes = await API.request("getUsersByRole", { role: "" });
+          if (userRes?.success && Array.isArray(userRes.data?.users)) {
+            Dashboard.flowUsersList = userRes.data.users;
+          }
+        } catch (e) {
+          console.warn("Could not fetch active users list:", e);
+        }
+      }
+
+      // Pre-process rejection and uid on queue bills
+      Dashboard.queue = Dashboard.queue || [];
+      Dashboard.queue.forEach(b => {
+        b._uid = b._uid || Math.random().toString(36).substr(2, 9);
+        if (b._exportChecked === undefined) b._exportChecked = true;
+
+        let rBy = "", rRem = "";
+        if ((b["HOD_Status"] || "").includes("Rejected")) { 
+            rBy = "HOD"; rRem = b["HOD_Remark"] || ""; 
+        }
+        else if ((b["Account_Status"] || "").includes("Rejected")) { 
+            rBy = "Account"; rRem = b["Account_Remark"] || ""; 
+        }
+        else if ((b["Finance_Status"] || "").includes("Rejected")) { 
+            rBy = "Finance"; rRem = b["Finance_Remark"] || ""; 
+        }
+        else if ((b["CFO_Status"] || "").includes("Rejected")) { 
+            rBy = "CFO"; rRem = b["CFO_Remark"] || ""; 
+        }
+        else if ((b["Admin_Status"] || "").includes("Rejected") || (b["SA_Status"] || "").includes("Rejected")) { 
+            rBy = "Super Admin"; rRem = b["SA_Remark"] || b["Admin_Remark"] || ""; 
+        }
+        else if (b["Approval Status"] === "Rejected" || b.overall_status === "FAIL" || b.overall_status === "Rejected") {
+            rBy = "Rejected"; rRem = b["Rejection Remark"] || "—";
+        }
+        b["Rejection By"] = rBy;
+        b["Rejection Remark"] = rRem;
+      });
+
+      // Compute Matrix Data
+      Dashboard.computeFlowMatrixData();
+      Dashboard.renderFlowMatrixTable();
+      Dashboard.renderFlowKpis();
+
+      // Update timestamp
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const timeEl = document.getElementById("flowLastUpdatedText");
+      if (timeEl) timeEl.textContent = `${timeStr}`;
+
+      // Initialize detailed table column selector if needed
+      const colSelector = document.getElementById("columnSelector");
+      if (colSelector && colSelector.children.length === 0 && Dashboard.queue.length > 0) {
         const allKeys = Object.keys(Dashboard.queue[0]).filter(k => 
-           !['queueRowIndex', 'Original_JSON'].includes(k)
+          !['queueRowIndex', 'Original_JSON'].includes(k)
         );
         let cbHtml = "";
         allKeys.forEach(k => {
-            const isChecked = Dashboard.flowupSelectedColumns.includes(k) ? "checked" : "";
-            cbHtml += `<label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer;">
-                <input type="checkbox" value="${k}" onchange="Dashboard.toggleFlowupColumn(this)" ${isChecked} /> ${k}
-            </label>`;
+          const isChecked = Dashboard.flowupSelectedColumns.includes(k) ? "checked" : "";
+          cbHtml += `<label style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer;">
+              <input type="checkbox" value="${k}" onchange="Dashboard.toggleFlowupColumn(this)" ${isChecked} /> ${k}
+          </label>`;
         });
         colSelector.innerHTML = cbHtml;
+      }
+
+      if (isLive) {
+        Toast.success("Invoice Flow updated live!");
+      }
+    } catch (err) {
+      console.error("refreshFlowMatrix error:", err);
+      Toast.error("Failed to load invoice flow: " + (err.message || err));
+    } finally {
+      if (refreshIcon) refreshIcon.classList.remove("fa-spin");
+      if (refreshBtn) refreshBtn.disabled = false;
+    }
+  },
+
+  computeFlowMatrixData() {
+    const queue = Dashboard.queue || [];
+    const users = Dashboard.flowUsersList || [];
+    
+    const roleGroups = {
+      Biller: [],
+      HOD: [],
+      Account: [],
+      Finance: [],
+      CFO: [],
+      SuperAdmin: []
+    };
+
+    const isApprovedStr = s => (s || "").toLowerCase().includes("approved") || (s || "").toLowerCase().includes("pass");
+    const isRejectedStr = s => (s || "").toLowerCase().includes("reject") || (s || "").toLowerCase().includes("fail");
+    const isBypassStr = s => (s || "").toLowerCase().includes("bypass");
+
+    // ─────────────────────────────────────────────
+    // 1. BILLER
+    // ─────────────────────────────────────────────
+    const billerUsersMap = {};
+    const intakeBills = queue.filter(b => b._sourceSheet === "Invoices" || b["Approval Status"] === "New" || (!b["Current_Stage"] && b.biller_status === "New"));
+    const masterBills = queue.filter(b => b._sourceSheet === "Master_Invoices");
+
+    const billerUsers = users.filter(u => u.role === "Biller");
+    if (billerUsers.length > 0) {
+      billerUsers.forEach(u => {
+        billerUsersMap[u.name || u.email] = {
+          role: "Biller",
+          userName: u.name || "Biller",
+          userSubtitle: u.department || u.email || "Biller Desk",
+          userKey: u.name || u.email,
+          total: 0,
+          pending: 0,
+          completed: 0,
+          rejected: 0,
+          bypass: 0,
+          bills: []
+        };
+      });
     }
 
-    Dashboard.renderFlowupTable();
+    const defaultBillerKey = "Biller Desk";
+    if (Object.keys(billerUsersMap).length === 0) {
+      billerUsersMap[defaultBillerKey] = {
+        role: "Biller",
+        userName: "Biller Desk",
+        userSubtitle: "Intake & Master Processing",
+        userKey: defaultBillerKey,
+        total: 0,
+        pending: 0,
+        completed: 0,
+        rejected: 0,
+        bypass: 0,
+        bills: []
+      };
+    }
+
+    const primaryBillerKey = Object.keys(billerUsersMap)[0];
+    queue.forEach(b => {
+      let bKey = b["Submitted By"] || b.created_by || b["A2. Submitted By"] || primaryBillerKey;
+      if (!billerUsersMap[bKey]) bKey = primaryBillerKey;
+      const target = billerUsersMap[bKey];
+      target.bills.push(b);
+      target.total++;
+
+      const isNewIntake = b._sourceSheet === "Invoices" || b["Approval Status"] === "New" || (!b["Current_Stage"] && b.biller_status === "New");
+      if (isNewIntake) {
+        target.pending++;
+      } else {
+        target.completed++;
+      }
+      if (b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected") {
+        target.rejected++;
+      }
+    });
+    roleGroups.Biller = Object.values(billerUsersMap);
+
+    // ─────────────────────────────────────────────
+    // 2. HOD
+    // ─────────────────────────────────────────────
+    const hodMap = {};
+    const hodUsers = users.filter(u => u.role === "HOD");
+    hodUsers.forEach(u => {
+      const key = (u.name || "").trim().toLowerCase();
+      hodMap[key] = {
+        role: "HOD",
+        userName: u.name,
+        userSubtitle: u.department ? `${u.department} • ${u.email || ""}` : (u.email || "Department Approver"),
+        userKey: u.name,
+        total: 0,
+        pending: 0,
+        completed: 0,
+        rejected: 0,
+        bypass: 0,
+        bills: []
+      };
+    });
+
+    masterBills.forEach(b => {
+      const hodName = (b["D4. HOD Name"] || b.assigned_hod_name || b.d4_hod_name || "").trim();
+      const dept = (b["A1. Select Department"] || b.department || "").trim();
+      const lookupKey = (hodName || dept || "Unassigned HOD").toLowerCase();
+
+      if (!hodMap[lookupKey]) {
+        hodMap[lookupKey] = {
+          role: "HOD",
+          userName: hodName || (dept ? `HOD (${dept})` : "Unassigned HOD"),
+          userSubtitle: dept ? `Dept: ${dept}` : "Department Approver",
+          userKey: hodName || dept || lookupKey,
+          total: 0,
+          pending: 0,
+          completed: 0,
+          rejected: 0,
+          bypass: 0,
+          bills: []
+        };
+      }
+
+      const row = hodMap[lookupKey];
+      row.bills.push(b);
+      row.total++;
+
+      const stage = (b["Current_Stage"] || b.current_stage || "").trim();
+      const hodStatus = (b["HOD_Status"] || b.hod_status || "").trim();
+      const isRej = isRejectedStr(hodStatus);
+      const isByp = isBypassStr(hodStatus);
+      const isAppr = isApprovedStr(hodStatus);
+
+      if (isRej) {
+        row.rejected++;
+      } else if (isByp) {
+        row.bypass++;
+      } else if (isAppr) {
+        row.completed++;
+      } else if (stage === "HOD" || stage === "New") {
+        row.pending++;
+      }
+    });
+    roleGroups.HOD = Object.values(hodMap);
+
+    // ─────────────────────────────────────────────
+    // 3. ACCOUNT
+    // ─────────────────────────────────────────────
+    const acctUsers = users.filter(u => u.role === "Account");
+    const acctMap = {};
+    if (acctUsers.length > 0) {
+      acctUsers.forEach(u => {
+        acctMap[u.name || u.email] = {
+          role: "Account",
+          userName: u.name || "Accountant",
+          userSubtitle: u.department || u.email || "Account Team",
+          userKey: u.name || u.email,
+          total: 0,
+          pending: 0,
+          completed: 0,
+          rejected: 0,
+          bypass: 0,
+          bills: []
+        };
+      });
+    } else {
+      acctMap["Account Team"] = {
+        role: "Account",
+        userName: "Account Team",
+        userSubtitle: "Bill Verification & Accounting",
+        userKey: "Account Team",
+        total: 0,
+        pending: 0,
+        completed: 0,
+        rejected: 0,
+        bypass: 0,
+        bills: []
+      };
+    }
+
+    const primaryAcctKey = Object.keys(acctMap)[0];
+    masterBills.forEach(b => {
+      const stage = (b["Current_Stage"] || b.current_stage || "").trim();
+      const acctStatus = (b["Account_Status"] || b.account_status || "").trim();
+      const hodStatus = (b["HOD_Status"] || b.hod_status || "").trim();
+      const isHodRej = isRejectedStr(hodStatus);
+
+      const reachedAccount = stage === "Account" || stage === "Finance" || stage === "CFO" || stage === "SuperAdmin" || stage === "Super Admin" || stage === "Admin" || stage === "Completed" || isApprovedStr(acctStatus) || isRejectedStr(acctStatus) || isBypassStr(acctStatus);
+
+      if (reachedAccount && !isHodRej) {
+        const row = acctMap[primaryAcctKey];
+        row.bills.push(b);
+        row.total++;
+
+        if (isRejectedStr(acctStatus)) {
+          row.rejected++;
+        } else if (isBypassStr(acctStatus)) {
+          row.bypass++;
+        } else if (isApprovedStr(acctStatus)) {
+          row.completed++;
+        } else if (stage === "Account") {
+          row.pending++;
+        }
+      }
+    });
+    roleGroups.Account = Object.values(acctMap);
+
+    // ─────────────────────────────────────────────
+    // 4. FINANCE
+    // ─────────────────────────────────────────────
+    const finUsers = users.filter(u => u.role === "Finance");
+    const finMap = {};
+    if (finUsers.length > 0) {
+      finUsers.forEach(u => {
+        finMap[u.name || u.email] = {
+          role: "Finance",
+          userName: u.name || "Finance Officer",
+          userSubtitle: u.department || u.email || "Finance Team",
+          userKey: u.name || u.email,
+          total: 0,
+          pending: 0,
+          completed: 0,
+          rejected: 0,
+          bypass: 0,
+          bills: []
+        };
+      });
+    } else {
+      finMap["Finance Team"] = {
+        role: "Finance",
+        userName: "Finance Team",
+        userSubtitle: "Review & Fund Clearance",
+        userKey: "Finance Team",
+        total: 0,
+        pending: 0,
+        completed: 0,
+        rejected: 0,
+        bypass: 0,
+        bills: []
+      };
+    }
+
+    const primaryFinKey = Object.keys(finMap)[0];
+    masterBills.forEach(b => {
+      const stage = (b["Current_Stage"] || b.current_stage || "").trim();
+      const finStatus = (b["Finance_Status"] || b.finance_status || "").trim();
+      const reachedFinance = stage === "Finance" || stage === "CFO" || stage === "SuperAdmin" || stage === "Super Admin" || stage === "Admin" || stage === "Completed" || isApprovedStr(finStatus) || isRejectedStr(finStatus) || isBypassStr(finStatus);
+
+      if (reachedFinance) {
+        const row = finMap[primaryFinKey];
+        row.bills.push(b);
+        row.total++;
+
+        if (isRejectedStr(finStatus)) {
+          row.rejected++;
+        } else if (isBypassStr(finStatus)) {
+          row.bypass++;
+        } else if (isApprovedStr(finStatus)) {
+          row.completed++;
+        } else if (stage === "Finance") {
+          row.pending++;
+        }
+      }
+    });
+    roleGroups.Finance = Object.values(finMap);
+
+    // ─────────────────────────────────────────────
+    // 5. CFO
+    // ─────────────────────────────────────────────
+    const cfoUsers = users.filter(u => u.role === "CFO");
+    const cfoMap = {};
+    if (cfoUsers.length > 0) {
+      cfoUsers.forEach(u => {
+        cfoMap[u.name || u.email] = {
+          role: "CFO",
+          userName: u.name || "Gourav Harlalka",
+          userSubtitle: u.department ? `${u.department} • CFO` : (u.email || "Chief Financial Officer"),
+          userKey: u.name || u.email,
+          total: 0,
+          pending: 0,
+          completed: 0,
+          rejected: 0,
+          bypass: 0,
+          bills: []
+        };
+      });
+    } else {
+      cfoMap["Gourav Harlalka"] = {
+        role: "CFO",
+        userName: "Gourav Harlalka",
+        userSubtitle: "Chief Financial Officer",
+        userKey: "Gourav Harlalka",
+        total: 0,
+        pending: 0,
+        completed: 0,
+        rejected: 0,
+        bypass: 0,
+        bills: []
+      };
+    }
+
+    const primaryCfoKey = Object.keys(cfoMap)[0];
+    masterBills.forEach(b => {
+      const stage = (b["Current_Stage"] || b.current_stage || "").trim();
+      const cfoStatus = (b["CFO_Status"] || b.cfo_status || "").trim();
+      const reachedCFO = stage === "CFO" || stage === "SuperAdmin" || stage === "Super Admin" || stage === "Admin" || stage === "Completed" || isApprovedStr(cfoStatus) || isRejectedStr(cfoStatus) || isBypassStr(cfoStatus);
+
+      if (reachedCFO) {
+        const row = cfoMap[primaryCfoKey];
+        row.bills.push(b);
+        row.total++;
+
+        if (isRejectedStr(cfoStatus)) {
+          row.rejected++;
+        } else if (isBypassStr(cfoStatus)) {
+          row.bypass++;
+        } else if (isApprovedStr(cfoStatus)) {
+          row.completed++;
+        } else if (stage === "CFO") {
+          row.pending++;
+        }
+      }
+    });
+    roleGroups.CFO = Object.values(cfoMap);
+
+    // ─────────────────────────────────────────────
+    // 6. SUPER ADMIN
+    // ─────────────────────────────────────────────
+    const saUsers = users.filter(u => ["SuperAdmin", "Admin"].includes(u.role));
+    const saMap = {};
+    if (saUsers.length > 0) {
+      saUsers.forEach(u => {
+        saMap[u.name || u.email] = {
+          role: "SuperAdmin",
+          userName: u.name || "Super Admin",
+          userSubtitle: u.email || "Final Approver",
+          userKey: u.name || u.email,
+          total: 0,
+          pending: 0,
+          completed: 0,
+          rejected: 0,
+          bypass: 0,
+          bills: []
+        };
+      });
+    } else {
+      saMap["Super Admin"] = {
+        role: "SuperAdmin",
+        userName: "Super Admin",
+        userSubtitle: "Final Authority Approval",
+        userKey: "Super Admin",
+        total: 0,
+        pending: 0,
+        completed: 0,
+        rejected: 0,
+        bypass: 0,
+        bills: []
+      };
+    }
+
+    const primarySaKey = Object.keys(saMap)[0];
+    masterBills.forEach(b => {
+      const stage = (b["Current_Stage"] || b.current_stage || "").trim();
+      const saStatus = (b["SA_Status"] || b["Admin_Status"] || b.sa_status || "").trim();
+      const reachedSA = stage === "SuperAdmin" || stage === "Super Admin" || stage === "Admin" || stage === "Completed" || isApprovedStr(saStatus) || isRejectedStr(saStatus) || isBypassStr(saStatus);
+
+      if (reachedSA) {
+        const row = saMap[primarySaKey];
+        row.bills.push(b);
+        row.total++;
+
+        if (isRejectedStr(saStatus)) {
+          row.rejected++;
+        } else if (isBypassStr(saStatus)) {
+          row.bypass++;
+        } else if (stage === "Completed" || isApprovedStr(saStatus)) {
+          row.completed++;
+        } else if (stage === "SuperAdmin" || stage === "Super Admin" || stage === "Admin") {
+          row.pending++;
+        }
+      }
+    });
+    roleGroups.SuperAdmin = Object.values(saMap);
+
+    // ─────────────────────────────────────────────
+    // COMPUTE SUBTOTALS PER ROLE
+    // ─────────────────────────────────────────────
+    const subtotals = {};
+    Object.keys(roleGroups).forEach(role => {
+      const list = roleGroups[role];
+      subtotals[role] = {
+        role: role,
+        total: list.reduce((acc, r) => acc + r.total, 0),
+        pending: list.reduce((acc, r) => acc + r.pending, 0),
+        completed: list.reduce((acc, r) => acc + r.completed, 0),
+        rejected: list.reduce((acc, r) => acc + r.rejected, 0),
+        bypass: list.reduce((acc, r) => acc + r.bypass, 0),
+        usersCount: list.length
+      };
+    });
+
+    // ─────────────────────────────────────────────
+    // COMPUTE PIPELINE GRAND TOTAL
+    // ─────────────────────────────────────────────
+    const grandTotal = {
+      total: queue.length,
+      pending: 0,
+      completed: 0,
+      rejected: 0,
+      bypass: 0
+    };
+
+    queue.forEach(b => {
+      const isRej = b["Approval Status"] === "Rejected" || b.overall_status === "FAIL" || b.overall_status === "Rejected" || (b["Rejection By"] && b["Rejection By"] !== "");
+      const stage = (b["Current_Stage"] || b.current_stage || "New").trim();
+      const isAppr = (b["Approval Status"] === "Approved" || stage === "Completed");
+
+      if (isRej) {
+        grandTotal.rejected++;
+      } else if (isAppr) {
+        grandTotal.completed++;
+      } else {
+        grandTotal.pending++;
+      }
+
+      if (isBypassStr(b["HOD_Status"]) || isBypassStr(b["Account_Status"]) || isBypassStr(b["Finance_Status"]) || isBypassStr(b["CFO_Status"]) || isBypassStr(b["SA_Status"])) {
+        grandTotal.bypass++;
+      }
+    });
+
+    Dashboard.flowMatrixData = roleGroups;
+    Dashboard.flowMatrixSubtotals = subtotals;
+    Dashboard.flowMatrixGrandTotal = grandTotal;
+  },
+
+  renderFlowMatrixTable(searchFilter = "", roleFilter = "ALL") {
+    const tbody = document.getElementById("flowMatrixTableBody");
+    const countEl = document.getElementById("flowMatrixRowCount");
+    if (!tbody) return;
+
+    if (!Dashboard.flowMatrixData) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading Matrix...</td></tr>`;
+      return;
+    }
+
+    const sTerm = (searchFilter || "").toLowerCase().trim();
+    const rFilter = roleFilter || "ALL";
+
+    const rolesOrder = ["Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin"];
+    const roleColors = {
+      Biller: { bg: "#eef2ff", text: "#4338ca", icon: "fa-file-invoice", label: "Biller Intake" },
+      HOD: { bg: "#e0f2fe", text: "#0369a1", icon: "fa-user-tie", label: "HOD Approvals" },
+      Account: { bg: "#ccfbf1", text: "#0f766e", icon: "fa-file-invoice-dollar", label: "Account Team" },
+      Finance: { bg: "#fef3c7", text: "#b45309", icon: "fa-wallet", label: "Finance Team" },
+      CFO: { bg: "#f3e8ff", text: "#7e22ce", icon: "fa-stamp", label: "CFO Approval" },
+      SuperAdmin: { bg: "#fee2e2", text: "#b91c1c", icon: "fa-shield-halved", label: "Super Admin Final" }
+    };
+
+    let html = "";
+    let totalRenderedUsers = 0;
+
+    rolesOrder.forEach(role => {
+      if (rFilter !== "ALL" && rFilter !== role) return;
+
+      let usersList = Dashboard.flowMatrixData[role] || [];
+      if (sTerm) {
+        usersList = usersList.filter(u => {
+          return (u.userName || "").toLowerCase().includes(sTerm) ||
+                 (u.userSubtitle || "").toLowerCase().includes(sTerm) ||
+                 role.toLowerCase().includes(sTerm);
+        });
+      }
+
+      if (usersList.length === 0 && sTerm) return;
+
+      const meta = roleColors[role] || { bg: "#f1f5f9", text: "#334155", icon: "fa-user", label: role };
+
+      usersList.forEach((u, uIdx) => {
+        totalRenderedUsers++;
+        const roleCell = uIdx === 0
+          ? `<td rowspan="${usersList.length + 1}" style="padding: 14px 18px; vertical-align: top; background: ${meta.bg}22; border-right: 1px solid #e2e8f0; border-bottom: 2px solid #cbd5e1;">
+               <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 14px; background: ${meta.bg}; color: ${meta.text}; font-weight: 700; font-size: 0.78rem;">
+                 <i class="fa ${meta.icon}"></i> ${role}
+               </div>
+               <div style="font-size: 0.72rem; color: var(--gray-500); margin-top: 6px;">${meta.label}</div>
+             </td>`
+          : "";
+
+        html += `
+          <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+            ${roleCell}
+            <td style="padding: 12px 18px; vertical-align: middle;">
+              <div style="font-weight: 600; color: #1e293b; font-size: 0.88rem;">${u.userName}</div>
+              <div style="font-size: 0.76rem; color: #64748b; margin-top: 2px;">${u.userSubtitle}</div>
+            </td>
+            <td style="padding: 12px 14px; text-align: center; vertical-align: middle;">
+              <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', '${u.userKey}', 'ALL')" style="cursor: pointer; background: #e2e8f0; color: #1e293b; font-size: 0.82rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;" title="View all bills for ${u.userName}">${u.total}</span>
+            </td>
+            <td style="padding: 12px 14px; text-align: center; vertical-align: middle; background: #fffbeb22;">
+              <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', '${u.userKey}', 'PENDING')" style="cursor: pointer; background: ${u.pending > 0 ? '#fef3c7' : '#f1f5f9'}; color: ${u.pending > 0 ? '#b45309' : '#94a3b8'}; font-size: 0.82rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;" title="View pending bills for ${u.userName}">${u.pending}</span>
+            </td>
+            <td style="padding: 12px 14px; text-align: center; vertical-align: middle; background: #f0fdf422;">
+              <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', '${u.userKey}', 'COMPLETED')" style="cursor: pointer; background: ${u.completed > 0 ? '#dcfce7' : '#f1f5f9'}; color: ${u.completed > 0 ? '#15803d' : '#94a3b8'}; font-size: 0.82rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;" title="View completed bills for ${u.userName}">${u.completed}</span>
+            </td>
+            <td style="padding: 12px 14px; text-align: center; vertical-align: middle; background: #fef2f222;">
+              <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', '${u.userKey}', 'REJECTED')" style="cursor: pointer; background: ${u.rejected > 0 ? '#fee2e2' : '#f1f5f9'}; color: ${u.rejected > 0 ? '#b91c1c' : '#94a3b8'}; font-size: 0.82rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;" title="View rejected bills for ${u.userName}">${u.rejected}</span>
+            </td>
+            <td style="padding: 12px 14px; text-align: center; vertical-align: middle; background: #f5f3ff22;">
+              <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', '${u.userKey}', 'BYPASS')" style="cursor: pointer; background: ${u.bypass > 0 ? '#ede9fe' : '#f1f5f9'}; color: ${u.bypass > 0 ? '#6d28d9' : '#94a3b8'}; font-size: 0.82rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;" title="View bypassed bills for ${u.userName}">${u.bypass}</span>
+            </td>
+            <td style="padding: 12px 14px; text-align: center; vertical-align: middle;">
+              <button class="btn btn-ghost btn-sm" onclick="Dashboard.openFlowBillsDrilldown('${role}', '${u.userKey}', 'ALL')" style="padding: 4px 10px; font-size: 0.78rem; color: #4f46e5;" title="Open Drilldown">
+                <i class="fa fa-folder-open"></i> View
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+
+      // ── SUBTOTAL ROW FOR THIS ROLE ──
+      const sub = Dashboard.flowMatrixSubtotals[role] || { total: 0, pending: 0, completed: 0, rejected: 0, bypass: 0, usersCount: usersList.length };
+      const dynTotal = sTerm ? usersList.reduce((acc, u) => acc + u.total, 0) : sub.total;
+      const dynPending = sTerm ? usersList.reduce((acc, u) => acc + u.pending, 0) : sub.pending;
+      const dynCompleted = sTerm ? usersList.reduce((acc, u) => acc + u.completed, 0) : sub.completed;
+      const dynRejected = sTerm ? usersList.reduce((acc, u) => acc + u.rejected, 0) : sub.rejected;
+      const dynBypass = sTerm ? usersList.reduce((acc, u) => acc + u.bypass, 0) : sub.bypass;
+
+      html += `
+        <tr style="background: #f8fafc; border-top: 1px solid #cbd5e1; border-bottom: 2px solid #cbd5e1;">
+          <td style="padding: 10px 18px; font-weight: 700; color: #1e293b; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span><i class="fa fa-calculator" style="color: #64748b; font-size: 0.75rem; margin-right: 6px;"></i> Subtotal (${role})</span>
+              <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">${usersList.length} User(s)</span>
+            </div>
+          </td>
+          <td style="padding: 10px 14px; text-align: center;">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', 'ALL', 'ALL')" style="cursor: pointer; background: #cbd5e1; color: #0f172a; font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 6px;" title="Subtotal Total bills in ${role}">${dynTotal}</span>
+          </td>
+          <td style="padding: 10px 14px; text-align: center; background: #fffbeb55;">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', 'ALL', 'PENDING')" style="cursor: pointer; background: #fde68a; color: #92400e; font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 6px;" title="Subtotal Pending bills in ${role}">${dynPending}</span>
+          </td>
+          <td style="padding: 10px 14px; text-align: center; background: #f0fdf455;">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', 'ALL', 'COMPLETED')" style="cursor: pointer; background: #bbf7d0; color: #166534; font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 6px;" title="Subtotal Completed bills in ${role}">${dynCompleted}</span>
+          </td>
+          <td style="padding: 10px 14px; text-align: center; background: #fef2f255;">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', 'ALL', 'REJECTED')" style="cursor: pointer; background: #fecaca; color: #991b1b; font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 6px;" title="Subtotal Rejected bills in ${role}">${dynRejected}</span>
+          </td>
+          <td style="padding: 10px 14px; text-align: center; background: #f5f3ff55;">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('${role}', 'ALL', 'BYPASS')" style="cursor: pointer; background: #ddd6fe; color: #5b21b6; font-size: 0.85rem; font-weight: 800; padding: 4px 12px; border-radius: 6px;" title="Subtotal Bypassed bills in ${role}">${dynBypass}</span>
+          </td>
+          <td style="padding: 10px 14px; text-align: center;">
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openFlowBillsDrilldown('${role}', 'ALL', 'ALL')" style="padding: 3px 8px; font-size: 0.74rem; font-weight: 600; color: var(--gray-700);">
+              Drilldown
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    if (totalRenderedUsers === 0) {
+      html = `<tr><td colspan="8" class="text-center" style="padding: 36px; color: var(--gray-500);">No roles or users match your search criteria.</td></tr>`;
+    } else {
+      // ── GRAND TOTAL ROW AT THE BOTTOM ──
+      const gt = Dashboard.flowMatrixGrandTotal || { total: 0, pending: 0, completed: 0, rejected: 0, bypass: 0 };
+      html += `
+        <tr style="background: linear-gradient(135deg, #0f172a, #1e293b); color: #ffffff; border-top: 3px solid #3b82f6; position: sticky; bottom: 0; z-index: 2;">
+          <td colspan="2" style="padding: 14px 20px; font-weight: 800; font-size: 0.95rem; color: #ffffff;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: inline-flex; align-items: center; gap: 8px; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">
+                <i class="fa fa-chart-pie"></i> GRAND TOTAL (Pipeline Overview)
+              </span>
+              <span style="font-size: 0.78rem; color: #94a3b8; font-weight: 600;">Entire Invoice Workflow</span>
+            </div>
+          </td>
+          <td style="padding: 14px; text-align: center;">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'ALL')" style="cursor: pointer; background: #334155; color: #ffffff; font-size: 0.95rem; font-weight: 800; padding: 5px 12px; border-radius: 6px; border: 1px solid #475569;" title="View all pipeline invoices">${gt.total}</span>
+          </td>
+          <td style="padding: 14px; text-align: center; background: rgba(254, 243, 199, 0.08);">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'PENDING')" style="cursor: pointer; background: #78350f; color: #fef3c7; font-size: 0.95rem; font-weight: 800; padding: 5px 12px; border-radius: 6px; border: 1px solid #92400e;" title="View all pending invoices across pipeline">${gt.pending}</span>
+          </td>
+          <td style="padding: 14px; text-align: center; background: rgba(220, 252, 231, 0.08);">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'COMPLETED')" style="cursor: pointer; background: #064e3b; color: #dcfce7; font-size: 0.95rem; font-weight: 800; padding: 5px 12px; border-radius: 6px; border: 1px solid #166534;" title="View all completed/approved invoices">${gt.completed}</span>
+          </td>
+          <td style="padding: 14px; text-align: center; background: rgba(254, 226, 226, 0.08);">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'REJECTED')" style="cursor: pointer; background: #7f1d1d; color: #fee2e2; font-size: 0.95rem; font-weight: 800; padding: 5px 12px; border-radius: 6px; border: 1px solid #991b1b;" title="View all rejected invoices">${gt.rejected}</span>
+          </td>
+          <td style="padding: 14px; text-align: center; background: rgba(237, 233, 254, 0.08);">
+            <span class="badge" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'BYPASS')" style="cursor: pointer; background: #4c1d95; color: #ede9fe; font-size: 0.95rem; font-weight: 800; padding: 5px 12px; border-radius: 6px; border: 1px solid #5b21b6;" title="View all bypassed instances">${gt.bypass}</span>
+          </td>
+          <td style="padding: 14px; text-align: center;">
+            <button class="btn btn-sm" onclick="Dashboard.openFlowBillsDrilldown('ALL', 'ALL', 'ALL')" style="background: rgba(255,255,255,0.18); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.78rem; padding: 4px 10px; font-weight: 600;">
+              All Bills
+            </button>
+          </td>
+        </tr>
+      `;
+    }
+
+    tbody.innerHTML = html;
+    if (countEl) {
+      countEl.textContent = `Showing ${totalRenderedUsers} role user entries`;
+    }
+  },
+
+  filterFlowMatrix() {
+    const searchVal = (document.getElementById("flowMatrixSearchInput")?.value || "").toLowerCase().trim();
+    const roleVal = document.getElementById("flowMatrixRoleSelect")?.value || "ALL";
+    Dashboard.renderFlowMatrixTable(searchVal, roleVal);
+  },
+
+  renderFlowKpis() {
+    const gt = Dashboard.flowMatrixGrandTotal || { total: 0, pending: 0, completed: 0, rejected: 0, bypass: 0 };
+    const setTxt = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+    setTxt("flowKpiTotal", gt.total);
+    setTxt("flowKpiPending", gt.pending);
+    setTxt("flowKpiCompleted", gt.completed);
+    setTxt("flowKpiRejected", gt.rejected);
+    setTxt("flowKpiBypass", gt.bypass);
+  },
+
+  openFlowBillsDrilldown(role, userKey, statusFilter = "ALL") {
+    const queue = Dashboard.queue || [];
+    const isApprovedStr = s => (s || "").toLowerCase().includes("approved") || (s || "").toLowerCase().includes("pass");
+    const isRejectedStr = s => (s || "").toLowerCase().includes("reject") || (s || "").toLowerCase().includes("fail");
+    const isBypassStr = s => (s || "").toLowerCase().includes("bypass");
+
+    let matching = [];
+
+    if (role === "ALL") {
+      matching = queue.filter(b => {
+        const isRej = b["Approval Status"] === "Rejected" || b.overall_status === "FAIL" || b.overall_status === "Rejected" || (b["Rejection By"] && b["Rejection By"] !== "");
+        const stage = (b["Current_Stage"] || b.current_stage || "New").trim();
+        const isAppr = (b["Approval Status"] === "Approved" || stage === "Completed");
+
+        if (statusFilter === "PENDING") return !isRej && !isAppr;
+        if (statusFilter === "COMPLETED") return isAppr && !isRej;
+        if (statusFilter === "REJECTED") return isRej;
+        if (statusFilter === "BYPASS") {
+          return isBypassStr(b["HOD_Status"]) || isBypassStr(b["Account_Status"]) || isBypassStr(b["Finance_Status"]) || isBypassStr(b["CFO_Status"]) || isBypassStr(b["SA_Status"]);
+        }
+        return true;
+      });
+    } else {
+      const roleList = (Dashboard.flowMatrixData && Dashboard.flowMatrixData[role]) || [];
+      let candidateBills = [];
+      if (userKey === "ALL") {
+        roleList.forEach(u => candidateBills.push(...u.bills));
+      } else {
+        const userObj = roleList.find(u => u.userKey === userKey || u.userName === userKey);
+        candidateBills = userObj ? userObj.bills : [];
+      }
+
+      const seen = new Set();
+      candidateBills = candidateBills.filter(b => {
+        if (!b._uid || seen.has(b._uid)) return false;
+        seen.add(b._uid);
+        return true;
+      });
+
+      matching = candidateBills.filter(b => {
+        const stage = (b["Current_Stage"] || b.current_stage || "New").trim();
+        const stageStatus = (b[role + "_Status"] || b[role.toLowerCase() + "_status"] || "").trim();
+
+        if (statusFilter === "PENDING") {
+          if (role === "Biller") {
+            return b._sourceSheet === "Invoices" || b["Approval Status"] === "New" || (!b["Current_Stage"] && b.biller_status === "New");
+          }
+          if (role === "SuperAdmin") {
+            return (stage === "SuperAdmin" || stage === "Super Admin" || stage === "Admin") && !isRejectedStr(stageStatus);
+          }
+          return stage === role && !isRejectedStr(stageStatus);
+        }
+
+        if (statusFilter === "COMPLETED") {
+          if (role === "Biller") return b._sourceSheet === "Master_Invoices";
+          if (role === "SuperAdmin") return stage === "Completed" || isApprovedStr(stageStatus);
+          return isApprovedStr(stageStatus) || stage === "Completed";
+        }
+
+        if (statusFilter === "REJECTED") {
+          return isRejectedStr(stageStatus) || (role === "SuperAdmin" && (isRejectedStr(b["Admin_Status"]) || isRejectedStr(b["SA_Status"])));
+        }
+
+        if (statusFilter === "BYPASS") {
+          return isBypassStr(stageStatus);
+        }
+
+        return true;
+      });
+    }
+
+    Dashboard.flowDrilldownCurrentBills = matching;
+
+    const titleEl = document.getElementById("flowDrilldownTitle");
+    const subTitleEl = document.getElementById("flowDrilldownSubtitle");
+    const countEl = document.getElementById("flowDrilldownCount");
+    const amtEl = document.getElementById("flowDrilldownAmount");
+    const tbody = document.getElementById("flowDrilldownTableBody");
+
+    const statusLabel = statusFilter === "ALL" ? "All Invoices" : statusFilter;
+    const targetLabel = role === "ALL" ? "Pipeline" : `${role} (${userKey === 'ALL' ? 'All Users' : userKey})`;
+    if (titleEl) titleEl.textContent = `Drilldown — ${targetLabel} [${statusLabel}]`;
+    if (subTitleEl) subTitleEl.textContent = `Showing ${matching.length} bill(s) matching selected filter criteria`;
+
+    let totalAmt = 0;
+    matching.forEach(b => {
+      const rawAmt = b["D1. Final Payable Amt"] || b["A20. Basic Amount"] || b["A22. Invoice Total Amount"] || b.total_amount || 0;
+      const num = parseFloat(String(rawAmt).replace(/[^0-9.-]/g, ""));
+      if (!isNaN(num)) totalAmt += num;
+    });
+
+    if (countEl) countEl.textContent = matching.length;
+    if (amtEl) amtEl.textContent = "₹" + totalAmt.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    if (tbody) {
+      if (matching.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding: 32px; color: var(--gray-400);">No bills found for this selection.</td></tr>`;
+      } else {
+        let trs = "";
+        matching.forEach((b, idx) => {
+          const invNo = b["A13. Invoice Number"] || b.invoice_number || "—";
+          const vendor = b["A14. Vendor Name"] || b["A8. Vendor Name"] || b.vendor_name || "—";
+          const dept = b["A1. Select Department"] || b["A1. Department"] || b.department || "—";
+          const rawAmt = b["D1. Final Payable Amt"] || b["A20. Basic Amount"] || b.total_amount || "—";
+          const fmtAmt = (!rawAmt || isNaN(parseFloat(rawAmt))) ? (rawAmt || "—") : "₹" + parseFloat(rawAmt).toLocaleString("en-IN");
+          const stage = b["Current_Stage"] || b.current_stage || "New";
+          const status = b["Approval Status"] || b.overall_status || "New";
+          const date = b["A14. Invoice Date"] || b["Invoice Date"] || b.created_at || "—";
+
+          let statusBadgeClass = "status-new";
+          if (status === "Approved" || status === "Completed") statusBadgeClass = "status-approved";
+          else if (status.includes("Reject")) statusBadgeClass = "status-rejected";
+          else if (status.includes("Sent") || status === "Reviewed") statusBadgeClass = "status-pending";
+
+          trs += `
+            <tr style="border-bottom: 1px solid var(--gray-100); transition: background 0.15s;" onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background='transparent'">
+              <td style="padding: 10px 12px; text-align: center; color: var(--gray-500); font-size: 0.8rem;">${idx + 1}</td>
+              <td style="padding: 10px 14px; font-weight: 600; color: var(--primary); white-space: nowrap;">${invNo}</td>
+              <td style="padding: 10px 14px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;" title="${vendor}">${vendor}</td>
+              <td style="padding: 10px 14px; white-space: nowrap; color: var(--gray-600);">${dept}</td>
+              <td style="padding: 10px 14px; text-align: right; font-weight: 600; white-space: nowrap;">${fmtAmt}</td>
+              <td style="padding: 10px 12px; text-align: center; white-space: nowrap;"><span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:0.75rem;">${stage}</span></td>
+              <td style="padding: 10px 12px; text-align: center; white-space: nowrap;"><span class="${statusBadgeClass}" style="font-size:0.75rem;padding:3px 10px;border-radius:12px;">${status}</span></td>
+              <td style="padding: 10px 12px; text-align: center; white-space: nowrap; color: var(--gray-500); font-size: 0.78rem;">${date}</td>
+              <td style="padding: 10px 12px; text-align: center; white-space: nowrap;">
+                <button class="btn btn-ghost btn-sm" style="padding: 3px 8px; font-size: 0.75rem; color: var(--primary);" onclick="Dashboard.openReview('${b._uid}', '${b._sourceSheet || 'Master_Invoices'}')">
+                  <i class="fa fa-eye"></i> View
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = trs;
+      }
+    }
+
+    const modal = document.getElementById("flowDrilldownModal");
+    if (modal) {
+      modal.style.display = "flex";
+      modal.classList.add("active");
+    }
+  },
+
+  closeFlowDrilldown() {
+    const modal = document.getElementById("flowDrilldownModal");
+    if (modal) {
+      modal.style.display = "none";
+      modal.classList.remove("active");
+    }
+  },
+
+  exportFlowMatrixCSV() {
+    if (!Dashboard.flowMatrixData) {
+      Toast.warning("No flow data to export!");
+      return;
+    }
+
+    let csvContent = "Role,User / Department,Total,Pending,Completed,Rejected,Bypass\r\n";
+    const roles = ["Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin"];
+
+    roles.forEach(role => {
+      const list = Dashboard.flowMatrixData[role] || [];
+      list.forEach(u => {
+        const userTitle = `${u.userName} (${u.userSubtitle || ''})`.replace(/"/g, '""');
+        csvContent += `"${role}","${userTitle}",${u.total},${u.pending},${u.completed},${u.rejected},${u.bypass}\r\n`;
+      });
+      const sub = Dashboard.flowMatrixSubtotals[role];
+      if (sub) {
+        csvContent += `"Subtotal (${role})","Subtotal - ${sub.usersCount} Users",${sub.total},${sub.pending},${sub.completed},${sub.rejected},${sub.bypass}\r\n`;
+      }
+    });
+
+    const gt = Dashboard.flowMatrixGrandTotal;
+    if (gt) {
+      csvContent += `"GRAND TOTAL","Pipeline Overview",${gt.total},${gt.pending},${gt.completed},${gt.rejected},${gt.bypass}\r\n`;
+    }
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Invoice_Flow_Matrix_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    Toast.success("Invoice Flow Matrix exported to CSV!");
   },
 
   toggleFlowupColumn(cb) {
