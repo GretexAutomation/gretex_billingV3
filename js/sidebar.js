@@ -84,19 +84,18 @@ const Sidebar = {
         section: "Main",
         items: [
           { id: "dashboard", icon: "fa-gauge",         label: "Dashboard",       page: "cfo.html"  },
+          { id: "approve",   icon: "fa-user-clock",    label: "Pending for me",  page: "cfo.html#approve", badge: "approval" },
           {
             id: "myinvoices",
             icon: "fa-file-invoice",
             label: "Pipeline Monitor",
             page: "cfo.html#invoices",
-            badge: "approval",
             children: [
               { id: "invoices",   label: "All Pipeline Bills",  page: "cfo.html#invoices",   icon: "fa-list" },
               { id: "atbiller",   label: "At Biller",           page: "cfo.html#atbiller",   icon: "fa-receipt" },
               { id: "athod",      label: "At HODs (By HOD)",    page: "cfo.html#athod",      icon: "fa-users-gear" },
               { id: "ataccount",  label: "At Account",          page: "cfo.html#ataccount",  icon: "fa-calculator" },
               { id: "atfinance",  label: "At Finance",          page: "cfo.html#atfinance",  icon: "fa-money-bill-transfer" },
-              { id: "approve",    label: "Pending CFO Signoff", page: "cfo.html#approve",    icon: "fa-stamp" },
               { id: "completed",  label: "Completed",           page: "cfo.html#completed",  icon: "fa-circle-check" }
             ]
           },
