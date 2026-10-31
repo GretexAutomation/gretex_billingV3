@@ -1845,30 +1845,37 @@ const Dashboard = {
     const search = (document.getElementById("atbillerSearchInput")?.value || "").toLowerCase();
     let data = Dashboard.billerInvoicesData || [];
     if (search) {
-      data = data.filter(i => 
-        (i.invoice_number || "").toLowerCase().includes(search) || 
-        (i.vendor_name || "").toLowerCase().includes(search) ||
-        (i.description || "").toLowerCase().includes(search)
-      );
+      data = data.filter(i => {
+        const invNo = String(i["A13. Invoice Number"] || i.invoice_number || i.invoice_unique_id || i.a13_invoice_number || "").toLowerCase();
+        const vendor = String(i["A14. Vendor Name"] || i.vendor_name || i.a14_vendor_name || "").toLowerCase();
+        const desc = String(i["A16. Bill Description"] || i.description || i.a16_bill_description || "").toLowerCase();
+        return invNo.includes(search) || vendor.includes(search) || desc.includes(search);
+      });
     }
     if (data.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding:36px;color:var(--gray-400);"><i class="fa fa-folder-open"></i> No invoices currently pending at Biller stage</td></tr>`;
       return;
     }
     tbody.innerHTML = data.map((inv, idx) => {
-      const amt = Number(inv.total_amount || inv["A20. Basic Amount"] || 0);
-      const rowId = inv.id || inv.rowIndex;
+      const amt = Number(inv.total_amount || inv["A20. Basic Amount"] || inv.a20_basic_amount || 0);
+      const rowId = inv.id || inv.rowIndex || inv.queueRowIndex;
+      const invNo = inv["A13. Invoice Number"] || inv.invoice_number || inv.invoice_unique_id || inv.a13_invoice_number || "—";
+      const invDate = inv["A12. Invoice Date"] || inv.invoice_date || inv.a12_invoice_date || "";
+      const vendor = inv["A14. Vendor Name"] || inv.vendor_name || inv.a14_vendor_name || "—";
+      const desc = inv["A16. Bill Description"] || inv.description || inv.a16_bill_description || "—";
+      const receivedDate = inv["Timestamp"] || inv.created_at;
+
       return `<tr onclick="Dashboard.openDetail('${rowId}')" style="cursor:pointer;">
         <td style="color:var(--gray-500);font-size:0.83rem">${idx + 1}</td>
         <td>
-          <strong style="color:var(--primary);font-size:0.85rem">${escapeHtml(inv.invoice_number || "—")}</strong>
-          <div style="font-size:0.75rem;color:var(--gray-500);">${inv.invoice_date || "—"}</div>
+          <strong style="color:var(--primary);font-size:0.85rem">${escapeHtml(invNo)}</strong>
+          <div style="font-size:0.75rem;color:var(--gray-500);">${escapeHtml(invDate || "—")}</div>
         </td>
-        <td style="font-weight:600;font-size:0.84rem;">${escapeHtml(Utils.truncate(inv.vendor_name, 25))}</td>
-        <td style="font-size:0.8rem;color:var(--gray-600);">${escapeHtml(Utils.truncate(inv.description, 30))}</td>
+        <td style="font-weight:600;font-size:0.84rem;">${escapeHtml(Utils.truncate(vendor, 25))}</td>
+        <td style="font-size:0.8rem;color:var(--gray-600);">${escapeHtml(Utils.truncate(desc, 30))}</td>
         <td style="font-weight:700;color:var(--gray-900);">${Utils.formatCurrency(amt)}</td>
         <td><span class="badge" style="background:#f1f5f9;color:#475569;font-size:0.72rem;padding:4px 8px;border-radius:12px;font-weight:600;">Intake</span></td>
-        <td style="font-size:0.78rem;color:var(--gray-500);white-space:nowrap;">${inv.created_at ? new Date(inv.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : "—"}</td>
+        <td style="font-size:0.78rem;color:var(--gray-500);white-space:nowrap;">${receivedDate ? new Date(receivedDate).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : "—"}</td>
         <td style="text-align:right;" onclick="event.stopPropagation()">
           <button class="btn btn-ghost btn-sm" onclick="Dashboard.openDetail('${rowId}')" title="View Bill Details">
             <i class="fa fa-eye"></i> View
@@ -5062,7 +5069,7 @@ const Dashboard = {
     const sId = String(id).trim();
     let inv = (Dashboard.queueData || []).find(b => String(b.rowIndex) === sId || String(b.queueRowIndex) === sId || String(b.id) === sId || String(b["A13. Invoice Number"]) === sId);
     if (!inv) inv = (Dashboard.allInvoicesData || []).find(b => String(b.rowIndex) === sId || String(b.queueRowIndex) === sId || String(b.id) === sId || String(b["A13. Invoice Number"]) === sId);
-    if (!inv) inv = (Dashboard.billerInvoicesData || []).find(b => String(b.id) === sId || String(b.rowIndex) === sId || String(b.invoice_number) === sId);
+    if (!inv) inv = (Dashboard.billerInvoicesData || []).find(b => String(b.id) === sId || String(b.rowIndex) === sId || String(b.queueRowIndex) === sId || String(b["A13. Invoice Number"]) === sId || String(b.invoice_unique_id) === sId || String(b.invoice_number) === sId);
     return inv;
   },
 
