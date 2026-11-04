@@ -171,12 +171,66 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
   }
 
   const approvalHistory = (approvals && approvals.length > 0) ? approvals : (b.approval_history || []);
-  const billerAction = approvalHistory.find(a => a.stage === "Biller");
-  const hodAction = approvalHistory.find(a => a.stage === "HOD");
-  const accountAction = approvalHistory.find(a => a.stage === "Account");
-  const financeAction = approvalHistory.find(a => a.stage === "Finance");
-  const cfoAction = approvalHistory.find(a => a.stage === "CFO");
-  const saAction = approvalHistory.find(a => a.stage === "SuperAdmin");
+  const getLatestAction = (stageName) => {
+    const matches = approvalHistory.filter(a => (a.stage || "").toLowerCase() === stageName.toLowerCase());
+    return matches.length > 0 ? matches[matches.length - 1] : null;
+  };
+
+  const billerAction = getLatestAction("Biller");
+  const hodAction = getLatestAction("HOD");
+  const accountAction = getLatestAction("Account");
+  const financeAction = getLatestAction("Finance");
+  const cfoAction = getLatestAction("CFO");
+  const saAction = getLatestAction("SuperAdmin");
+
+  const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+  const currentStage = (b.current_stage || (isNew ? "New" : "Biller")).trim();
+  const cIdx = order.indexOf(currentStage);
+  // An invoice is only failed/rejected overall if it has completed/terminated as FAIL/Rejected.
+  // If current_stage is sitting in an active review stage (e.g. Biller, HOD, Account), it is actively in progress!
+  const isFailed = (currentStage === "Completed" || currentStage === "Rejected") &&
+    (b.overall_status === "FAIL" || b.overall_status === "Rejected");
+
+  const billReceivedIso = b.timestamp || b.created_at || new Date().toISOString();
+  const tReceived = new Date(billReceivedIso).getTime();
+
+  let safeBillerSendAt = billerAction?.action_taken_at || (isNew ? "" : billReceivedIso);
+  if (safeBillerSendAt && tReceived && new Date(safeBillerSendAt).getTime() < tReceived - 60000) {
+    safeBillerSendAt = (cIdx > 1) ? billReceivedIso : (isNew ? "" : billReceivedIso);
+  }
+
+  const getStageStatus = (stageName, actionObj) => {
+    const sIdx = order.indexOf(stageName);
+    // If the bill is currently sitting at an earlier stage in the pipeline and is not rejected overall,
+    // downstream stages have not been reached in this cycle and cannot be Rejected or Approved!
+    if (!isFailed && currentStage !== "Completed" && cIdx !== -1 && sIdx > cIdx) {
+      return "";
+    }
+    if (actionObj) {
+      if (actionObj.action_type.includes("Reject")) return "Rejected";
+      if (actionObj.action_type.includes("Bypass")) return "Bypassed";
+      return "Approved";
+    }
+    if (currentStage === "Completed" || (cIdx !== -1 && cIdx > sIdx)) return "Bypassed";
+    if (currentStage === stageName) return "Pending";
+    return "";
+  };
+
+  const safeActionDate = (stageName, actionObj) => {
+    const sIdx = order.indexOf(stageName);
+    if (!isFailed && currentStage !== "Completed" && cIdx !== -1 && sIdx > cIdx) {
+      return "";
+    }
+    return actionObj?.action_taken_at || "";
+  };
+
+  const safeActionRemark = (stageName, actionObj) => {
+    const sIdx = order.indexOf(stageName);
+    if (!isFailed && currentStage !== "Completed" && cIdx !== -1 && sIdx > cIdx) {
+      return "";
+    }
+    return actionObj?.remark || "";
+  };
 
   return {
     ...b,
@@ -185,11 +239,12 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
     _sheetRowIndex: b.id,
     _sourceSheet: isNew ? "Invoices" : "Master_Invoices",
     "Approval Status": statusLabel,
+    overall_status: isFailed ? (b.overall_status || "FAIL") : (b.current_stage === "Completed" ? (b.overall_status || "Approved") : "REVIEW"),
     isNew: isNew,
     "Drive URL": b.drive_url || "",
     "Attachment Name": b.attachment_name || "",
     "🚩 Red Flags": b.red_flags || "",
-    Timestamp: b.timestamp || b.created_at || new Date().toISOString(),
+    Timestamp: billReceivedIso,
 
     // Field aliases for backward compatibility & direct property access
     invoice_number: b.a13_invoice_number || b.invoice_unique_id || "",
@@ -198,65 +253,22 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
     description: b.a16_bill_description || "",
     total_amount: Number(b.d1_final_payable_amt || b.a20_basic_amount) || 0,
 
-    "Biller_Send_At": billerAction?.action_taken_at || (isNew ? "" : (b.created_at || b.timestamp)),
-    "HOD_Send_At": hodAction?.action_taken_at || "",
-    "HOD_Status": (() => {
-      if (hodAction) {
-        if (hodAction.action_type.includes("Reject")) return "Rejected";
-        if (hodAction.action_type.includes("Bypass")) return "Bypassed";
-        return "Approved";
-      }
-      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
-      const cIdx = order.indexOf(b.current_stage || "");
-      if (b.current_stage === "Completed" || (cIdx > order.indexOf("HOD"))) return "Bypassed";
-      if (b.current_stage === "HOD") return "Pending";
-      return "";
-    })(),
-    "HOD_Remark": hodAction?.remark || "",
-    "Account_Send_At": accountAction?.action_taken_at || "",
-    "Account_Status": (() => {
-      if (accountAction) {
-        if (accountAction.action_type.includes("Reject")) return "Rejected";
-        if (accountAction.action_type.includes("Bypass")) return "Bypassed";
-        return "Approved";
-      }
-      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
-      const cIdx = order.indexOf(b.current_stage || "");
-      if (b.current_stage === "Completed" || (cIdx > order.indexOf("Account"))) return "Bypassed";
-      if (b.current_stage === "Account") return "Pending";
-      return "";
-    })(),
-    "Account_Remark": accountAction?.remark || "",
-    "Finance_Send_At": financeAction?.action_taken_at || "",
-    "Finance_Status": (() => {
-      if (financeAction) {
-        if (financeAction.action_type.includes("Reject")) return "Rejected";
-        if (financeAction.action_type.includes("Bypass")) return "Bypassed";
-        return "Approved";
-      }
-      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
-      const cIdx = order.indexOf(b.current_stage || "");
-      if (b.current_stage === "Completed" || (cIdx > order.indexOf("Finance"))) return "Bypassed";
-      if (b.current_stage === "Finance") return "Pending";
-      return "";
-    })(),
-    "Finance_Remark": financeAction?.remark || "",
-    "CFO_Send_At": cfoAction?.action_taken_at || "",
-    "CFO_Status": (() => {
-      if (cfoAction) {
-        if (cfoAction.action_type.includes("Reject")) return "Rejected";
-        if (cfoAction.action_type.includes("Bypass")) return "Bypassed";
-        return "Approved";
-      }
-      const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
-      const cIdx = order.indexOf(b.current_stage || "");
-      if (b.current_stage === "Completed" || (cIdx > order.indexOf("CFO"))) return "Bypassed";
-      if (b.current_stage === "CFO") return "Pending";
-      return "";
-    })(),
-    "CFO_Remark": cfoAction?.remark || "",
-    "SA_Approved_At": saAction?.action_taken_at || b.close_at || "",
+    "Biller_Send_At": safeBillerSendAt,
+    "HOD_Send_At": safeActionDate("HOD", hodAction),
+    "HOD_Status": getStageStatus("HOD", hodAction),
+    "HOD_Remark": safeActionRemark("HOD", hodAction),
+    "Account_Send_At": safeActionDate("Account", accountAction),
+    "Account_Status": getStageStatus("Account", accountAction),
+    "Account_Remark": safeActionRemark("Account", accountAction),
+    "Finance_Send_At": safeActionDate("Finance", financeAction),
+    "Finance_Status": getStageStatus("Finance", financeAction),
+    "Finance_Remark": safeActionRemark("Finance", financeAction),
+    "CFO_Send_At": safeActionDate("CFO", cfoAction),
+    "CFO_Status": getStageStatus("CFO", cfoAction),
+    "CFO_Remark": safeActionRemark("CFO", cfoAction),
+    "SA_Approved_At": safeActionDate("SuperAdmin", saAction) || (b.current_stage === "Completed" ? (b.close_at || "") : ""),
     "SA_Status": (() => {
+      if (!isFailed && currentStage !== "Completed" && cIdx !== -1 && order.indexOf("SuperAdmin") > cIdx) return "";
       if (saAction) {
         if (saAction.action_type.includes("Reject")) return "Rejected";
         if (saAction.action_type.includes("Bypass")) return "Bypassed";
@@ -267,7 +279,7 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
       if (b.current_stage === "SuperAdmin") return "Pending";
       return "";
     })(),
-    "SA_Remark": saAction?.remark || "",
+    "SA_Remark": safeActionRemark("SuperAdmin", saAction),
     approval_history: approvalHistory,
 
     // Section A (Basic & Identification)
@@ -863,7 +875,20 @@ module.exports = async function handler(req, res) {
           d10_update_email: user.email,
           d11_narration: remark,
           red_flags: billData.red_flags || "",
-          overall_status: billData.overall_status || "REVIEW"
+          overall_status: "REVIEW",
+          rejection_by: null,
+          rejection_reason: null,
+          account_status: null,
+          account_remark: null,
+          hod_status: null,
+          hod_remark: null,
+          finance_status: null,
+          finance_remark: null,
+          cfo_status: null,
+          cfo_remark: null,
+          sa_status: null,
+          sa_remark: null,
+          close_at: null
         };
 
         const { error: insertErr } = await supabase.from("master_invoices").upsert(masterPayload, { onConflict: "invoice_unique_id" });
@@ -871,10 +896,19 @@ module.exports = async function handler(req, res) {
           return Response.error(res, `Failed to copy to Master: ${insertErr.message}`);
         }
 
+        // Get latest cycle number if re-submitting an invoice
+        const { data: lastAppr } = await supabase
+          .from("invoice_approvals")
+          .select("cycle_no")
+          .eq("invoice_unique_id", uniqueId)
+          .order("cycle_no", { ascending: false })
+          .limit(1);
+        const nextCycle = (lastAppr && lastAppr.length > 0 && lastAppr[0].cycle_no) ? lastAppr[0].cycle_no + 1 : 1;
+
         // Insert Biller submission into invoice_approvals audit
         await supabase.from("invoice_approvals").insert({
           invoice_unique_id: uniqueId,
-          cycle_no: 1,
+          cycle_no: nextCycle,
           stage: "Biller",
           approver_name: user.name,
           approver_email: user.email,
