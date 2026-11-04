@@ -34,12 +34,6 @@ const Sidebar = {
         ]
       },
       {
-        section: "Reports",
-        items: [
-          { id: "pendingreport", icon: "fa-user-clock",   label: "Pending Report", page: "biller.html#pendingreport" }
-        ]
-      },
-      {
         section: "Account",
         items: [
           { id: "profile",   icon: "fa-user",         label: "My Profile",      page: "biller.html#profile" },
@@ -73,8 +67,7 @@ const Sidebar = {
       {
         section: "Reports",
         items: [
-          { id: "summary",       icon: "fa-chart-pie",     label: "Summary",        page: "account.html#summary" },
-          { id: "pendingreport", icon: "fa-user-clock",    label: "Pending Report", page: "account.html#pendingreport" }
+          { id: "summary",   icon: "fa-chart-pie",     label: "Summary",        page: "account.html#summary" }
         ]
       },
       {
