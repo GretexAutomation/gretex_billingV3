@@ -634,6 +634,73 @@
         </div>
       </div>
 
+      <!-- USER PENDING REPORT -->
+      <div class="section" id="section-pendingreport">
+        <!-- Top KPI Cards -->
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 16px;">
+          <div class="card">
+            <div class="card-body" style="padding: 18px 20px; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                <i class="fa fa-users"></i>
+              </div>
+              <div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: var(--gray-900);" id="userPendingTotalUsers">0</div>
+                <div style="font-size: 0.78rem; color: var(--gray-500); font-weight: 600; text-transform: uppercase;">Users With Pending Bills</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding: 18px 20px; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 48px; height: 48px; border-radius: 12px; background: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                <i class="fa fa-clock"></i>
+              </div>
+              <div>
+                <div style="font-size: 1.6rem; font-weight: 800; color: #d97706;" id="userPendingTotalBills">0</div>
+                <div style="font-size: 0.78rem; color: var(--gray-500); font-weight: 600; text-transform: uppercase;">Total Bills Pending</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div class="card-title">
+              <i class="fa fa-user-clock" style="color:var(--primary);"></i> User-wise Pending Bills Report
+              <span id="userPendingCountLabel" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadUserPendingReport(true)">
+                <i class="fa fa-rotate"></i> Refresh
+              </button>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 14px 20px 0 20px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+              <div style="flex:1; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="userPendingSearchInput" placeholder="Search by User, Email, or Department..." style="padding-left:36px;" oninput="Dashboard.filterUserPendingReport()" />
+              </div>
+            </div>
+          </div>
+          <div class="table-wrapper" style="max-height: 60vh; overflow-y: auto;">
+            <table class="data-table" id="userPendingTable">
+              <thead style="position: sticky; top: 0; z-index: 10;">
+                <tr>
+                  <th style="width: 50px;">#</th>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Department</th>
+                  <th style="text-align: center; width: 140px;">Bill Pending</th>
+                </tr>
+              </thead>
+              <tbody id="userPendingBody">
+                <tr><td colspan="5" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading pending report...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- PROFILE -->
       <div class="section" id="section-profile">
         <div class="card" style="max-width:500px">
@@ -834,28 +901,21 @@ const Dashboard = {
     }
 
     const stagesOrder = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
-    
-    // Check if bill has any rejections
+    const stageIdx = stagesOrder.indexOf(currentStage);
+    const currIdx = stageIdx !== -1 ? stageIdx : 1; // Default to Biller if unknown
+
+    // An invoice is only failed/rejected overall if it is marked FAIL/Rejected at Completed stage.
+    // If it is sitting at an earlier stage in review (e.g. HOD), it is actively in progress!
+    const isOverallRejected = (currentStage === "Completed" || currentStage === "Rejected") &&
+      (inv["overall_status"] === "Rejected" || inv["overall_status"] === "FAIL" || inv["Approval Status"] === "Rejected");
+
     let rejectedAt = null;
     let rejectionRemark = "";
     
-    if (inv["overall_status"] === "Rejected" || inv["overall_status"] === "FAIL" || inv["Approval Status"] === "Rejected") {
+    if (isOverallRejected) {
       rejectedAt = inv["Rejection By"] || inv["rejection_by"] || currentStage;
       rejectionRemark = inv["Rejection Reason"] || inv["rejection_reason"] || inv["Account_Remark"] || inv["CFO_Remark"] || inv["d11_narration"] || "No specific reason provided.";
-    } else if ((inv["HOD_Status"] || "").includes("Rejected")) {
-      rejectedAt = "HOD"; rejectionRemark = inv["HOD_Remark"] || "Rejected by Department Head";
-    } else if ((inv["Account_Status"] || "").includes("Rejected")) {
-      rejectedAt = "Account"; rejectionRemark = inv["Account_Remark"] || "Rejected by Accounts";
-    } else if ((inv["Finance_Status"] || "").includes("Rejected")) {
-      rejectedAt = "Finance"; rejectionRemark = inv["Finance_Remark"] || "Rejected by Finance";
-    } else if ((inv["CFO_Status"] || "").includes("Rejected")) {
-      rejectedAt = "CFO"; rejectionRemark = inv["CFO_Remark"] || "Rejected by CFO";
-    } else if ((inv["SA_Status"] || "").includes("Rejected")) {
-      rejectedAt = "SuperAdmin"; rejectionRemark = inv["SA_Remark"] || "Rejected by Super Admin";
     }
-
-    const stageIdx = stagesOrder.indexOf(currentStage);
-    const currIdx = stageIdx !== -1 ? stageIdx : 1;
 
     const formatDt = (d) => {
       if (!d) return "";
@@ -885,18 +945,38 @@ const Dashboard = {
     };
 
     const history = inv.approval_history || [];
+    const receivedDate = inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || null;
+    const tRec = receivedDate ? new Date(receivedDate).getTime() : 0;
+
     const getHistoryTime = (stageName) => {
-      const item = history.find(a => (a.stage || "").toLowerCase() === stageName.toLowerCase());
-      return item ? item.action_taken_at : null;
+      const sIdx = stagesOrder.indexOf(stageName);
+      if (!isOverallRejected && currentStage !== "Completed" && currIdx !== -1 && sIdx > currIdx) return null;
+      const matches = history.filter(a => (a.stage || "").toLowerCase() === stageName.toLowerCase());
+      if (!matches.length) return null;
+      const latest = matches[matches.length - 1];
+      if (latest && latest.action_taken_at) {
+        const tAction = new Date(latest.action_taken_at).getTime();
+        // Ignore actions from older cycles before received date
+        if (tRec && tAction < tRec - 86400000) return null;
+        return latest.action_taken_at;
+      }
+      return null;
     };
 
-    const receivedDate = inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || null;
-    const billerDate = inv["Biller_Send_At"] || inv["biller_sent_at"] || inv["biller_send_at"] || getHistoryTime("Biller") || (currIdx > 1 ? (inv["created_at"] || inv["timestamp"]) : null);
-    const hodDate = inv["HOD_Send_At"] || inv["hod_send_at"] || getHistoryTime("HOD") || null;
-    const accountDate = inv["Account_Send_At"] || inv["account_send_at"] || getHistoryTime("Account") || null;
-    const financeDate = inv["Finance_Send_At"] || inv["finance_send_at"] || getHistoryTime("Finance") || null;
-    const cfoDate = inv["CFO_Send_At"] || inv["cfo_send_at"] || getHistoryTime("CFO") || null;
-    const saDate = inv["SA_Approved_At"] || inv["close_at"] || inv["send_for_billing_at"] || getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || null;
+    let billerDate = inv["Biller_Send_At"] || inv["biller_sent_at"] || inv["biller_send_at"] || getHistoryTime("Biller") || (currIdx > 1 ? (inv["created_at"] || inv["timestamp"]) : null);
+    if (billerDate && tRec) {
+      const tBill = new Date(billerDate).getTime();
+      // Biller date cannot precede the intake received date
+      if (tBill < tRec - 60000) {
+        billerDate = currIdx > 1 ? (inv["created_at"] || inv["timestamp"] || receivedDate) : receivedDate;
+      }
+    }
+
+    const hodDate = (currIdx >= 2 || isOverallRejected) ? (getHistoryTime("HOD") || inv["HOD_Send_At"] || inv["hod_send_at"]) : null;
+    const accountDate = (currIdx >= 3 || isOverallRejected) ? (getHistoryTime("Account") || inv["Account_Send_At"] || inv["account_send_at"]) : null;
+    const financeDate = (currIdx >= 4 || isOverallRejected) ? (getHistoryTime("Finance") || inv["Finance_Send_At"] || inv["finance_send_at"]) : null;
+    const cfoDate = (currIdx >= 5 || isOverallRejected) ? (getHistoryTime("CFO") || inv["CFO_Send_At"] || inv["cfo_send_at"]) : null;
+    const saDate = (currIdx >= 6 || isOverallRejected) ? (getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || inv["SA_Approved_At"] || inv["close_at"] || inv["send_for_billing_at"]) : null;
 
     const steps = [
       {
@@ -980,7 +1060,7 @@ const Dashboard = {
 
       // Compute turnaround duration between previous step and this step
       let durationHtml = "";
-      if (idx > 0) {
+      if (idx > 0 && !isPastRejection && (currentStage === "Completed" || step.stageIdx <= currIdx)) {
         const prevStep = steps[idx - 1];
         let durationHms = "";
 
@@ -1080,9 +1160,10 @@ const Dashboard = {
       pending  : "In Process Invoices",
       redflags : "Red Flags",
       completed: "Completed Bills",
-      summary  : "Summary Report",
-      profile  : "My Profile",
-      password : "Change Password"
+      summary       : "Summary Report",
+      pendingreport : "User Pending Report",
+      profile       : "My Profile",
+      password      : "Change Password"
     };
 
     // Sub-stage routing into #section-invoices with corresponding tab active:
@@ -1130,6 +1211,7 @@ const Dashboard = {
     if (id === "approval") Dashboard.loadApprovalQueue();
     if (id === "completed") Dashboard.loadCompletedSection();
     if (id === "summary") Dashboard.loadSummary();
+    if (id === "pendingreport") Dashboard.loadUserPendingReport();
     if (id === "profile") Dashboard.loadProfile();
   },
 
@@ -1747,6 +1829,167 @@ const Dashboard = {
     `).join("");
   },
 
+  // ─────────────────────────────────────────────
+  // 👥 USER PENDING REPORT LOGIC
+  // ─────────────────────────────────────────────
+  userPendingData: [],
+  userPendingFiltered: [],
+
+  async loadUserPendingReport(forceRefresh = false) {
+    const tbody = document.getElementById("userPendingBody");
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Generating report...</td></tr>`;
+
+    if (Dashboard.invoices.length === 0 || forceRefresh) {
+      await Dashboard.loadDashboardData();
+    }
+
+    let usersList = [];
+    try {
+      const uRes = await API.users.getByRole("");
+      if (uRes && uRes.success && Array.isArray(uRes.data?.users)) {
+        usersList = uRes.data.users;
+      }
+    } catch (e) {
+      console.warn("Could not fetch users list:", e);
+    }
+
+    const userMap = {};
+
+    // 1. Pre-populate from active users
+    usersList.forEach(u => {
+      if (!u.email) return;
+      const email = u.email.trim().toLowerCase();
+      userMap[email] = {
+        name: u.name || email.split("@")[0],
+        email: u.email,
+        department: u.department || "General",
+        role: u.role || "",
+        pendingCount: 0
+      };
+    });
+
+    // 2. Count pending bills across master invoices
+    const allInvoices = Dashboard.invoices || [];
+    let totalPendingBills = 0;
+
+    allInvoices.forEach(inv => {
+      const stage = (inv["Current_Stage"] || inv.current_stage || "").trim();
+      const status = (inv["Approval Status"] || inv.overall_status || "").trim();
+      const isClosed = stage === "Completed" || status === "FAIL" || status === "Rejected";
+      if (isClosed) return;
+
+      totalPendingBills++;
+
+      let assigneeEmail = "";
+      let assigneeName = "";
+      let assigneeDept = inv.department || inv["department"] || "";
+
+      if (stage === "HOD" || inv.assigned_hod_email) {
+        assigneeEmail = (inv.assigned_hod_email || "").trim().toLowerCase();
+        assigneeName = inv.assigned_hod_name || inv["D4. HOD Name"] || "";
+      } else if (stage === "Biller" && inv.d10_update_email) {
+        assigneeEmail = (inv.d10_update_email || "").trim().toLowerCase();
+        assigneeName = inv.d9_update_person || "";
+      }
+
+      if (assigneeEmail) {
+        if (!userMap[assigneeEmail]) {
+          userMap[assigneeEmail] = {
+            name: assigneeName || assigneeEmail.split("@")[0],
+            email: assigneeEmail,
+            department: assigneeDept || "General",
+            pendingCount: 0
+          };
+        }
+        userMap[assigneeEmail].pendingCount++;
+      } else if (stage) {
+        const groupKey = `${stage.toLowerCase()}@team.gretex`;
+        if (!userMap[groupKey]) {
+          userMap[groupKey] = {
+            name: `${stage} Team`,
+            email: `${stage.toLowerCase()}@team.gretex`,
+            department: stage,
+            pendingCount: 0
+          };
+        }
+        userMap[groupKey].pendingCount++;
+      }
+    });
+
+    // Keep users with pendingCount > 0, sorted descending
+    const reportData = Object.values(userMap).filter(u => u.pendingCount > 0);
+    reportData.sort((a, b) => b.pendingCount - a.pendingCount);
+
+    Dashboard.userPendingData = reportData;
+    Dashboard.userPendingFiltered = [...reportData];
+
+    const totalUsersEl = document.getElementById("userPendingTotalUsers");
+    const totalBillsEl = document.getElementById("userPendingTotalBills");
+    if (totalUsersEl) totalUsersEl.textContent = reportData.length;
+    if (totalBillsEl) totalBillsEl.textContent = totalPendingBills;
+
+    Dashboard.renderUserPendingReport();
+  },
+
+  filterUserPendingReport() {
+    const search = (document.getElementById("userPendingSearchInput")?.value || "").toLowerCase().trim();
+    if (!search) {
+      Dashboard.userPendingFiltered = [...Dashboard.userPendingData];
+    } else {
+      Dashboard.userPendingFiltered = Dashboard.userPendingData.filter(u => 
+        (u.name || "").toLowerCase().includes(search) ||
+        (u.email || "").toLowerCase().includes(search) ||
+        (u.department || "").toLowerCase().includes(search)
+      );
+    }
+    Dashboard.renderUserPendingReport();
+  },
+
+  renderUserPendingReport() {
+    const tbody = document.getElementById("userPendingBody");
+    const countLabel = document.getElementById("userPendingCountLabel");
+    const data = Dashboard.userPendingFiltered || [];
+
+    if (countLabel) countLabel.textContent = `(${data.length} users with pending bills)`;
+
+    if (!tbody) return;
+
+    if (data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 36px; color: var(--gray-400);"><div style="font-size: 2rem; margin-bottom: 8px;">🎉</div><strong>No pending bills found!</strong><div style="font-size: 0.8rem; margin-top: 4px;">All bills are processed or no matching users.</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map((u, idx) => {
+      const initials = (u.name || "U").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase();
+      return `
+        <tr>
+          <td style="color:var(--gray-400); font-size:0.8rem;">${idx + 1}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:34px; height:34px; border-radius:50%; background:#e0f2fe; color:#0369a1; font-size:0.75rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                ${initials}
+              </div>
+              <strong style="font-size:0.87rem; color:var(--gray-900);">${u.name}</strong>
+            </div>
+          </td>
+          <td style="font-size:0.83rem; color:var(--gray-600); font-family:monospace;">
+            ${u.email}
+          </td>
+          <td>
+            <span class="badge" style="background:#f1f5f9; color:#334155; font-size:0.75rem; padding:4px 8px; border-radius:6px; font-weight:600;">
+              <i class="fa fa-building" style="font-size:0.7rem; margin-right:4px; color:var(--gray-400);"></i>${u.department || "General"}
+            </span>
+          </td>
+          <td style="text-align:center;">
+            <span class="badge" style="background:#fff3e0; color:#c2410c; border:1px solid #fed7aa; font-weight:700; font-size:0.82rem; padding:4px 12px; border-radius:14px; display:inline-flex; align-items:center; gap:5px;">
+              <i class="fa fa-hourglass-half" style="font-size:0.72rem;"></i> ${u.pendingCount} Pending
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join("");
+  },
+
   openDetail(rowIndex) {
     if (!rowIndex) return;
 
@@ -1780,7 +2023,22 @@ const Dashboard = {
         API.biller.getStatusHistory(inv.invoice_unique_id || inv["A13. Invoice Number"]).then(res => {
           if (res && res.success && res.data && res.data.timeline && res.data.timeline.length > 0) {
             inv.approval_history = res.data.timeline;
+            const tRec = new Date(inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || 0).getTime();
+            const currStage = (inv.current_stage || inv["Current_Stage"] || "Biller").trim();
+            const stagesOrder = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+            const currIdx = stagesOrder.indexOf(currStage);
+            const isBillRejected = (currStage === "Completed" || currStage === "Rejected") &&
+              (inv["overall_status"] === "FAIL" || inv["overall_status"] === "Rejected" || inv["Approval Status"] === "Rejected");
+
             res.data.timeline.forEach(a => {
+              const aStage = a.stage;
+              const aIdx = stagesOrder.indexOf(aStage);
+              const aTime = new Date(a.action_taken_at).getTime();
+              // Skip actions from older cycles that took place before this intake date
+              if (tRec && aTime < tRec - 86400000) return;
+              // Skip actions for future stages if the bill is not overall completed/rejected
+              if (!isBillRejected && currStage !== "Completed" && currIdx !== -1 && aIdx > currIdx) return;
+
               if (a.stage === "Biller") inv["Biller_Send_At"] = a.action_taken_at;
               if (a.stage === "HOD") inv["HOD_Send_At"] = a.action_taken_at;
               if (a.stage === "Account") inv["Account_Send_At"] = a.action_taken_at;

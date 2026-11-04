@@ -1598,28 +1598,21 @@ const Dashboard = {
     }
 
     const stagesOrder = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
-    
-    // Check if bill has any rejections
+    const stageIdx = stagesOrder.indexOf(currentStage);
+    const currIdx = stageIdx !== -1 ? stageIdx : 1; // Default to Biller if unknown
+
+    // An invoice is only failed/rejected overall if it is marked FAIL/Rejected at Completed stage.
+    // If it is sitting at an earlier stage in review (e.g. HOD), it is actively in progress!
+    const isOverallRejected = (currentStage === "Completed" || currentStage === "Rejected") &&
+      (inv["overall_status"] === "Rejected" || inv["overall_status"] === "FAIL" || inv["Approval Status"] === "Rejected");
+
     let rejectedAt = null;
     let rejectionRemark = "";
     
-    if (inv["overall_status"] === "Rejected" || inv["overall_status"] === "FAIL" || inv["Approval Status"] === "Rejected") {
+    if (isOverallRejected) {
       rejectedAt = inv["Rejection By"] || inv["rejection_by"] || currentStage;
       rejectionRemark = inv["Rejection Reason"] || inv["rejection_reason"] || inv["Account_Remark"] || inv["CFO_Remark"] || inv["d11_narration"] || "No specific reason provided.";
-    } else if ((inv["HOD_Status"] || "").includes("Rejected")) {
-      rejectedAt = "HOD"; rejectionRemark = inv["HOD_Remark"] || "Rejected by Department Head";
-    } else if ((inv["Account_Status"] || "").includes("Rejected")) {
-      rejectedAt = "Account"; rejectionRemark = inv["Account_Remark"] || "Rejected by Accounts";
-    } else if ((inv["Finance_Status"] || "").includes("Rejected")) {
-      rejectedAt = "Finance"; rejectionRemark = inv["Finance_Remark"] || "Rejected by Finance";
-    } else if ((inv["CFO_Status"] || "").includes("Rejected")) {
-      rejectedAt = "CFO"; rejectionRemark = inv["CFO_Remark"] || "Rejected by CFO";
-    } else if ((inv["SA_Status"] || "").includes("Rejected")) {
-      rejectedAt = "SuperAdmin"; rejectionRemark = inv["SA_Remark"] || "Rejected by Super Admin";
     }
-
-    const stageIdx = stagesOrder.indexOf(currentStage);
-    const currIdx = stageIdx !== -1 ? stageIdx : 1;
 
     const formatDt = (d) => {
       if (!d) return "";
@@ -1649,18 +1642,38 @@ const Dashboard = {
     };
 
     const history = inv.approval_history || [];
+    const receivedDate = inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || null;
+    const tRec = receivedDate ? new Date(receivedDate).getTime() : 0;
+
     const getHistoryTime = (stageName) => {
-      const item = history.find(a => (a.stage || "").toLowerCase() === stageName.toLowerCase());
-      return item ? item.action_taken_at : null;
+      const sIdx = stagesOrder.indexOf(stageName);
+      if (!isOverallRejected && currentStage !== "Completed" && currIdx !== -1 && sIdx > currIdx) return null;
+      const matches = history.filter(a => (a.stage || "").toLowerCase() === stageName.toLowerCase());
+      if (!matches.length) return null;
+      const latest = matches[matches.length - 1];
+      if (latest && latest.action_taken_at) {
+        const tAction = new Date(latest.action_taken_at).getTime();
+        // Ignore actions from older cycles before received date
+        if (tRec && tAction < tRec - 86400000) return null;
+        return latest.action_taken_at;
+      }
+      return null;
     };
 
-    const receivedDate = inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || null;
-    const billerDate = inv["Biller_Send_At"] || inv["biller_sent_at"] || inv["biller_send_at"] || getHistoryTime("Biller") || (currIdx > 1 ? (inv["created_at"] || inv["timestamp"]) : null);
-    const hodDate = inv["HOD_Send_At"] || inv["hod_send_at"] || getHistoryTime("HOD") || null;
-    const accountDate = inv["Account_Send_At"] || inv["account_send_at"] || getHistoryTime("Account") || null;
-    const financeDate = inv["Finance_Send_At"] || inv["finance_send_at"] || getHistoryTime("Finance") || null;
-    const cfoDate = inv["CFO_Send_At"] || inv["cfo_send_at"] || getHistoryTime("CFO") || null;
-    const saDate = inv["SA_Approved_At"] || inv["close_at"] || inv["send_for_billing_at"] || getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || null;
+    let billerDate = inv["Biller_Send_At"] || inv["biller_sent_at"] || inv["biller_send_at"] || getHistoryTime("Biller") || (currIdx > 1 ? (inv["created_at"] || inv["timestamp"]) : null);
+    if (billerDate && tRec) {
+      const tBill = new Date(billerDate).getTime();
+      // Biller date cannot precede the intake received date
+      if (tBill < tRec - 60000) {
+        billerDate = currIdx > 1 ? (inv["created_at"] || inv["timestamp"] || receivedDate) : receivedDate;
+      }
+    }
+
+    const hodDate = (currIdx >= 2 || isOverallRejected) ? (getHistoryTime("HOD") || inv["HOD_Send_At"] || inv["hod_send_at"]) : null;
+    const accountDate = (currIdx >= 3 || isOverallRejected) ? (getHistoryTime("Account") || inv["Account_Send_At"] || inv["account_send_at"]) : null;
+    const financeDate = (currIdx >= 4 || isOverallRejected) ? (getHistoryTime("Finance") || inv["Finance_Send_At"] || inv["finance_send_at"]) : null;
+    const cfoDate = (currIdx >= 5 || isOverallRejected) ? (getHistoryTime("CFO") || inv["CFO_Send_At"] || inv["cfo_send_at"]) : null;
+    const saDate = (currIdx >= 6 || isOverallRejected) ? (getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || inv["SA_Approved_At"] || inv["close_at"] || inv["send_for_billing_at"]) : null;
 
     const steps = [
       {
@@ -1744,7 +1757,7 @@ const Dashboard = {
 
       // Compute turnaround duration between previous step and this step
       let durationHtml = "";
-      if (idx > 0) {
+      if (idx > 0 && !isPastRejection && (currentStage === "Completed" || step.stageIdx <= currIdx)) {
         const prevStep = steps[idx - 1];
         let durationHms = "";
 
@@ -5366,7 +5379,22 @@ const Dashboard = {
         API.biller.getStatusHistory(inv.invoice_unique_id || inv["A13. Invoice Number"]).then(res => {
           if (res && res.success && res.data && res.data.timeline && res.data.timeline.length > 0) {
             inv.approval_history = res.data.timeline;
+            const tRec = new Date(inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || 0).getTime();
+            const currStage = (inv.current_stage || inv["Current_Stage"] || "Biller").trim();
+            const stagesOrder = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
+            const currIdx = stagesOrder.indexOf(currStage);
+            const isBillRejected = (currStage === "Completed" || currStage === "Rejected") &&
+              (inv["overall_status"] === "FAIL" || inv["overall_status"] === "Rejected" || inv["Approval Status"] === "Rejected");
+
             res.data.timeline.forEach(a => {
+              const aStage = a.stage;
+              const aIdx = stagesOrder.indexOf(aStage);
+              const aTime = new Date(a.action_taken_at).getTime();
+              // Skip actions from older cycles that took place before this intake date
+              if (tRec && aTime < tRec - 86400000) return;
+              // Skip actions for future stages if the bill is not overall completed/rejected
+              if (!isBillRejected && currStage !== "Completed" && currIdx !== -1 && aIdx > currIdx) return;
+
               if (a.stage === "Biller") inv["Biller_Send_At"] = a.action_taken_at;
               if (a.stage === "HOD") inv["HOD_Send_At"] = a.action_taken_at;
               if (a.stage === "Account") inv["Account_Send_At"] = a.action_taken_at;
