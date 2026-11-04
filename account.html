@@ -1461,7 +1461,7 @@ const Dashboard = {
           <td><strong style="font-size:0.83rem">${item["A13. Invoice Number"] || "—"}</strong><div style="font-size:0.72rem;color:var(--gray-400);margin-top:2px">${item["Timestamp"] || item["A12. Invoice Date"]}</div></td>
           <td style="font-size:0.82rem"><div>${Utils.truncate(item["A14. Vendor Name"], 20)}</div><div style="font-size:0.72rem;color:var(--gray-400)">${Utils.truncate(item["A16. Bill Description"] || "", 22)}</div></td>
           <td style="font-size:0.83rem">${Utils.formatCurrency(item["A20. Basic Amount"])}</td>
-          <td>${item["B1. TDS Applicable"] === "Yes" ? `<span style="color:var(--warning);font-weight:600;font-size:0.82rem">${Utils.formatCurrency(tdsAmt)}</span>` : `<span style="color:var(--gray-300);font-size:0.8rem">N/A</span>`}</td>
+          <td>${item["B1. TDS Applicable"] === "Yes" ? `<span style="color:var(--warning);font-weight:600;font-size:0.82rem">${Utils.formatCurrency(item["B8. TDS Amount"])}</span>` : `<span style="color:var(--gray-300);font-size:0.8rem">N/A</span>`}</td>
           <td><strong style="font-size:0.85rem;color:var(--primary)">${Utils.formatCurrency(item["D1. Final Payable Amt"])}</strong></td>
           <td>${redFlags && redFlags !== "" ? `<span style="color:var(--danger);font-size:0.78rem;font-weight:600;cursor:pointer" title="${redFlags}">🚩 ${redFlags.split("|").length}</span>` : `<span style="color:var(--gray-200)">—</span>`}</td>
           <td>${Dashboard.queueStatusBadge(status)}</td>
