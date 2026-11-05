@@ -648,17 +648,25 @@ const Loader = {
 
   overlay: null,
 
-  show(text = "Loading...") {
+  show(text = "Loading...", subtext = "") {
     if (!Loader.overlay) {
       Loader.overlay = document.createElement("div");
       Loader.overlay.className = "loading-overlay";
+      Loader.overlay.style.zIndex = "999999";
+      Loader.overlay.style.pointerEvents = "all";
       Loader.overlay.innerHTML = `
         <div class="spinner"></div>
-        <div class="loading-text" id="loaderText">${text}</div>`;
+        <div class="loading-text" id="loaderText" style="font-size:1rem;font-weight:700;color:var(--gray-800);">${text}</div>
+        <div class="loading-subtext" id="loaderSubtext" style="font-size:0.8rem;color:var(--gray-500);display:${subtext ? 'block' : 'none'};">${subtext}</div>`;
       document.body.appendChild(Loader.overlay);
     } else {
       const el = document.getElementById("loaderText");
       if (el) el.textContent = text;
+      const subEl = document.getElementById("loaderSubtext");
+      if (subEl) {
+        subEl.textContent = subtext || "";
+        subEl.style.display = subtext ? "block" : "none";
+      }
       Loader.overlay.style.display = "flex";
     }
   },
