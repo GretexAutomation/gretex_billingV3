@@ -678,7 +678,7 @@
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
               <div style="flex:1; position:relative;">
                 <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
-                <input type="text" class="form-control" id="userPendingSearchInput" placeholder="Search by User, Email, or Department..." style="padding-left:36px;" oninput="Dashboard.filterUserPendingReport()" />
+                <input type="search" class="form-control" id="userPendingSearchInput" placeholder="Search by User, Email, or Department..." style="padding-left:36px;" oninput="Dashboard.filterUserPendingReport()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="user_pending_search_query" />
               </div>
             </div>
           </div>
@@ -1211,7 +1211,12 @@ const Dashboard = {
     if (id === "approval") Dashboard.loadApprovalQueue();
     if (id === "completed") Dashboard.loadCompletedSection();
     if (id === "summary") Dashboard.loadSummary();
-    if (id === "pendingreport") Dashboard.loadUserPendingReport();
+    if (id === "pendingreport") {
+      const sInput = document.getElementById("userPendingSearchInput");
+      if (sInput) sInput.value = "";
+      Dashboard.loadUserPendingReport(true);
+      Dashboard.startUserPendingAutoRefresh();
+    }
     if (id === "profile") Dashboard.loadProfile();
   },
 
@@ -1876,19 +1881,48 @@ const Dashboard = {
   },
 
   // ─────────────────────────────────────────────
-  // 👥 USER PENDING REPORT LOGIC
+  // 👥 USER PENDING REPORT LOGIC (REAL-TIME FLOW BASED)
   // ─────────────────────────────────────────────
   userPendingData: [],
   userPendingFiltered: [],
+  _userPendingInterval: null,
 
-  async loadUserPendingReport(forceRefresh = false) {
+  startUserPendingAutoRefresh() {
+    if (Dashboard._userPendingInterval) clearInterval(Dashboard._userPendingInterval);
+    Dashboard._userPendingInterval = setInterval(() => {
+      const sec = document.getElementById("section-pendingreport");
+      if (sec && sec.classList.contains("active") && sec.style.display !== "none") {
+        Dashboard.loadUserPendingReport(false);
+      }
+    }, 20000);
+  },
+
+  async loadUserPendingReport(forceRefresh = true) {
     const tbody = document.getElementById("userPendingBody");
-    if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Generating report...</td></tr>`;
-
-    if (Dashboard.invoices.length === 0 || forceRefresh) {
-      await Dashboard.loadDashboardData();
+    if (tbody && (!Dashboard.userPendingData || Dashboard.userPendingData.length === 0 || forceRefresh)) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center" style="padding: 32px; color: var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading real-time report...</td></tr>`;
     }
 
+    // 1. ALWAYS query fresh queue data from API
+    try {
+      const invRes = await API.invoices.getAll({ stage: "All" });
+      if (invRes?.success && invRes.data) {
+        let masterBills = invRes.data.invoices || invRes.data.queue || [];
+        try {
+          const bRes = await API.biller.getQueue();
+          if (bRes?.success && Array.isArray(bRes.data?.invoices)) {
+            const existingIds = new Set(masterBills.map(b => String(b.invoice_unique_id || b.id)));
+            const newBills = bRes.data.invoices.filter(b => !existingIds.has(String(b.invoice_unique_id || b.id)));
+            masterBills = [...newBills, ...masterBills];
+          }
+        } catch (be) {}
+        Dashboard.invoices = masterBills;
+      }
+    } catch(e) {
+      console.warn("Could not refresh invoices for pending report:", e);
+    }
+
+    // 2. Fetch all active users list
     let usersList = [];
     try {
       const uRes = await API.users.getByRole("");
@@ -1899,71 +1933,202 @@ const Dashboard = {
       console.warn("Could not fetch users list:", e);
     }
 
-    const userMap = {};
+    // 3. Setup user mapping
+    const userPendingMap = {};
+    const roleUsers = {};
+    const hodDeptMap = {};
 
-    // 1. Pre-populate from active users
     usersList.forEach(u => {
       if (!u.email) return;
       const email = u.email.trim().toLowerCase();
-      userMap[email] = {
+      const role = (u.role || "").trim();
+      const dept = (u.department || "").trim().toLowerCase();
+
+      userPendingMap[email] = {
         name: u.name || email.split("@")[0],
         email: u.email,
-        department: u.department || "General",
-        role: u.role || "",
+        department: u.department || role || "General",
+        role: role,
         pendingCount: 0
       };
+
+      if (!roleUsers[role]) roleUsers[role] = [];
+      roleUsers[role].push(userPendingMap[email]);
+
+      if (role === "HOD" && dept) {
+        hodDeptMap[dept] = userPendingMap[email];
+      }
     });
 
-    // 2. Count pending bills across master invoices
+    // 4. Trace all invoices according to REAL-TIME PIPELINE STAGE
     const allInvoices = Dashboard.invoices || [];
     let totalPendingBills = 0;
 
     allInvoices.forEach(inv => {
-      const stage = (inv["Current_Stage"] || inv.current_stage || "").trim();
-      const status = (inv["Approval Status"] || inv.overall_status || "").trim();
-      const isClosed = stage === "Completed" || status === "FAIL" || status === "Rejected";
+      const stage = (inv["Current_Stage"] || inv.current_stage || (inv.isNew ? "Biller" : "")).trim();
+      const status = (inv["Approval Status"] || inv.overall_status || "").trim().toUpperCase();
+
+      // Skip closed / completed / rejected bills
+      const isClosed = stage === "Completed" || 
+                       status === "FAIL" || 
+                       status === "REJECTED" || 
+                       (inv["Approval Status"] || "").toLowerCase() === "rejected";
       if (isClosed) return;
 
       totalPendingBills++;
+      let targetUser = null;
 
-      let assigneeEmail = "";
-      let assigneeName = "";
-      let assigneeDept = inv.department || inv["department"] || "";
-
-      if (stage === "HOD" || inv.assigned_hod_email) {
-        assigneeEmail = (inv.assigned_hod_email || "").trim().toLowerCase();
-        assigneeName = inv.assigned_hod_name || inv["D4. HOD Name"] || "";
-      } else if (stage === "Biller" && inv.d10_update_email) {
-        assigneeEmail = (inv.d10_update_email || "").trim().toLowerCase();
-        assigneeName = inv.d9_update_person || "";
+      // ── STEP 1: BILLER STAGE ──
+      if (stage === "Biller" || stage === "New" || stage === "") {
+        const bEmail = (inv.d10_update_email || inv.submitted_by_email || inv.email_from || inv.created_by || "").trim().toLowerCase();
+        if (bEmail && userPendingMap[bEmail]) {
+          targetUser = userPendingMap[bEmail];
+        } else if (inv.d9_update_person || inv.biller_name) {
+          const bName = (inv.d9_update_person || inv.biller_name).toLowerCase();
+          targetUser = Object.values(userPendingMap).find(u => (u.name || "").toLowerCase() === bName);
+        }
+        if (!targetUser && roleUsers["Biller"] && roleUsers["Biller"].length > 0) {
+          targetUser = roleUsers["Biller"][0];
+        }
+        if (!targetUser) {
+          const fallbackEmail = bEmail || "biller@team.gretex";
+          if (!userPendingMap[fallbackEmail]) {
+            userPendingMap[fallbackEmail] = {
+              name: inv.d9_update_person || inv.biller_name || "Biller Team",
+              email: fallbackEmail,
+              department: "Biller",
+              role: "Biller",
+              pendingCount: 0
+            };
+          }
+          targetUser = userPendingMap[fallbackEmail];
+        }
       }
 
-      if (assigneeEmail) {
-        if (!userMap[assigneeEmail]) {
-          userMap[assigneeEmail] = {
-            name: assigneeName || assigneeEmail.split("@")[0],
-            email: assigneeEmail,
-            department: assigneeDept || "General",
-            pendingCount: 0
-          };
+      // ── STEP 2: HOD STAGE ──
+      else if (stage === "HOD") {
+        const hEmail = (inv.assigned_hod_email || "").trim().toLowerCase();
+        if (hEmail && userPendingMap[hEmail]) {
+          targetUser = userPendingMap[hEmail];
+        } else if (inv.department) {
+          const dKey = inv.department.trim().toLowerCase();
+          if (hodDeptMap[dKey]) targetUser = hodDeptMap[dKey];
         }
-        userMap[assigneeEmail].pendingCount++;
-      } else if (stage) {
-        const groupKey = `${stage.toLowerCase()}@team.gretex`;
-        if (!userMap[groupKey]) {
-          userMap[groupKey] = {
-            name: `${stage} Team`,
-            email: `${stage.toLowerCase()}@team.gretex`,
-            department: stage,
-            pendingCount: 0
-          };
+        if (!targetUser && (inv.assigned_hod_name || inv["D4. HOD Name"])) {
+          const hName = (inv.assigned_hod_name || inv["D4. HOD Name"]).toLowerCase();
+          targetUser = Object.values(userPendingMap).find(u => u.role === "HOD" && (u.name || "").toLowerCase().includes(hName));
         }
-        userMap[groupKey].pendingCount++;
+        if (!targetUser) {
+          const fallbackEmail = hEmail || `${(inv.department || "hod").toLowerCase().replace(/\s+/g, "")}@team.gretex`;
+          if (!userPendingMap[fallbackEmail]) {
+            userPendingMap[fallbackEmail] = {
+              name: inv.assigned_hod_name || inv["D4. HOD Name"] || `${inv.department || "General"} HOD`,
+              email: fallbackEmail,
+              department: inv.department || "HOD",
+              role: "HOD",
+              pendingCount: 0
+            };
+          }
+          targetUser = userPendingMap[fallbackEmail];
+        }
+      }
+
+      // ── STEP 3: ACCOUNT STAGE ──
+      else if (stage === "Account") {
+        const aEmail = (inv.assigned_account_email || "").trim().toLowerCase();
+        if (aEmail && userPendingMap[aEmail]) {
+          targetUser = userPendingMap[aEmail];
+        } else if (roleUsers["Account"] && roleUsers["Account"].length > 0) {
+          const currUser = (typeof Auth !== "undefined" && Auth.getUser) ? Auth.getUser() : null;
+          if (currUser && currUser.email && userPendingMap[currUser.email.toLowerCase()]) {
+            targetUser = userPendingMap[currUser.email.toLowerCase()];
+          } else {
+            targetUser = roleUsers["Account"][0];
+          }
+        } else {
+          const fallbackEmail = "account@team.gretex";
+          if (!userPendingMap[fallbackEmail]) {
+            userPendingMap[fallbackEmail] = {
+              name: "Account Team",
+              email: fallbackEmail,
+              department: "Account",
+              role: "Account",
+              pendingCount: 0
+            };
+          }
+          targetUser = userPendingMap[fallbackEmail];
+        }
+      }
+
+      // ── STEP 4: FINANCE STAGE ──
+      else if (stage === "Finance") {
+        const fEmail = (inv.assigned_finance_email || "").trim().toLowerCase();
+        if (fEmail && userPendingMap[fEmail]) {
+          targetUser = userPendingMap[fEmail];
+        } else if (roleUsers["Finance"] && roleUsers["Finance"].length > 0) {
+          targetUser = roleUsers["Finance"][0];
+        } else {
+          const fallbackEmail = "finance@team.gretex";
+          if (!userPendingMap[fallbackEmail]) {
+            userPendingMap[fallbackEmail] = {
+              name: "Finance Clearance",
+              email: fallbackEmail,
+              department: "Finance",
+              role: "Finance",
+              pendingCount: 0
+            };
+          }
+          targetUser = userPendingMap[fallbackEmail];
+        }
+      }
+
+      // ── STEP 5: CFO STAGE ──
+      else if (stage === "CFO") {
+        const cEmail = (inv.assigned_cfo_email || "").trim().toLowerCase();
+        if (cEmail && userPendingMap[cEmail]) {
+          targetUser = userPendingMap[cEmail];
+        } else if (roleUsers["CFO"] && roleUsers["CFO"].length > 0) {
+          targetUser = roleUsers["CFO"][0];
+        } else {
+          const fallbackEmail = "cfo@team.gretex";
+          if (!userPendingMap[fallbackEmail]) {
+            userPendingMap[fallbackEmail] = {
+              name: "CFO Review",
+              email: fallbackEmail,
+              department: "CFO",
+              role: "CFO",
+              pendingCount: 0
+            };
+          }
+          targetUser = userPendingMap[fallbackEmail];
+        }
+      }
+
+      // ── STEP 6: SUPERADMIN STAGE ──
+      else if (stage === "SuperAdmin") {
+        if (roleUsers["SuperAdmin"] && roleUsers["SuperAdmin"].length > 0) {
+          targetUser = roleUsers["SuperAdmin"][0];
+        } else {
+          const fallbackEmail = "admin@team.gretex";
+          if (!userPendingMap[fallbackEmail]) {
+            userPendingMap[fallbackEmail] = {
+              name: "Super Admin",
+              email: fallbackEmail,
+              department: "Executive",
+              role: "SuperAdmin",
+              pendingCount: 0
+            };
+          }
+          targetUser = userPendingMap[fallbackEmail];
+        }
+      }
+
+      if (targetUser) {
+        targetUser.pendingCount++;
       }
     });
 
-    // Keep users with pendingCount > 0, sorted descending
-    const reportData = Object.values(userMap).filter(u => u.pendingCount > 0);
+    const reportData = Object.values(userPendingMap).filter(u => u.pendingCount > 0);
     reportData.sort((a, b) => b.pendingCount - a.pendingCount);
 
     Dashboard.userPendingData = reportData;
@@ -1974,7 +2139,7 @@ const Dashboard = {
     if (totalUsersEl) totalUsersEl.textContent = reportData.length;
     if (totalBillsEl) totalBillsEl.textContent = totalPendingBills;
 
-    Dashboard.renderUserPendingReport();
+    Dashboard.filterUserPendingReport();
   },
 
   filterUserPendingReport() {
@@ -1985,7 +2150,8 @@ const Dashboard = {
       Dashboard.userPendingFiltered = Dashboard.userPendingData.filter(u => 
         (u.name || "").toLowerCase().includes(search) ||
         (u.email || "").toLowerCase().includes(search) ||
-        (u.department || "").toLowerCase().includes(search)
+        (u.department || "").toLowerCase().includes(search) ||
+        (u.role || "").toLowerCase().includes(search)
       );
     }
     Dashboard.renderUserPendingReport();
@@ -2005,6 +2171,11 @@ const Dashboard = {
       return;
     }
 
+    const safe = (str) => {
+      if (str === undefined || str === null) return "";
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    };
+
     tbody.innerHTML = data.map((u, idx) => {
       const initials = (u.name || "U").split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase();
       return `
@@ -2013,17 +2184,20 @@ const Dashboard = {
           <td>
             <div style="display:flex; align-items:center; gap:10px;">
               <div style="width:34px; height:34px; border-radius:50%; background:#e0f2fe; color:#0369a1; font-size:0.75rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                ${initials}
+                ${safe(initials)}
               </div>
-              <strong style="font-size:0.87rem; color:var(--gray-900);">${u.name}</strong>
+              <div>
+                <strong style="font-size:0.87rem; color:var(--gray-900); display:block;">${safe(u.name)}</strong>
+                ${u.role ? `<span style="font-size:0.72rem; color:var(--gray-500); font-weight:500;">Role: ${safe(u.role)}</span>` : ''}
+              </div>
             </div>
           </td>
           <td style="font-size:0.83rem; color:var(--gray-600); font-family:monospace;">
-            ${u.email}
+            ${safe(u.email)}
           </td>
           <td>
             <span class="badge" style="background:#f1f5f9; color:#334155; font-size:0.75rem; padding:4px 8px; border-radius:6px; font-weight:600;">
-              <i class="fa fa-building" style="font-size:0.7rem; margin-right:4px; color:var(--gray-400);"></i>${u.department || "General"}
+              <i class="fa fa-building" style="font-size:0.7rem; margin-right:4px; color:var(--gray-400);"></i>${safe(u.department || "General")}
             </span>
           </td>
           <td style="text-align:center;">
