@@ -848,11 +848,13 @@
 
     <!-- MODAL DETAIL TABS -->
     <div class="detail-tabs">
-      <button class="detail-tab active" onclick="Dashboard.switchModalTab('tab-secA', this)">Section A (General)</button>
-      <button class="detail-tab" onclick="Dashboard.switchModalTab('tab-secB', this)">Section B (TDS)</button>
-      <button class="detail-tab" onclick="Dashboard.switchModalTab('tab-secC', this)">Section C (GST)</button>
-      <button class="detail-tab" onclick="Dashboard.switchModalTab('tab-secD', this)">Section D (Audit)</button>
-      <button class="detail-tab" onclick="Dashboard.switchModalTab('tab-timeline', this)">Pipeline Timeline</button>
+      <button class="detail-tab active" data-tab="tab-accounting" onclick="Dashboard.switchTab(this, 'tab-accounting')"><i class="fa fa-chart-pie"></i> Accounting (Sec A)</button>
+      <button class="detail-tab" data-tab="tab-tds" onclick="Dashboard.switchTab(this, 'tab-tds')"><i class="fa fa-percent"></i> TDS (Sec B)</button>
+      <button class="detail-tab" data-tab="tab-gst" onclick="Dashboard.switchTab(this, 'tab-gst')"><i class="fa fa-receipt"></i> GST (Sec C)</button>
+      <button class="detail-tab" data-tab="tab-process" onclick="Dashboard.switchTab(this, 'tab-process')"><i class="fa fa-gears"></i> Process (Sec D)</button>
+      <button class="detail-tab" data-tab="tab-attachment" onclick="Dashboard.switchTab(this, 'tab-attachment')"><i class="fa fa-paperclip"></i> Attachment</button>
+      <button class="detail-tab" data-tab="tab-flags" onclick="Dashboard.switchTab(this, 'tab-flags')"><i class="fa fa-flag"></i> Red Flags</button>
+      <button class="detail-tab" data-tab="tab-timeline" onclick="Dashboard.switchTab(this, 'tab-timeline')"><i class="fa fa-timeline"></i> Pipeline Timeline</button>
     </div>
 
     <div class="modal-body" style="padding:20px 24px;max-height:65vh;overflow-y:auto;">
@@ -877,77 +879,13 @@
         </div>
       </div>
 
-      <!-- TAB A: GENERAL DETAILS -->
-      <div class="detail-tab-content active" id="tab-secA">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.85rem;">
-          <div><strong>A1. Billed To:</strong> <span id="valA1">--</span></div>
-          <div><strong>A2. Our Name Correct:</strong> <span id="valA2">--</span></div>
-          <div><strong>A3. Address Present:</strong> <span id="valA3">--</span></div>
-          <div><strong>A4. Our Address:</strong> <span id="valA4">--</span></div>
-          <div><strong>A6. Our PAN Present:</strong> <span id="valA6">--</span></div>
-          <div><strong>A7. Our PAN:</strong> <span id="valA7">--</span></div>
-          <div><strong>A9. Our GST Present:</strong> <span id="valA9">--</span></div>
-          <div><strong>A10. Our GST:</strong> <span id="valA10">--</span></div>
-          <div><strong>A12. Invoice Date:</strong> <span id="valA12">--</span></div>
-          <div><strong>A13. Invoice No:</strong> <span id="valA13">--</span></div>
-          <div><strong>A14. Vendor Name:</strong> <span id="valA14">--</span></div>
-          <div><strong>A15. Vendor Address:</strong> <span id="valA15">--</span></div>
-          <div><strong>A16. Description:</strong> <span id="valA16">--</span></div>
-          <div><strong>A18. Rev/Capital:</strong> <span id="valA18">--</span></div>
-          <div><strong>A19. Ledger Category:</strong> <span id="valA19">--</span></div>
-          <div><strong>A20. Basic Amount:</strong> <span id="valA20" style="font-weight:700;">₹0</span></div>
-          <div><strong>A21. Invoice Type:</strong> <span id="valA21">--</span></div>
-          <div><strong>A23. First Time Vendor:</strong> <span id="valA23">--</span></div>
-        </div>
-      </div>
-
-      <!-- TAB B: TDS COMPLIANCE -->
-      <div class="detail-tab-content" id="tab-secB">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.85rem;">
-          <div><strong>B1. TDS Applicable:</strong> <span id="valB1">--</span></div>
-          <div><strong>B2. Vendor PAN Available:</strong> <span id="valB2">--</span></div>
-          <div><strong>B3. Vendor PAN:</strong> <span id="valB3">--</span></div>
-          <div><strong>B4. PAN Inoperative:</strong> <span id="valB4">--</span></div>
-          <div><strong>B5. Vendor Entity Type:</strong> <span id="valB5">--</span></div>
-          <div><strong>B6. TDS Section:</strong> <span id="valB6" style="font-weight:700;">--</span></div>
-          <div><strong>B7. TDS Rate:</strong> <span id="valB7">--</span></div>
-          <div><strong>B8. TDS Amount:</strong> <span id="valB8" style="font-weight:700;color:#ef4444;">₹0</span></div>
-        </div>
-      </div>
-
-      <!-- TAB C: GST COMPLIANCE -->
-      <div class="detail-tab-content" id="tab-secC">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.85rem;">
-          <div><strong>C1. GST Charged:</strong> <span id="valC1">--</span></div>
-          <div><strong>C2. Vendor GST Available:</strong> <span id="valC2">--</span></div>
-          <div><strong>C3. Vendor GSTIN:</strong> <span id="valC3" style="font-weight:700;">--</span></div>
-          <div><strong>C4. Taxpayer Type:</strong> <span id="valC4">--</span></div>
-          <div><strong>C7. Our GST Correct:</strong> <span id="valC7">--</span></div>
-          <div><strong>C8. Place of Supply:</strong> <span id="valC8">--</span></div>
-          <div><strong>C9. Correct GST Type:</strong> <span id="valC9">--</span></div>
-          <div><strong>C11. Blocked Credit:</strong> <span id="valC11">--</span></div>
-        </div>
-      </div>
-
-      <!-- TAB D: AUDIT & NARRATION -->
-      <div class="detail-tab-content" id="tab-secD">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.85rem;margin-bottom:14px;">
-          <div><strong>D1. Final Payable:</strong> <span id="valD1" style="font-weight:800;color:#10b981;">₹0</span></div>
-          <div><strong>D2. Provided By:</strong> <span id="valD2">--</span></div>
-          <div><strong>D3. Received Via:</strong> <span id="valD3">--</span></div>
-          <div><strong>D4. HOD Name:</strong> <span id="valD4">--</span></div>
-          <div><strong>D5. HOD Approval:</strong> <span id="valD5">--</span></div>
-          <div><strong>D10. Update Email:</strong> <span id="valD10">--</span></div>
-        </div>
-        <div style="margin-bottom:12px;">
-          <strong>D11. Narration / Audit Trail:</strong>
-          <div id="valD11" style="background:var(--gray-50);padding:10px;border-radius:6px;border:1px solid var(--gray-200);margin-top:4px;font-size:0.82rem;">--</div>
-        </div>
-        <div>
-          <strong>Red Flags & Warnings:</strong>
-          <div id="valRedFlags" style="background:#fef2f2;color:#b91c1c;padding:10px;border-radius:6px;border:1px solid #fecaca;margin-top:4px;font-size:0.82rem;">None</div>
-        </div>
-      </div>
+      <!-- DYNAMIC TAB CONTAINERS (Rich Read-Only Cards matching CFO/Account) -->
+      <div class="detail-tab-content active" id="tab-accounting"></div>
+      <div class="detail-tab-content" id="tab-tds"></div>
+      <div class="detail-tab-content" id="tab-gst"></div>
+      <div class="detail-tab-content" id="tab-process"></div>
+      <div class="detail-tab-content" id="tab-attachment"></div>
+      <div class="detail-tab-content" id="tab-flags"></div>
 
       <!-- TAB: TIMELINE -->
       <div class="detail-tab-content" id="tab-timeline">
@@ -1608,55 +1546,13 @@
         : `<span style="color:var(--gray-400);font-size:0.82rem;">Not Attached</span>`;
       setVal("smDriveLink", driveHtml, true);
 
-      // Section A fields
-      setVal("valA1", bill.a1_billed_to);
-      setVal("valA2", bill.a2_our_name_correct);
-      setVal("valA3", bill.a3_address_present);
-      setVal("valA4", bill.a4_our_address);
-      setVal("valA6", bill.a6_pan_present);
-      setVal("valA7", bill.a7_our_pan);
-      setVal("valA9", bill.a9_gst_present);
-      setVal("valA10", bill.a10_our_gst);
-      setVal("valA12", bill.a12_invoice_date);
-      setVal("valA13", bill.a13_invoice_number);
-      setVal("valA14", bill.a14_vendor_name);
-      setVal("valA15", bill.a15_vendor_address);
-      setVal("valA16", bill.a16_bill_description);
-      setVal("valA18", bill.a18_rev_capital);
-      setVal("valA19", bill.a19_ledger_name);
-      setVal("valA20", Utils.formatCurrency(bill.a20_basic_amount));
-      setVal("valA21", bill.a21_invoice_type);
-      setVal("valA23", bill.a23_first_time_vendor);
-
-      // Section B fields
-      setVal("valB1", bill.b1_tds_applicable);
-      setVal("valB2", bill.b2_vendor_pan_avail);
-      setVal("valB3", bill.b3_vendor_pan);
-      setVal("valB4", bill.b4_pan_inoperative);
-      setVal("valB5", bill.b5_vendor_entity_type);
-      setVal("valB6", bill.b6_tds_section);
-      setVal("valB7", bill.b7_tds_rate);
-      setVal("valB8", Utils.formatCurrency(bill.b8_tds_amount));
-
-      // Section C fields
-      setVal("valC1", bill.c1_gst_charged);
-      setVal("valC2", bill.c2_vendor_gst_avail);
-      setVal("valC3", bill.c3_vendor_gst_no);
-      setVal("valC4", bill.c4_taxpayer_type);
-      setVal("valC7", bill.c7_our_gst_correct);
-      setVal("valC8", bill.c8_place_of_supply);
-      setVal("valC9", bill.c9_correct_gst_type);
-      setVal("valC11", bill.c11_blocked_credit);
-
-      // Section D fields
-      setVal("valD1", Utils.formatCurrency(bill.d1_final_payable_amt || bill.a20_basic_amount));
-      setVal("valD2", bill.d2_invoice_by);
-      setVal("valD3", bill.d3_received_via);
-      setVal("valD4", bill.d4_hod_name);
-      setVal("valD5", bill.d5_hod_approval);
-      setVal("valD10", bill.d10_update_email);
-      setVal("valD11", bill.d11_narration || "No narrative remarks recorded.");
-      setVal("valRedFlags", bill.red_flags || "None");
+      // Render Section Tabs (Rich read-only card layout matching CFO / Account views)
+      this.buildAccountingTab(bill);
+      this.buildTdsTab(bill);
+      this.buildGstTab(bill);
+      this.buildProcessTab(bill);
+      this.buildAttachmentTab(bill);
+      this.buildFlagsTab(bill);
 
       // Reset Remarks Input
       const remarkInput = document.getElementById("financeRemarkInput");
@@ -1762,7 +1658,7 @@
 
       this.updateTimelineProgress(bill);
       const firstTab = document.querySelector(".detail-tab");
-      this.switchModalTab("tab-secA", firstTab);
+      this.switchTab(firstTab, "tab-accounting");
       const modal = document.getElementById("reviewModal");
       if (modal) modal.classList.add("active");
     },
@@ -1773,12 +1669,191 @@
       this.currentBill = null;
     },
 
-    switchModalTab(tabId, btn) {
-      document.querySelectorAll(".detail-tab").forEach(t => t.classList.remove("active"));
+    switchTab(btn, tabId) {
+      document.querySelectorAll(".detail-tab").forEach(b => b.classList.remove("active"));
       document.querySelectorAll(".detail-tab-content").forEach(c => c.classList.remove("active"));
-      if (btn) btn.classList.add("active");
-      const content = document.getElementById(tabId);
-      if (content) content.classList.add("active");
+      if (btn && btn.classList) btn.classList.add("active");
+      const targetContent = document.getElementById(tabId);
+      if (targetContent) targetContent.classList.add("active");
+    },
+
+    switchModalTab(tabId, btn) {
+      this.switchTab(btn, tabId);
+    },
+
+    getVal(inv, ...keys) {
+      if (!inv) return "";
+      for (const k of keys) {
+        if (inv[k] !== undefined && inv[k] !== null && String(inv[k]).trim() !== "" && String(inv[k]).trim() !== "undefined") {
+          return inv[k];
+        }
+      }
+      return "";
+    },
+
+    field(label, value) {
+      const display = (value !== undefined && value !== null && String(value).trim() !== "" && String(value).trim() !== "undefined") ? value : "—";
+      return `<div class="detail-item"><label>${label}</label><p style="margin:0;font-size:0.875rem;">${display}</p></div>`;
+    },
+
+    buildAccountingTab(inv) {
+      const el = document.getElementById("tab-accounting");
+      if (!el) return;
+      el.innerHTML = `
+        <div class="section-header"><i class="fa fa-chart-pie" style="color:var(--primary);"></i> Accounting Checks (Section A)</div>
+        <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          ${this.field("A1. Billed To", this.getVal(inv, "A1. Billed To", "a1_billed_to"))}
+          ${this.field("A2. Our Name Correct", this.getVal(inv, "A2. Our Name Correct", "a2_our_name_correct"))}
+          ${this.field("A3. Address Present", this.getVal(inv, "A3. Address Present", "a3_address_present"))}
+          ${this.field("A4. Our Address", this.getVal(inv, "A4. Our Address", "a4_our_address"))}
+          ${this.field("A5. Address Correct", this.getVal(inv, "A5. Address Correct", "a5_address_correct"))}
+          ${this.field("A6. PAN Present", this.getVal(inv, "A6. PAN Present", "a6_pan_present"))}
+          ${this.field("A7. Our PAN", this.getVal(inv, "A7. Our PAN", "a7_our_pan"))}
+          ${this.field("A8. PAN Correct", this.getVal(inv, "A8. PAN Correct", "a8_pan_correct"))}
+          ${this.field("A9. GST Present", this.getVal(inv, "A9. GST Present", "a9_gst_present"))}
+          ${this.field("A10. Our GST", this.getVal(inv, "A10. Our GST", "a10_our_gst"))}
+          ${this.field("A11. GST Correct", this.getVal(inv, "A11. GST Correct", "a11_gst_correct"))}
+          ${this.field("A12. Invoice Date", this.getVal(inv, "A12. Invoice Date", "a12_invoice_date"))}
+          ${this.field("A13. Invoice Number", this.getVal(inv, "A13. Invoice Number", "a13_invoice_number"))}
+          ${this.field("A14. Vendor Name", this.getVal(inv, "A14. Vendor Name", "a14_vendor_name"))}
+          ${this.field("A15. Vendor Address", this.getVal(inv, "A15. Vendor Address", "a15_vendor_address"))}
+          ${this.field("A16. Bill Description", this.getVal(inv, "A16. Bill Description", "a16_bill_description"))}
+          ${this.field("A17. Notes", this.getVal(inv, "A17. Notes", "a17_notes"))}
+          ${this.field("A18. Rev/Capital", this.getVal(inv, "A18. Rev/Capital", "a18_rev_capital"))}
+          ${this.field("A19. Ledger Name", this.getVal(inv, "A19. Ledger Name", "a19_ledger_name"))}
+          ${this.field("A20. Basic Amount", Utils.formatCurrency(this.getVal(inv, "A20. Basic Amount", "a20_basic_amount")))}
+          ${this.field("A21. Invoice Type", this.getVal(inv, "A21. Invoice Type", "a21_invoice_type"))}
+          ${this.field("A22. Final Invoice By", this.getVal(inv, "A22. Final Invoice By", "a22_final_invoice_by"))}
+          ${this.field("A23. First Time Vendor", this.getVal(inv, "A23. First Time Vendor", "a23_first_time_vendor"))}
+          ${this.field("A24. Amount Justified", this.getVal(inv, "A24. Amount Justified", "a24_amount_justified"))}
+        </div>`;
+    },
+
+    buildTdsTab(inv) {
+      const el = document.getElementById("tab-tds");
+      if (!el) return;
+      el.innerHTML = `
+        <div class="section-header"><i class="fa fa-percent" style="color:#d97706;"></i> TDS Checks (Section B)</div>
+        <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          ${this.field("B1. TDS Applicable", this.getVal(inv, "B1. TDS Applicable", "b1_tds_applicable"))}
+          ${this.field("B2. Vendor PAN Avail", this.getVal(inv, "B2. Vendor PAN Avail", "b2_vendor_pan_avail"))}
+          ${this.field("B3. Vendor PAN", this.getVal(inv, "B3. Vendor PAN", "b3_vendor_pan"))}
+          ${this.field("B4. PAN Inoperative", this.getVal(inv, "B4. PAN Inoperative", "b4_pan_inoperative"))}
+          ${this.field("B5. Entity Type", this.getVal(inv, "B5. Entity Type", "B5. Vendor Entity Type", "b5_vendor_entity_type"))}
+          ${this.field("B6. TDS Section", this.getVal(inv, "B6. TDS Section", "b6_tds_section"))}
+          ${this.field("B7. TDS Rate", this.getVal(inv, "B7. TDS Rate", "b7_tds_rate") ? (this.getVal(inv, "B7. TDS Rate", "b7_tds_rate") + (String(this.getVal(inv, "B7. TDS Rate", "b7_tds_rate")).includes("%") ? "" : "%")) : "—")}
+          ${this.field("B8. TDS Amount", Utils.formatCurrency(this.getVal(inv, "B8. TDS Amount", "b8_tds_amount")))}
+        </div>`;
+    },
+
+    buildGstTab(inv) {
+      const el = document.getElementById("tab-gst");
+      if (!el) return;
+      el.innerHTML = `
+        <div class="section-header"><i class="fa fa-receipt" style="color:#0284c7;"></i> GST Checks (Section C)</div>
+        <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          ${this.field("C1. GST Charged", this.getVal(inv, "C1. GST Charged", "c1_gst_charged"))}
+          ${this.field("C2. Vendor GST Avail", this.getVal(inv, "C2. Vendor GST Avail", "c2_vendor_gst_avail"))}
+          ${this.field("C3. Vendor GST No", this.getVal(inv, "C3. Vendor GST No", "C3. Vendor GSTIN", "c3_vendor_gst_no"))}
+          ${this.field("C4. Taxpayer Type", this.getVal(inv, "C4. Taxpayer Type", "c4_taxpayer_type"))}
+          ${this.field("C5. Comp GST Wrong", this.getVal(inv, "C5. Comp GST Wrong", "c5_comp_gst_wrong"))}
+          ${this.field("C6. GST Returns Filed", this.getVal(inv, "C6. GST Returns Filed", "c6_gst_returns_filed"))}
+          ${this.field("C7. Our GST Correct", this.getVal(inv, "C7. Our GST Correct", "c7_our_gst_correct"))}
+          ${this.field("C8. Place of Supply", this.getVal(inv, "C8. Place of Supply", "c8_place_of_supply"))}
+          ${this.field("C9. Correct GST Type", this.getVal(inv, "C9. Correct GST Type", "c9_correct_gst_type"))}
+          ${this.field("C10. Prior GST Pending", this.getVal(inv, "C10. Prior GST Pending", "c10_prior_gst_pending"))}
+          ${this.field("C11. Blocked Credit", this.getVal(inv, "C11. Blocked Credit", "c11_blocked_credit"))}
+        </div>`;
+    },
+
+    buildProcessTab(inv) {
+      const el = document.getElementById("tab-process");
+      if (!el) return;
+      el.innerHTML = `
+        <div class="section-header"><i class="fa fa-gears" style="color:#7c3aed;"></i> Process Checks (Section D)</div>
+        <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          ${this.field("D1. Final Payable", Utils.formatCurrency(this.getVal(inv, "D1. Final Payable Amt", "D1. Final Payable", "d1_final_payable_amt", "A20. Basic Amount", "a20_basic_amount")))}
+          ${this.field("D2. Invoice By", this.getVal(inv, "D2. Invoice By", "d2_invoice_by"))}
+          ${this.field("D3. Received Via", this.getVal(inv, "D3. Received Via", "d3_received_via"))}
+          ${this.field("D4. HOD Name", this.getVal(inv, "D4. HOD Name", "d4_hod_name"))}
+          ${this.field("D5. HOD Approval", this.getVal(inv, "D5. HOD Approval", "d5_hod_approval"))}
+          ${this.field("D6. HOD Screenshot", this.getVal(inv, "D6. HOD Screenshot", "d6_hod_screenshot"))}
+          ${this.field("D7. Arvind/Alok Apprvl", this.getVal(inv, "D7. Arvind/Alok Apprvl", "d7_arvind_alok_apprvl"))}
+          ${this.field("D8. Arvind/Alok SS", this.getVal(inv, "D8. Arvind/Alok SS", "d8_arvind_alok_ss"))}
+          ${this.field("D9. Update Person", this.getVal(inv, "D9. Update Person", "d9_update_person"))}
+          ${this.field("D10. Update Email", this.getVal(inv, "D10. Update Email", "d10_update_email"))}
+          ${this.field("D11. Narration", this.getVal(inv, "D11. Narration", "d11_narration"))}
+        </div>`;
+    },
+
+    buildFlagsTab(inv) {
+      const el = document.getElementById("tab-flags");
+      if (!el) return;
+      const flags = this.getVal(inv, "🚩 Red Flags", "red_flags") || "";
+      const status = this.getVal(inv, "Current_Stage", "current_stage") || "N/A";
+      el.innerHTML = `
+        <div class="section-header"><i class="fa fa-flag" style="color:#ef4444;"></i> Red Flags &amp; Overall Status</div>
+        <div style="padding:20px;">
+          <div style="margin-bottom:20px;padding:16px;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div>
+              <label style="font-size:0.72rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Current Stage</label>
+              <div style="font-size:1.15rem;font-weight:700;">${typeof Utils.statusBadge === "function" ? Utils.statusBadge(status) : escapeHtml(status)}</div>
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Overall Result</label>
+              <div>${inv.overall_status === "FAIL" ? '<span class="badge badge-danger">FAIL / Rejected</span>' : '<span class="badge badge-success">Active / PASS</span>'}</div>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:10px">Red Flags Detected</label>
+            ${flags && flags.trim() !== "" && flags !== "None"
+              ? (typeof Utils.buildRedFlags === "function" ? Utils.buildRedFlags(flags) : `<div style="background:#fef2f2;color:#991b1b;padding:14px;border-radius:8px;border:1px solid #fecaca;line-height:1.6;">${escapeHtml(flags)}</div>`)
+              : `<div class="empty-state" style="padding:32px;text-align:center;background:var(--gray-50);border-radius:10px;border:1px dashed var(--gray-300);">
+                   <div style="font-size:2.5rem;margin-bottom:8px">✅</div>
+                   <div style="font-weight:700;color:var(--gray-800);font-size:1rem;">No Red Flags!</div>
+                   <div style="color:var(--gray-500);font-size:0.85rem;margin-top:4px;">This invoice has passed validation checks without compliance flags.</div>
+                 </div>`}
+          </div>
+        </div>`;
+    },
+
+    buildAttachmentTab(inv) {
+      const el = document.getElementById("tab-attachment");
+      if (!el) return;
+      const driveUrl = this.getVal(inv, "Drive URL", "drive_url");
+      const attachmentName = this.getVal(inv, "Attachment Name", "attachment_name") || "Invoice Document";
+      let html = `<div style="padding:20px">`;
+      if (driveUrl && driveUrl !== "N/A" && driveUrl !== "Upload Failed" && driveUrl.startsWith("http")) {
+        const isImage = /\.(jpe?g|png|webp|gif)$/i.test(attachmentName);
+        let embedUrl = (typeof Utils !== "undefined" && Utils.getPreviewEmbedUrl)
+          ? Utils.getPreviewEmbedUrl(driveUrl)
+          : driveUrl;
+        if (!embedUrl || embedUrl === driveUrl) {
+          const m1 = driveUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+          const m2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+          if (m1 && m1[1]) embedUrl = `https://drive.google.com/file/d/${m1[1]}/preview`;
+          else if (m2 && m2[1]) embedUrl = `https://drive.google.com/file/d/${m2[1]}/preview`;
+        }
+        html += `
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <div style="font-weight:600;font-size:0.95rem">📎 ${escapeHtml(attachmentName)}</div>
+              <div style="font-size:0.75rem;color:var(--gray-500);margin-top:2px">Live Document Preview • Click button to view in full tab</div>
+            </div>
+            <a href="${driveUrl}" target="_blank" class="btn btn-primary btn-sm" style="display:inline-flex;align-items:center;gap:6px;"><i class="fa fa-external-link"></i> Open Full Size</a>
+          </div>
+          <div style="border:1.5px solid var(--gray-200);border-radius:12px;overflow:hidden;background:#f8f9fa;min-height:550px;display:flex;align-items:center;justify-content:center">
+            ${isImage
+              ? `<div style="padding:16px;text-align:center;width:100%;">
+                   <img src="${driveUrl}" alt="Invoice" style="max-width:100%;max-height:600px;object-fit:contain;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin:auto;display:block;"/>
+                 </div>`
+              : `<iframe src="${embedUrl}" style="width:100%;height:640px;border:none;display:block;background:#fff;" frameborder="0" allow="autoplay; fullscreen" loading="lazy"></iframe>`}
+          </div>`;
+      } else {
+        html += `<div style="background:#f8f9fa;border:1px solid var(--gray-200);border-radius:12px;padding:48px 24px;text-align:center"><div style="font-size:4rem;margin-bottom:16px">📎</div><div style="font-weight:600;font-size:1rem;margin-bottom:6px;color:var(--gray-700)">No Attachment Attached</div><div style="color:var(--gray-500);font-size:0.85rem">No Google Drive link was found for this invoice.</div></div>`;
+      }
+      html += `</div>`;
+      el.innerHTML = html;
     },
 
     updateTimelineProgress(bill) {
