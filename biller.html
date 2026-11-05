@@ -4050,37 +4050,45 @@ const Dashboard = {
     );
     if (!ok) return;
 
-    Loader.show("Saving and sending...");
+    Loader.show("Sending for approval...", "Submitting invoice to next stage...");
 
-    const res = await API.biller.sendForApproval(
-      bill.queueRowIndex, department,
-      targetPerson, targetPerson, notes, Dashboard.pendingEdits, targetRole
-    );
-    
-    Loader.hide();
+    try {
+      const res = await API.biller.sendForApproval(
+        bill.queueRowIndex, department,
+        targetPerson, targetPerson, notes, Dashboard.pendingEdits, targetRole
+      );
 
-    if (res?.success) {
-      Toast.success(`Bill sent to ${targetRole} (${department})! 🎉`);
-      
-      // Move bill from Invoices sheet to Master_Invoices sheet in local state
-      Dashboard.invoicesQueue = Dashboard.invoicesQueue.filter(b => b._uid !== bill._uid && b._sheetRowIndex !== bill._sheetRowIndex);
-      bill["Approval Status"] = "Sent to " + targetRole;
-      bill["Sent To Role"]    = targetRole;
-      bill._sourceSheet       = "Master_Invoices";
-      bill._uid               = `Master_row_${bill.queueRowIndex}_${String(bill["A13. Invoice Number"] || "").replace(/[^a-zA-Z0-9]/g, "")}`;
-      Dashboard.masterQueue.unshift(bill);
-      Dashboard.queue = [...Dashboard.invoicesQueue, ...Dashboard.masterQueue];
-      Dashboard.saveToLocalStorage();
+      if (res?.success) {
+        Loader.show("Updating database...", "Synchronizing records & refreshing queue...");
 
-      Dashboard.pendingEdits  = {};
-      Dashboard.closeReviewModal();
-      await Dashboard.loadStats();
-      await Dashboard.loadRecentBills();
-      if (document.getElementById("section-new")?.classList.contains("active")) {
-        Dashboard.loadNewSection();
+        // Move bill from Invoices sheet to Master_Invoices sheet in local state
+        Dashboard.invoicesQueue = Dashboard.invoicesQueue.filter(b => b._uid !== bill._uid && b._sheetRowIndex !== bill._sheetRowIndex);
+        bill["Approval Status"] = "Sent to " + targetRole;
+        bill["Sent To Role"]    = targetRole;
+        bill._sourceSheet       = "Master_Invoices";
+        bill._uid               = `Master_row_${bill.queueRowIndex}_${String(bill["A13. Invoice Number"] || "").replace(/[^a-zA-Z0-9]/g, "")}`;
+        Dashboard.masterQueue.unshift(bill);
+        Dashboard.queue = [...Dashboard.invoicesQueue, ...Dashboard.masterQueue];
+        Dashboard.saveToLocalStorage();
+
+        Dashboard.pendingEdits  = {};
+        Dashboard.closeReviewModal();
+        await Promise.allSettled([
+          Dashboard.loadStats(),
+          Dashboard.loadRecentBills()
+        ]);
+        if (document.getElementById("section-new")?.classList.contains("active")) {
+          Dashboard.loadNewSection();
+        }
+        Toast.success(`Bill sent to ${targetRole} (${department})! 🎉`);
+      } else {
+        Toast.error(res?.message || "Failed to send");
       }
-    } else {
-      Toast.error("Failed to send");
+    } catch (err) {
+      console.error("sendForApproval error:", err);
+      Toast.error("Failed to send bill for approval.");
+    } finally {
+      Loader.hide();
     }
   },
 
@@ -4275,16 +4283,22 @@ const Dashboard = {
     );
     if (!ok) return;
 
-    Loader.show("Deleting invoice...");
-    const res = await API.biller.deleteNewBill(bill.queueRowIndex);
-    Loader.hide();
-
-    if (res?.success) {
-      Toast.success(res.message);
-      Dashboard.closeReviewModal();
-      await Dashboard.loadCurrentSection(); // Refresh UI
-    } else {
-      Toast.error(res?.message || "Failed to delete invoice");
+    Loader.show("Deleting invoice...", "Removing invoice record...");
+    try {
+      const res = await API.biller.deleteNewBill(bill.queueRowIndex);
+      if (res?.success) {
+        Loader.show("Updating database...", "Refreshing records...");
+        Toast.success(res.message);
+        Dashboard.closeReviewModal();
+        await Dashboard.loadCurrentSection(); // Refresh UI
+      } else {
+        Toast.error(res?.message || "Failed to delete invoice");
+      }
+    } catch (err) {
+      console.error("deleteNewBill error:", err);
+      Toast.error("Failed to delete invoice");
+    } finally {
+      Loader.hide();
     }
   }
 

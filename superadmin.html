@@ -2772,9 +2772,18 @@ const Dashboard = {
       }
     }
 
-    Loader.hide();
+    Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
     Dashboard.selectedQueueIds.clear();
     Dashboard.updateBulkActionBar();
+
+    try {
+      await Promise.allSettled([
+        Dashboard.loadApprovalQueue(true),
+        Dashboard.loadDashboardData()
+      ]);
+    } finally {
+      Loader.hide();
+    }
 
     if (successCount > 0) {
       Toast.success(`Successfully approved and cleared ${successCount} invoices!`);
@@ -2782,9 +2791,6 @@ const Dashboard = {
     if (failCount > 0) {
       Toast.error(`Failed to approve ${failCount} invoices.`);
     }
-
-    await Dashboard.loadApprovalQueue(true);
-    await Dashboard.loadDashboardData();
   },
 
   openBulkRejectModal() {
@@ -2828,9 +2834,18 @@ const Dashboard = {
       }
     }
 
-    Loader.hide();
+    Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
     Dashboard.selectedQueueIds.clear();
     Dashboard.updateBulkActionBar();
+
+    try {
+      await Promise.allSettled([
+        Dashboard.loadApprovalQueue(true),
+        Dashboard.loadDashboardData()
+      ]);
+    } finally {
+      Loader.hide();
+    }
 
     if (successCount > 0) {
       Toast.success(`Successfully rejected ${successCount} invoices.`);
@@ -2838,9 +2853,6 @@ const Dashboard = {
     if (failCount > 0) {
       Toast.error(`Failed to reject ${failCount} invoices.`);
     }
-
-    await Dashboard.loadApprovalQueue(true);
-    await Dashboard.loadDashboardData();
   },
 
   // ── 10. DETAIL MODAL ──
@@ -3094,20 +3106,36 @@ const Dashboard = {
   async confirmApprove() {
     const note = document.getElementById("approveNote").value.trim() || "Final Approved by Super Admin";
     const btn = document.getElementById("confirmApproveBtn");
-    btn.disabled = true; btn.innerHTML = "Approving..."; 
-    Loader.show("Executing Final Approval...");
-    const res = await API.superadmin.approveBill(Dashboard.pendingApproveRow, note);
-    Loader.hide(); 
-    btn.disabled = false; 
-    btn.innerHTML = '<i class="fa fa-check-double"></i> Confirm Final Approval';
+    if (btn) {
+      btn.disabled = true; 
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Approving...';
+    }
+    
+    Dashboard.closeApproveModal();
+    if (typeof Dashboard.closeModal === "function") Dashboard.closeModal();
 
-    if (res?.success) { 
-      Dashboard.closeApproveModal(); 
-      Toast.success("✅ Invoice successfully Completed & Cleared!"); 
-      await Dashboard.loadApprovalQueue(true); 
-      await Dashboard.loadDashboardData(); 
-    } else { 
-      Toast.error(res?.message || "Failed to approve invoice"); 
+    Loader.show("Executing Final Approval...", "Marking invoice completed & clearing...");
+    try {
+      const res = await API.superadmin.approveBill(Dashboard.pendingApproveRow, note);
+      if (res?.success) { 
+        Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
+        await Promise.allSettled([
+          Dashboard.loadApprovalQueue(true),
+          Dashboard.loadDashboardData()
+        ]);
+        Toast.success("✅ Invoice successfully Completed & Cleared!"); 
+      } else { 
+        Toast.error(res?.message || "Failed to approve invoice"); 
+      }
+    } catch (err) {
+      console.error("SuperAdmin approve error:", err);
+      Toast.error("Failed to approve invoice");
+    } finally {
+      Loader.hide(); 
+      if (btn) {
+        btn.disabled = false; 
+        btn.innerHTML = '<i class="fa fa-check-double"></i> Confirm Final Approval';
+      }
     }
   },
 
@@ -3128,22 +3156,36 @@ const Dashboard = {
     const targetStage = document.getElementById("bypassTargetStage").value;
     const note = document.getElementById("bypassNote").value.trim() || `Bypassed by Super Admin -> ${targetStage}`;
     const btn = document.getElementById("confirmBypassBtn");
-    btn.disabled = true; 
-    btn.innerHTML = "Executing..."; 
-    Loader.show("Routing Bill...");
+    if (btn) {
+      btn.disabled = true; 
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Executing...';
+    }
 
-    const res = await API.superadmin.bypassBill(Dashboard.pendingBypassRow, note, targetStage);
-    Loader.hide();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa fa-bolt"></i> Execute Bypass';
+    Dashboard.closeBypassModal();
+    if (typeof Dashboard.closeModal === "function") Dashboard.closeModal();
 
-    if (res?.success) {
-      Dashboard.closeBypassModal();
-      Toast.success(`⚡ Invoice successfully forwarded to ${targetStage}!`);
-      await Dashboard.loadApprovalQueue(true);
-      await Dashboard.loadDashboardData();
-    } else {
-      Toast.error(res?.message || "Failed to execute stage bypass");
+    Loader.show("Routing Bill...", `Forwarding directly to ${targetStage}...`);
+    try {
+      const res = await API.superadmin.bypassBill(Dashboard.pendingBypassRow, note, targetStage);
+      if (res?.success) {
+        Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
+        await Promise.allSettled([
+          Dashboard.loadApprovalQueue(true),
+          Dashboard.loadDashboardData()
+        ]);
+        Toast.success(`⚡ Invoice successfully forwarded to ${targetStage}!`);
+      } else {
+        Toast.error(res?.message || "Failed to execute stage bypass");
+      }
+    } catch (err) {
+      console.error("SuperAdmin bypass error:", err);
+      Toast.error("Failed to execute stage bypass");
+    } finally {
+      Loader.hide();
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-bolt"></i> Execute Bypass';
+      }
     }
   },
 
@@ -3168,19 +3210,36 @@ const Dashboard = {
     }
     document.getElementById("rejectReasonError").style.display = "none";
     const btn = document.getElementById("confirmRejectBtn");
-    btn.disabled = true; 
-    Loader.show("Rejecting...");
-    const res = await API.superadmin.rejectBill(Dashboard.pendingRejectRow, reason);
-    Loader.hide(); 
-    btn.disabled = false;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Rejecting...';
+    }
 
-    if (res?.success) { 
-      Dashboard.closeRejectModal(); 
-      Toast.success("❌ Invoice rejected successfully."); 
-      await Dashboard.loadApprovalQueue(true); 
-      await Dashboard.loadDashboardData(); 
-    } else { 
-      Toast.error(res?.message || "Failed to reject bill"); 
+    Dashboard.closeRejectModal();
+    if (typeof Dashboard.closeModal === "function") Dashboard.closeModal();
+
+    Loader.show("Rejecting...", "Marking invoice as rejected...");
+    try {
+      const res = await API.superadmin.rejectBill(Dashboard.pendingRejectRow, reason);
+      if (res?.success) { 
+        Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
+        await Promise.allSettled([
+          Dashboard.loadApprovalQueue(true),
+          Dashboard.loadDashboardData()
+        ]);
+        Toast.success("❌ Invoice rejected successfully."); 
+      } else { 
+        Toast.error(res?.message || "Failed to reject bill"); 
+      }
+    } catch (err) {
+      console.error("SuperAdmin reject error:", err);
+      Toast.error("Failed to reject bill");
+    } finally {
+      Loader.hide(); 
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
+      }
     }
   },
 

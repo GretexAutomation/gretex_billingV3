@@ -1236,21 +1236,27 @@
         : "Are you sure you want to REJECT this invoice?";
       if (!confirm(confirmMsg)) return;
 
+      this.closeReviewModal();
+      Loader.show(action === "approve" ? "Clearing budget & forwarding to CFO..." : "Rejecting invoice...", "Communicating with server...");
+
       try {
         const res = action === "approve"
           ? await API.approval.approve(this.currentBill.id, remark || "Finance Budget Cleared")
           : await API.approval.reject(this.currentBill.id, remark);
 
         if (res && res.success) {
-          Toast.success(action === "approve" ? "Invoice cleared and sent to CFO! 🎉" : "Invoice marked as rejected.");
-          this.closeReviewModal();
+          Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
           await this.loadAllData();
           this.routeByHash();
+          Toast.success(action === "approve" ? "Invoice cleared and sent to CFO! 🎉" : "Invoice marked as rejected.");
         } else {
           Toast.error(res?.message || "Failed to process approval action.");
         }
       } catch (err) {
+        console.error("Finance action error:", err);
         Toast.error(err.message || "Network / processing error.");
+      } finally {
+        Loader.hide();
       }
     },
 

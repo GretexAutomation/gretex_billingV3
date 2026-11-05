@@ -1270,16 +1270,22 @@
       const invNo = this.currentBill["A13. Invoice Number"] || "this invoice";
       if (!confirm(`Are you sure you want to approve invoice ${invNo} and forward it to Accounts?`)) return;
 
-      Loader.show("Submitting HOD approval...");
-      const res = await API.approval.approve(this.currentBill.id || this.currentBill.rowIndex, "Approved by HOD");
-      Loader.hide();
-
-      if (res && res.success) {
-        Toast.success(`✅ Invoice ${invNo} approved & forwarded to Accounts team!`);
-        this.closeModal();
-        await this.loadAllData();
-      } else {
-        Toast.error(res?.message || "Failed to approve invoice");
+      this.closeModal();
+      Loader.show("Submitting HOD approval...", "Forwarding bill to Accounts team...");
+      try {
+        const res = await API.approval.approve(this.currentBill.id || this.currentBill.rowIndex, "Approved by HOD");
+        if (res && res.success) {
+          Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
+          await this.loadAllData();
+          Toast.success(`✅ Invoice ${invNo} approved & forwarded to Accounts team!`);
+        } else {
+          Toast.error(res?.message || "Failed to approve invoice");
+        }
+      } catch (err) {
+        console.error("HOD Approve error:", err);
+        Toast.error("Failed to approve invoice");
+      } finally {
+        Loader.hide();
       }
     },
 
@@ -1321,22 +1327,31 @@
         return;
       }
       errorDiv.style.display = "none";
-      btn.disabled = true;
-      btn.textContent = "Rejecting...";
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Rejecting...';
+      }
 
-      Loader.show("Rejecting invoice...");
-      const res = await API.approval.reject(this.pendingRejectId, reason);
-      Loader.hide();
-
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
-
-      if (res && res.success) {
-        this.closeRejectModal();
-        Toast.success(`❌ Invoice rejected successfully.`);
-        await this.loadAllData();
-      } else {
-        Toast.error(res?.message || "Failed to reject invoice");
+      this.closeRejectModal();
+      Loader.show("Rejecting invoice...", "Returning bill to Biller...");
+      try {
+        const res = await API.approval.reject(this.pendingRejectId, reason);
+        if (res && res.success) {
+          Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
+          await this.loadAllData();
+          Toast.success(`❌ Invoice rejected successfully.`);
+        } else {
+          Toast.error(res?.message || "Failed to reject invoice");
+        }
+      } catch (err) {
+        console.error("HOD Reject error:", err);
+        Toast.error("Failed to reject invoice");
+      } finally {
+        Loader.hide();
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
+        }
       }
     }
   };

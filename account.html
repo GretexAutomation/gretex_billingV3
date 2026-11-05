@@ -1649,24 +1649,42 @@ const Dashboard = {
     const reason = document.getElementById("approveReason").value.trim() || "Approved";
     const btn = document.getElementById("confirmApproveBtn");
     
-    btn.disabled = true; 
-    btn.textContent = "Approving...";
+    if (btn) {
+      btn.disabled = true; 
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Approving...';
+    }
     
-    Loader.show("Approving invoice...");
-    const res = await API.account.approveBill(Dashboard.pendingApproveRow, reason);
-    Loader.hide();
+    // Close modal so user cannot interact with it during processing
+    Dashboard.closeApproveModal();
+    if (typeof Dashboard.closeModal === "function") Dashboard.closeModal();
+
+    Loader.show("Approving invoice...", "Forwarding bill to Finance team...");
     
-    btn.disabled = false; 
-    btn.innerHTML = '<i class="fa fa-check"></i> Confirm Approve';
-    
-    if (res?.success) {
-      Dashboard.closeApproveModal();
-      const label = Dashboard.pendingApproveInvoiceNo ? `Invoice ${Dashboard.pendingApproveInvoiceNo}` : "Invoice";
-      Toast.success(`✅ ${label} approved and forwarded to Finance!`);
-      await Dashboard.loadApprovalQueue();
-      await Dashboard.loadDashboardData(); 
-    } else { 
-      Toast.error(res?.message || "Failed to approve invoice"); 
+    try {
+      const res = await API.account.approveBill(Dashboard.pendingApproveRow, reason);
+      
+      if (res?.success) {
+        Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
+        
+        await Promise.allSettled([
+          Dashboard.loadApprovalQueue(),
+          Dashboard.loadDashboardData()
+        ]);
+        
+        const label = Dashboard.pendingApproveInvoiceNo ? `Invoice ${Dashboard.pendingApproveInvoiceNo}` : "Invoice";
+        Toast.success(`✅ ${label} approved and forwarded to Finance!`);
+      } else { 
+        Toast.error(res?.message || "Failed to approve invoice"); 
+      }
+    } catch (err) {
+      console.error("Account approve error:", err);
+      Toast.error("An error occurred while approving invoice");
+    } finally {
+      Loader.hide();
+      if (btn) {
+        btn.disabled = false; 
+        btn.innerHTML = '<i class="fa fa-check"></i> Confirm Approve';
+      }
     }
   },
 
@@ -1695,19 +1713,47 @@ const Dashboard = {
     const reason = document.getElementById("rejectReason").value.trim();
     const errorDiv = document.getElementById("rejectReasonError");
     const btn = document.getElementById("confirmRejectBtn");
-    if (!reason) { errorDiv.style.display = "block"; document.getElementById("rejectReason").focus(); return; }
+    if (!reason) { 
+      if (errorDiv) errorDiv.style.display = "block"; 
+      document.getElementById("rejectReason")?.focus(); 
+      return; 
+    }
     errorDiv.style.display = "none";
-    btn.disabled = true; btn.textContent = "Rejecting...";
-    Loader.show("Rejecting invoice...");
-    const res = await API.account.rejectBill(Dashboard.pendingRejectRow, reason);
-    Loader.hide();
-    btn.disabled = false; btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
-    if (res?.success) {
-      Dashboard.closeRejectModal();
-      Toast.success(`❌ Invoice rejected successfully.`);
-      await Dashboard.loadApprovalQueue();
-      await Dashboard.loadDashboardData(); 
-    } else { Toast.error(res?.message || "Failed to reject invoice"); }
+    
+    if (btn) {
+      btn.disabled = true; 
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Rejecting...';
+    }
+
+    Dashboard.closeRejectModal();
+    if (typeof Dashboard.closeModal === "function") Dashboard.closeModal();
+
+    Loader.show("Rejecting invoice...", "Returning bill to Biller...");
+    
+    try {
+      const res = await API.account.rejectBill(Dashboard.pendingRejectRow, reason);
+      if (res?.success) {
+        Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
+        
+        await Promise.allSettled([
+          Dashboard.loadApprovalQueue(),
+          Dashboard.loadDashboardData()
+        ]);
+        
+        Toast.success(`❌ Invoice rejected successfully.`);
+      } else { 
+        Toast.error(res?.message || "Failed to reject invoice"); 
+      }
+    } catch (err) {
+      console.error("Account reject error:", err);
+      Toast.error("An error occurred while rejecting invoice");
+    } finally {
+      Loader.hide();
+      if (btn) {
+        btn.disabled = false; 
+        btn.innerHTML = '<i class="fa fa-circle-xmark"></i> Confirm Reject';
+      }
+    }
   },
 
   async loadCompletedSection() {
