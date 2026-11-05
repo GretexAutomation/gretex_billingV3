@@ -14,12 +14,20 @@
     .section { display: none; }
     .section.active { display: block; }
 
+    /* ── Color & Theme Variables ── */
+    :root {
+      --fin-primary: #6366f1;
+      --fin-primary-dark: #4f46e5;
+      --fin-accent: #8b5cf6;
+      --fin-glow: rgba(99, 102, 241, 0.15);
+    }
+
     /* ── Modal Overlay & Box Styling ── */
     .modal-overlay {
       position       : fixed;
       inset          : 0;
-      background     : rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(4px);
+      background     : rgba(15, 23, 42, 0.7);
+      backdrop-filter: blur(6px);
       z-index        : 9999;
       display        : none;
       align-items    : center;
@@ -27,7 +35,7 @@
       padding        : 20px;
       opacity        : 0;
       visibility     : hidden;
-      transition     : opacity 0.2s ease, visibility 0.2s ease;
+      transition     : opacity 0.25s ease, visibility 0.25s ease;
     }
     .modal-overlay.active {
       display        : flex !important;
@@ -35,96 +43,396 @@
       visibility     : visible !important;
     }
     .modal-box.large {
-      max-width    : 980px;
-      width        : 95%;
-      max-height   : 90vh;
+      max-width    : 1040px;
+      width        : 96%;
+      max-height   : 92vh;
       display      : flex;
       flex-direction: column;
       overflow     : hidden;
       background   : #ffffff;
+      border-radius: 16px;
+      box-shadow   : 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+      border       : 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    /* ── Stepper Visual Timeline Tracker ── */
+    .pipeline-stepper-bar {
+      display: flex;
+      justify-content: space-between;
+      position: relative;
+      padding: 16px 24px 12px;
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .pipeline-stepper-bar::before {
+      content: '';
+      position: absolute;
+      top: 34px;
+      left: 7%;
+      right: 7%;
+      height: 3px;
+      background: #e2e8f0;
+      z-index: 1;
+    }
+    .pipe-step {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 1;
+    }
+    .pipe-step .step-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .pipe-step.completed .step-circle {
+      background: #10b981;
+      border-color: #10b981;
+      color: #ffffff;
+    }
+    .pipe-step.active .step-circle {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #ffffff;
+      box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.25);
+    }
+    .pipe-step .step-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-top: 6px;
+    }
+    .pipe-step.completed .step-title { color: #059669; font-weight: 600; }
+    .pipe-step.active .step-title { color: #4f46e5; font-weight: 700; }
+
+    /* ── Stage Callouts in Modal ── */
+    .stage-callout {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 18px;
       border-radius: 12px;
-      box-shadow   : 0 20px 40px rgba(0, 0, 0, 0.25);
+      font-size: 0.85rem;
+      line-height: 1.45;
+      margin: 12px 24px 4px 24px;
+    }
+    .stage-callout .callout-icon {
+      font-size: 1.25rem;
+      margin-top: 1px;
+    }
+    .stage-callout.callout-action {
+      background: linear-gradient(135deg, #fbf7ff 0%, #f5eefe 100%);
+      border: 1px solid #d8b4fe;
+      color: #581c87;
+      box-shadow: 0 2px 10px rgba(139, 92, 246, 0.08);
+    }
+    .stage-callout.callout-action .callout-icon { color: #7c3aed; }
+    .stage-callout.callout-viewonly {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+    .stage-callout.callout-info {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      color: #0369a1;
+    }
+    .stage-callout.callout-purple {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #3730a3;
+    }
+    .stage-callout.callout-warning {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+    .stage-callout.callout-danger {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
     }
 
     /* ── Invoice Detail Tabs ── */
     .detail-tabs {
       display      : flex;
-      gap          : 4px;
-      padding      : 16px 20px 0;
-      border-bottom: 1px solid var(--gray-200);
-      background   : var(--gray-50);
+      gap          : 6px;
+      padding      : 12px 24px 0;
+      border-bottom: 1px solid #e2e8f0;
+      background   : #f8fafc;
       flex-wrap    : wrap;
     }
 
     .detail-tab {
-      padding      : 8px 16px;
-      border-radius: 8px 8px 0 0;
+      padding      : 9px 18px;
+      border-radius: 10px 10px 0 0;
       font-size    : 0.82rem;
-      font-weight  : 500;
+      font-weight  : 600;
       cursor       : pointer;
       border       : 1px solid transparent;
-      color        : var(--gray-600);
+      color        : #64748b;
       transition   : var(--transition);
       background   : transparent;
+      display      : inline-flex;
+      align-items  : center;
+      gap          : 6px;
+    }
+
+    .detail-tab:hover {
+      color        : #1e293b;
+      background   : rgba(0,0,0,0.03);
     }
 
     .detail-tab.active {
-      background         : var(--white);
-      color              : var(--primary);
-      border-color       : var(--gray-200);
-      border-bottom-color: var(--white);
-      font-weight        : 600;
+      background         : #ffffff;
+      color              : #4f46e5;
+      border-color       : #e2e8f0;
+      border-bottom-color: #ffffff;
+      font-weight        : 700;
+      box-shadow         : 0 -2px 6px rgba(0,0,0,0.02);
     }
 
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; }
 
-    /* ── Queue Stats Mini Row (Top Cards) ── */
+    /* ── Queue Stats Modern Row (Top Metric Cards) ── */
     .queue-stats-row {
-      display      : flex;
-      gap          : 16px; 
-      flex-wrap    : wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
       margin-bottom: 24px;
     }
 
     .queue-mini-stat {
-      flex          : 1;
-      min-width     : 140px;
-      padding       : 16px 20px;
-      border-radius : 12px; 
-      background    : var(--white);
-      border        : 1px solid rgba(0,0,0,0.06); 
-      box-shadow    : 0 4px 12px rgba(0,0,0,0.03); 
-      text-align    : center;
-      transition    : transform 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+      padding: 18px 20px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+    }
+
+    .queue-mini-stat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--stat-bar, #6366f1);
+      transition: height 0.2s ease;
     }
 
     .queue-mini-stat:hover {
-      transform : translateY(-3px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+      border-color: rgba(99, 102, 241, 0.35);
+    }
+
+    .queue-mini-stat:hover::before {
+      height: 4px;
+    }
+
+    .queue-mini-stat.highlight-action {
+      background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+      border-color: #d8b4fe;
+    }
+    .queue-mini-stat.highlight-action::before {
+      background: #8b5cf6;
+    }
+
+    .stat-meta-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .stat-icon-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
     }
 
     .queue-mini-stat .mini-val {
-      font-size  : 1.8rem; 
+      font-size  : 1.85rem; 
       font-weight: 800;
-      line-height: 1.2;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      color: #1e293b;
     }
 
     .queue-mini-stat .mini-label {
-      font-size     : 0.8rem;
+      font-size     : 0.76rem;
       font-weight   : 600;
-      color         : var(--gray-500);
+      color         : #64748b;
       margin-top    : 6px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
-    .mini-val.pending  { color: #f59e0b; }
+    .mini-val.pending  { color: #7c3aed; }
     .mini-val.approved { color: #10b981; }
     .mini-val.rejected { color: #ef4444; }
-    .mini-val.total    { color: #6366f1; }
+    .mini-val.total    { color: #4338ca; }
 
-    /* ── Table Rows & Spacing ── */
+    /* ── Filter Tabs Bar (Interactive Pills) ── */
+    .filter-tabs-wrapper {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 2px 14px 2px;
+      margin-bottom: 12px;
+    }
+    .filter-tabs-wrapper::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .tab-pill {
+      padding: 8px 16px;
+      border-radius: 24px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #475569;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .tab-pill:hover {
+      border-color: #6366f1;
+      color: #4f46e5;
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+
+    .tab-pill.active {
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #4f46e5;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
+    }
+
+    .tab-pill .pill-badge {
+      background: rgba(0, 0, 0, 0.07);
+      color: inherit;
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-weight: 700;
+    }
+
+    .tab-pill.active .pill-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
+    .tab-pill.pill-highlight {
+      border-color: #e9d5ff;
+      color: #6b21a8;
+      background: #faf5ff;
+    }
+    .tab-pill.pill-highlight:hover {
+      background: #f3e8ff;
+    }
+    .tab-pill.pill-highlight.active {
+      background: #7c3aed;
+      color: #ffffff;
+      border-color: #7c3aed;
+    }
+
+    .tab-pill.pill-danger {
+      border-color: #fecaca;
+      color: #b91c1c;
+      background: #fff5f5;
+    }
+    .tab-pill.pill-danger.active {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #dc2626;
+    }
+
+    /* ── Filter Controls Row ── */
+    .filter-controls-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-box-wrapper {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    .modern-search {
+      padding-left: 36px !important;
+      border-radius: 10px !important;
+      border: 1px solid #cbd5e1 !important;
+      font-size: 0.84rem !important;
+      transition: all 0.2s ease !important;
+    }
+    .modern-search:focus {
+      border-color: #6366f1 !important;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+    }
+
+    .modern-select {
+      border-radius: 10px !important;
+      border: 1px solid #cbd5e1 !important;
+      font-size: 0.84rem !important;
+      padding: 7px 12px !important;
+      background-color: #fff !important;
+      cursor: pointer;
+    }
+
+    .modern-btn {
+      border-radius: 10px !important;
+      padding: 7px 14px !important;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      cursor: pointer;
+    }
+
+    /* ── Table Styling & Hover Effects ── */
     .data-table tbody tr {
       transition: background-color 0.15s ease;
       cursor: pointer;
@@ -135,101 +443,46 @@
     }
 
     .data-table td, .data-table th {
-      padding       : 14px 16px; 
+      padding       : 13px 16px; 
       vertical-align: middle;
     }
 
-    /* ── Stage & Status Badges ── */
+    /* ── Stage & Location Badges ── */
+    .location-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .location-holder {
+      font-size: 0.74rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 170px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .stage-badge {
       display: inline-flex;
       align-items: center;
       gap: 5px;
       padding: 4px 10px;
       border-radius: 16px;
-      font-size: 0.75rem;
+      font-size: 0.76rem;
       font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
+    .stage-biller  { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
     .stage-hod     { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; }
     .stage-account { background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
-    .stage-finance { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; font-weight: 700; }
+    .stage-finance { background: #f3e8ff; color: #7e22ce; border: 1px solid #d8b4fe; font-weight: 700; }
     .stage-cfo     { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
     .stage-done    { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
     .stage-fail    { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
-
-    /* ── Tracking Timeline ── */
-    .tracking-wrapper {
-      background: #fff;
-      padding: 24px 20px 10px;
-      border-radius: 12px;
-      border: 1px solid var(--gray-200);
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    }
-
-    .tracking-container {
-      display: flex;
-      justify-content: space-between;
-      position: relative;
-      margin-bottom: 20px;
-    }
-
-    .tracking-container::before {
-      content: '';
-      position: absolute;
-      top: 18px;
-      left: 5%;
-      right: 5%;
-      height: 3px;
-      background: var(--gray-200);
-      z-index: 1;
-    }
-
-    .tracking-step {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      flex: 1;
-    }
-
-    .step-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      background: var(--white);
-      border: 2px solid var(--gray-300);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.85rem;
-      color: var(--gray-400);
-      transition: all 0.25s ease;
-    }
-
-    .tracking-step.completed .step-icon {
-      background: #10b981;
-      border-color: #10b981;
-      color: var(--white);
-    }
-
-    .tracking-step.active .step-icon {
-      background: #6366f1;
-      border-color: #6366f1;
-      color: var(--white);
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
-    }
-
-    .step-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--gray-500);
-      margin-top: 8px;
-    }
-
-    .tracking-step.completed .step-label { color: #10b981; }
-    .tracking-step.active .step-label { color: #6366f1; font-weight: 700; }
 
     /* ── Action Buttons ── */
     .btn-action {
@@ -248,6 +501,17 @@
     .btn-approve:hover { background: #059669; }
     .btn-reject { background: #ef4444; color: #fff; }
     .btn-reject:hover { background: #dc2626; }
+
+    .pulse-action {
+      background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%) !important;
+      border: none !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3) !important;
+    }
+    .pulse-action:hover {
+      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.45) !important;
+      transform: translateY(-1px);
+    }
   </style>
 </head>
 <body>
@@ -287,47 +551,71 @@
       <!-- SECTION: DASHBOARD (#dashboard) -->
       <section class="section" id="section-dashboard">
         <div class="queue-stats-row">
-          <div class="queue-mini-stat" onclick="Dashboard.showSection('invoices')">
+          <div class="queue-mini-stat" style="--stat-bar:#6366f1;" onclick="Dashboard.showSection('invoices')">
+            <div class="stat-meta-top">
+              <span class="mini-label">Total Bills</span>
+              <div class="stat-icon-badge" style="background:#eef2ff;color:#4f46e5;"><i class="fa fa-receipt"></i></div>
+            </div>
             <div class="mini-val total" id="statTotalBills">0</div>
-            <div class="mini-label">Total Bills</div>
           </div>
-          <div class="queue-mini-stat" onclick="Dashboard.showSection('approval')">
+          <div class="queue-mini-stat highlight-action" onclick="Dashboard.showSection('approval')">
+            <div class="stat-meta-top">
+              <span class="mini-label">Clearance Pending</span>
+              <div class="stat-icon-badge" style="background:#f3e8ff;color:#7c3aed;"><i class="fa fa-bolt"></i></div>
+            </div>
             <div class="mini-val pending" id="statPendingFinance">0</div>
-            <div class="mini-label">Clearance Pending</div>
           </div>
-          <div class="queue-mini-stat" onclick="Dashboard.showSection('pending')">
-            <div class="mini-val" style="color:#8b5cf6;" id="statInProcessCFO">0</div>
-            <div class="mini-label">At CFO / In Process</div>
+          <div class="queue-mini-stat" style="--stat-bar:#0284c7;" onclick="Dashboard.showSection('atprevious')">
+            <div class="stat-meta-top">
+              <span class="mini-label">At HOD & Account</span>
+              <div class="stat-icon-badge" style="background:#e0f2fe;color:#0284c7;"><i class="fa fa-user-clock"></i></div>
+            </div>
+            <div class="mini-val" style="color:#0284c7;" id="statAtPrevious">0</div>
           </div>
-          <div class="queue-mini-stat" onclick="Dashboard.showSection('completed')">
+          <div class="queue-mini-stat" style="--stat-bar:#8b5cf6;" onclick="Dashboard.showSection('pending')">
+            <div class="stat-meta-top">
+              <span class="mini-label">At CFO / In Process</span>
+              <div class="stat-icon-badge" style="background:#ede9fe;color:#6d28d9;"><i class="fa fa-stamp"></i></div>
+            </div>
+            <div class="mini-val" style="color:#6d28d9;" id="statInProcessCFO">0</div>
+          </div>
+          <div class="queue-mini-stat" style="--stat-bar:#10b981;" onclick="Dashboard.showSection('completed')">
+            <div class="stat-meta-top">
+              <span class="mini-label">Completed</span>
+              <div class="stat-icon-badge" style="background:#dcfce7;color:#15803d;"><i class="fa fa-circle-check"></i></div>
+            </div>
             <div class="mini-val approved" id="statCompleted">0</div>
-            <div class="mini-label">Completed</div>
           </div>
-          <div class="queue-mini-stat">
+          <div class="queue-mini-stat" style="--stat-bar:#059669;">
+            <div class="stat-meta-top">
+              <span class="mini-label">Pending Value</span>
+              <div class="stat-icon-badge" style="background:#ecfdf5;color:#059669;"><i class="fa fa-indian-rupee-sign"></i></div>
+            </div>
             <div class="mini-val" style="color:#059669;" id="statTotalPayable">₹0</div>
-            <div class="mini-label">Pending Value</div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="card" style="border-radius:14px;border:1px solid #e2e8f0;box-shadow:0 4px 14px rgba(0,0,0,0.03);">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #e2e8f0;">
             <div>
-              <div class="card-title"><i class="fa fa-sparkles text-primary"></i> Clearance Pending For Finance</div>
-              <div class="card-subtitle">Bills cleared by Account that require Finance budget verification</div>
+              <div class="card-title" style="font-size:1.05rem;font-weight:700;"><i class="fa fa-bolt text-primary"></i> Clearance Pending For Finance</div>
+              <div class="card-subtitle" style="font-size:0.8rem;color:#64748b;">Bills cleared by Account that require Finance budget verification & CFO forwarding</div>
             </div>
-            <button class="btn btn-sm btn-primary" onclick="Dashboard.showSection('approval')">View All Pending</button>
+            <button class="btn btn-sm btn-primary modern-btn pulse-action" onclick="Dashboard.showSection('approval')">
+              <i class="fa fa-list-check"></i> View All Pending
+            </button>
           </div>
           <div class="card-body" style="padding:0;overflow-x:auto;">
             <table class="data-table">
               <thead>
                 <tr>
                   <th>Unique ID</th>
+                  <th>Current Location</th>
+                  <th>Department</th>
+                  <th>Invoice No & Date</th>
                   <th>Vendor Name</th>
-                  <th>Invoice No</th>
                   <th>Basic Amount</th>
-                  <th>TDS Section</th>
                   <th>Final Payable</th>
-                  <th>Stage</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -341,36 +629,72 @@
 
       <!-- SECTION: INVOICES & QUEUE (#invoices, #atprevious, #approval, #pending, #completed) -->
       <section class="section" id="section-invoices">
-        <div class="card">
-          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+        
+        <!-- INTERACTIVE QUICK FILTER PILLS BAR -->
+        <div class="filter-tabs-wrapper" id="invoicesFilterTabs">
+          <button class="tab-pill active" id="tab-pill-all" onclick="Dashboard.switchFilterTab('all')">
+            <i class="fa fa-list"></i> All Bills <span class="pill-badge" id="tabCountAll">0</span>
+          </button>
+          <button class="tab-pill" id="tab-pill-atprevious" onclick="Dashboard.switchFilterTab('atprevious')">
+            <i class="fa fa-user-clock"></i> At HOD & Account <span class="pill-badge" id="tabCountPrevious">0</span>
+          </button>
+          <button class="tab-pill pill-highlight" id="tab-pill-approval" onclick="Dashboard.switchFilterTab('approval')">
+            <i class="fa fa-bolt"></i> Action Required (Finance) <span class="pill-badge" id="tabCountApproval">0</span>
+          </button>
+          <button class="tab-pill" id="tab-pill-pending" onclick="Dashboard.switchFilterTab('pending')">
+            <i class="fa fa-stamp"></i> At CFO (In Process) <span class="pill-badge" id="tabCountPending">0</span>
+          </button>
+          <button class="tab-pill" id="tab-pill-completed" onclick="Dashboard.switchFilterTab('completed')">
+            <i class="fa fa-circle-check"></i> Completed <span class="pill-badge" id="tabCountCompleted">0</span>
+          </button>
+          <button class="tab-pill pill-danger" id="tab-pill-redflags" onclick="Dashboard.switchFilterTab('redflags')">
+            <i class="fa fa-flag"></i> Red Flags <span class="pill-badge" id="tabCountRedFlags">0</span>
+          </button>
+        </div>
+
+        <div class="card" style="border-radius:14px;border:1px solid #e2e8f0;box-shadow:0 4px 14px rgba(0,0,0,0.03);">
+          <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:16px 20px;border-bottom:1px solid #e2e8f0;">
             <div>
-              <div class="card-title" id="invoicesSectionTitle">All Pipeline Invoices</div>
-              <div class="card-subtitle" id="invoicesSectionSubtitle">Comprehensive enterprise billing audit trail</div>
+              <div class="card-title" id="invoicesSectionTitle" style="font-size:1.05rem;font-weight:700;">All Pipeline Invoices</div>
+              <div class="card-subtitle" id="invoicesSectionSubtitle" style="font-size:0.8rem;color:#64748b;">Comprehensive enterprise billing audit trail & stage tracking</div>
             </div>
-            <div style="display:flex;gap:10px;align-items:center;">
-              <input type="text" id="invoicesSearch" placeholder="Search vendor, invoice no, ID..." class="form-control" style="width:260px;" oninput="Dashboard.filterInvoicesTable()"/>
-              <select id="stageFilterSelect" class="form-control" style="width:160px;" onchange="Dashboard.onStageSelectChange(this.value)">
+            
+            <!-- FILTER & SEARCH CONTROLS -->
+            <div class="filter-controls-bar">
+              <div class="search-box-wrapper">
+                <i class="fa fa-search search-icon"></i>
+                <input type="text" id="invoicesSearch" placeholder="Search vendor, invoice no, ID, dept..." class="form-control modern-search" oninput="Dashboard.filterInvoicesTable()"/>
+              </div>
+              <select id="departmentFilterSelect" class="form-control modern-select" style="width:150px;" onchange="Dashboard.filterInvoicesTable()">
+                <option value="All">All Departments</option>
+              </select>
+              <select id="stageFilterSelect" class="form-control modern-select" style="width:150px;" onchange="Dashboard.onStageSelectChange(this.value)">
                 <option value="All">All Stages</option>
+                <option value="Biller">At Biller</option>
                 <option value="HOD">At HOD</option>
                 <option value="Account">At Account</option>
                 <option value="Finance">At Finance (Us)</option>
                 <option value="CFO">At CFO</option>
                 <option value="Completed">Completed</option>
               </select>
+              <button class="btn btn-secondary modern-btn" onclick="Dashboard.exportToCSV()" title="Export current list to CSV">
+                <i class="fa fa-file-excel text-success"></i> Export CSV
+              </button>
             </div>
           </div>
+
           <div class="card-body" style="padding:0;overflow-x:auto;">
             <table class="data-table">
               <thead>
                 <tr>
                   <th>Unique ID</th>
+                  <th>Current Location / Stage</th>
                   <th>Department</th>
                   <th>Invoice No & Date</th>
                   <th>Vendor Name</th>
                   <th>Basic Amount</th>
                   <th>TDS Amount</th>
                   <th>Final Payable</th>
-                  <th>Stage</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -489,6 +813,34 @@
         <div id="modalInvoiceSubtitle" style="font-size:0.82rem;color:var(--gray-500);margin-top:4px;"></div>
       </div>
       <button class="modal-close" onclick="Dashboard.closeReviewModal()">&times;</button>
+    </div>
+
+    <!-- PIPELINE STEPPER TRACKER -->
+    <div class="pipeline-stepper-bar">
+      <div class="pipe-step completed" id="pipe-step-biller">
+        <div class="step-circle"><i class="fa fa-receipt"></i></div>
+        <div class="step-title">Biller Intake</div>
+      </div>
+      <div class="pipe-step" id="pipe-step-hod">
+        <div class="step-circle"><i class="fa fa-user-check"></i></div>
+        <div class="step-title">HOD Approval</div>
+      </div>
+      <div class="pipe-step" id="pipe-step-account">
+        <div class="step-circle"><i class="fa fa-calculator"></i></div>
+        <div class="step-title">Account Review</div>
+      </div>
+      <div class="pipe-step" id="pipe-step-finance">
+        <div class="step-circle"><i class="fa fa-bolt"></i></div>
+        <div class="step-title">Finance Clearance</div>
+      </div>
+      <div class="pipe-step" id="pipe-step-cfo">
+        <div class="step-circle"><i class="fa fa-stamp"></i></div>
+        <div class="step-title">CFO Signoff</div>
+      </div>
+      <div class="pipe-step" id="pipe-step-completed">
+        <div class="step-circle"><i class="fa fa-circle-check"></i></div>
+        <div class="step-title">Completed</div>
+      </div>
     </div>
 
     <!-- STAGE STATUS BANNER (View-Only Guard) -->
@@ -744,14 +1096,33 @@
 
     async loadAllData() {
       try {
-        const res = await API.approval.getQueue("Finance");
-        if (res && res.success) {
-          this.allInvoices = res.data.queue || [];
-          this.updateStats();
-          this.renderDashboardQueue();
+        let all = [];
+        const res = await API.approval.getQueue("All");
+        if (res && res.success && res.data) {
+          all = res.data.queue || res.data.invoices || [];
         } else {
-          console.warn("Failed to load Finance queue:", res?.message);
+          console.warn("Failed to load pipeline queue:", res?.message);
         }
+
+        // Also merge any new bills sitting at Biller
+        try {
+          const bRes = await API.biller.getQueue();
+          if (bRes && bRes.success && bRes.data && bRes.data.invoices) {
+            const existingIds = new Set(all.map(b => String(b.id || b.invoice_unique_id || "")));
+            const newBillerBills = (bRes.data.invoices || []).filter(b => {
+              const id = String(b.id || b.invoice_unique_id || "");
+              return id && !existingIds.has(id);
+            });
+            all = [...newBillerBills, ...all];
+          }
+        } catch (e) {
+          console.warn("Could not fetch biller queue:", e);
+        }
+
+        this.allInvoices = all;
+        this.populateDepartmentFilter();
+        this.updateStats();
+        this.renderDashboardQueue();
       } catch (err) {
         console.error("Data load error:", err);
       }
@@ -764,46 +1135,167 @@
       Toast.success("Data refreshed.");
     },
 
+    populateDepartmentFilter() {
+      const select = document.getElementById("departmentFilterSelect");
+      if (!select) return;
+      const depts = new Set();
+      (this.allInvoices || []).forEach(b => {
+        if (b.department && b.department.trim()) depts.add(b.department.trim());
+      });
+      const currentVal = select.value || "All";
+      let opts = '<option value="All">All Departments</option>';
+      Array.from(depts).sort().forEach(d => {
+        opts += `<option value="${escapeHtml(d)}" ${currentVal === d ? 'selected' : ''}>${escapeHtml(d)}</option>`;
+      });
+      select.innerHTML = opts;
+    },
+
+    isBillTerminated(b) {
+      return b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected" || (b.current_stage === "Completed" && b.overall_status === "FAIL");
+    },
+
     updateStats() {
-      const list = this.allInvoices;
-      document.getElementById("statTotalBills").textContent = list.length;
+      const list = this.allInvoices || [];
+      const totalBills = list.length;
+      const pendingFinance = list.filter(b => b.current_stage === "Finance" && !this.isBillTerminated(b));
+      const atPrevious = list.filter(b => ["Biller", "HOD", "Account"].includes(b.current_stage) && !this.isBillTerminated(b));
+      const inProcessCFO = list.filter(b => ["CFO", "SuperAdmin"].includes(b.current_stage) && !this.isBillTerminated(b));
+      const completed = list.filter(b => b.current_stage === "Completed" && !this.isBillTerminated(b));
+      const redFlags = list.filter(b => {
+        const rf = b.red_flags || "";
+        return rf && rf !== "None" && rf !== "N/A" && rf.trim().length > 0;
+      });
 
-      const pendingFinance = list.filter(b => b.current_stage === "Finance");
-      document.getElementById("statPendingFinance").textContent = pendingFinance.length;
+      const setTxt = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
 
-      const inProcessCFO = list.filter(b => ["CFO", "SuperAdmin"].includes(b.current_stage));
-      document.getElementById("statInProcessCFO").textContent = inProcessCFO.length;
+      setTxt("statTotalBills", totalBills);
+      setTxt("statPendingFinance", pendingFinance.length);
+      setTxt("statAtPrevious", atPrevious.length);
+      setTxt("statInProcessCFO", inProcessCFO.length);
+      setTxt("statCompleted", completed.length);
 
-      const completed = list.filter(b => b.current_stage === "Completed");
-      document.getElementById("statCompleted").textContent = completed.length;
+      // Filter tabs badges on #section-invoices
+      setTxt("tabCountAll", totalBills);
+      setTxt("tabCountPrevious", atPrevious.length);
+      setTxt("tabCountApproval", pendingFinance.length);
+      setTxt("tabCountPending", inProcessCFO.length);
+      setTxt("tabCountCompleted", completed.length);
+      setTxt("tabCountRedFlags", redFlags.length);
 
       const totalVal = pendingFinance.reduce((sum, b) => sum + (Number(b.d1_final_payable_amt || b.a20_basic_amount) || 0), 0);
-      document.getElementById("statTotalPayable").textContent = Utils.formatCurrency(totalVal);
+      setTxt("statTotalPayable", Utils.formatCurrency(totalVal));
+    },
+
+    getBillLocationInfo(b) {
+      const stage = b.current_stage || "Unknown";
+      let holder = "Under Process";
+      let icon = "fa-clock";
+      let badgeCls = "stage-secondary";
+      let isActionable = false;
+
+      switch (stage) {
+        case "Biller":
+          holder = b.email_from || "Biller Intake";
+          icon = "fa-receipt";
+          badgeCls = "stage-biller";
+          break;
+        case "HOD":
+          holder = b.d4_hod_name || b.assigned_hod_email || (b.department ? `${b.department} HOD` : "Department Head");
+          icon = "fa-user-clock";
+          badgeCls = "stage-hod";
+          break;
+        case "Account":
+          holder = "Account Team";
+          icon = "fa-calculator";
+          badgeCls = "stage-account";
+          break;
+        case "Finance":
+          holder = "Finance Clearance (You)";
+          icon = "fa-sparkles";
+          badgeCls = "stage-finance";
+          isActionable = true;
+          break;
+        case "CFO":
+          holder = "CFO Executive Signoff";
+          icon = "fa-stamp";
+          badgeCls = "stage-cfo";
+          break;
+        case "SuperAdmin":
+          holder = "SuperAdmin Final Signoff";
+          icon = "fa-shield-halved";
+          badgeCls = "stage-cfo";
+          break;
+        case "Completed":
+          holder = "Cleared & Disbursed";
+          icon = "fa-check-double";
+          badgeCls = "stage-done";
+          break;
+        case "Rejected":
+          holder = b.rejection_by ? `Rejected by ${b.rejection_by}` : "Rejected & Closed";
+          icon = "fa-times-circle";
+          badgeCls = "stage-fail";
+          break;
+      }
+
+      if (this.isBillTerminated(b) && stage !== "Rejected") {
+        holder = b.rejection_by ? `Rejected by ${b.rejection_by}` : "Terminated / Rejected";
+        badgeCls = "stage-fail";
+        icon = "fa-times-circle";
+        isActionable = false;
+      }
+
+      const isBypassed = b.Finance_Status === "Bypassed" || (b.approval_history || []).some(a => a.stage === "Finance" && String(a.action_type || "").includes("Bypass"));
+      if (isBypassed) {
+        isActionable = false;
+      }
+
+      return { stage, holder, icon, badgeCls, isActionable };
+    },
+
+    switchFilterTab(tab) {
+      document.querySelectorAll(".tab-pill").forEach(p => p.classList.remove("active"));
+      const pill = document.getElementById(`tab-pill-${tab}`);
+      if (pill) pill.classList.add("active");
+
+      if (tab === "all") window.location.hash = "invoices";
+      else window.location.hash = tab;
     },
 
     renderDashboardQueue() {
       const tbody = document.getElementById("dashQueueTableBody");
-      const pendingFinance = this.allInvoices.filter(b => b.current_stage === "Finance");
+      const pendingFinance = (this.allInvoices || []).filter(b => b.current_stage === "Finance" && !this.isBillTerminated(b));
 
       if (pendingFinance.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray-400);">No pending bills in Finance queue 🎉</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:36px;color:var(--gray-400);font-size:0.9rem;"><i class="fa fa-circle-check text-success" style="font-size:1.4rem;display:block;margin-bottom:8px;"></i>No pending bills waiting for Finance clearance 🎉</td></tr>';
         return;
       }
 
-      tbody.innerHTML = pendingFinance.slice(0, 8).map(b => {
+      tbody.innerHTML = pendingFinance.slice(0, 10).map(b => {
         const safeId = String(b.id || b.invoice_unique_id || "");
+        const loc = this.getBillLocationInfo(b);
         return `
-          <tr style="cursor:pointer;" onclick="Dashboard.openReviewModal('${safeId}')">
+          <tr onclick="Dashboard.openReviewModal('${safeId}')">
             <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
-            <td style="font-weight:600;">${escapeHtml(b.a14_vendor_name || 'N/A')}</td>
-            <td>${escapeHtml(b.a13_invoice_number || 'N/A')}</td>
-            <td>${Utils.formatCurrency(b.a20_basic_amount)}</td>
-            <td><span class="badge badge-secondary">${escapeHtml(b.b6_tds_section || 'N/A')}</span></td>
-            <td style="font-weight:700;color:#10b981;">${Utils.formatCurrency(b.d1_final_payable_amt || b.a20_basic_amount)}</td>
-            <td><span class="stage-badge stage-finance"><i class="fa fa-sparkles"></i> Finance</span></td>
             <td>
-              <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
-                <i class="fa fa-sparkles"></i> Review & Signoff
+              <div class="location-cell">
+                <span class="stage-badge ${loc.badgeCls}"><i class="fa ${loc.icon}"></i> ${escapeHtml(loc.stage)}</span>
+                <div class="location-holder" title="${escapeHtml(loc.holder)}"><i class="fa fa-user-circle"></i> ${escapeHtml(loc.holder)}</div>
+              </div>
+            </td>
+            <td><span class="badge badge-secondary">${escapeHtml(b.department || 'General')}</span></td>
+            <td>
+              <div style="font-weight:600;">${escapeHtml(b.a13_invoice_number || 'N/A')}</div>
+              <div style="font-size:0.75rem;color:var(--gray-500);">${escapeHtml(b.a12_invoice_date || 'N/A')}</div>
+            </td>
+            <td style="font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(b.a14_vendor_name || 'N/A')}</td>
+            <td>${Utils.formatCurrency(b.a20_basic_amount)}</td>
+            <td style="font-weight:700;color:#10b981;">${Utils.formatCurrency(b.d1_final_payable_amt || b.a20_basic_amount)}</td>
+            <td>
+              <button class="btn btn-sm btn-primary pulse-action" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
+                <i class="fa fa-bolt"></i> Review & Signoff
               </button>
             </td>
           </tr>
@@ -828,28 +1320,34 @@
         return;
       }
 
-      let filtered = [...this.allInvoices];
+      // Sync active tab pill
+      document.querySelectorAll(".tab-pill").forEach(p => p.classList.remove("active"));
+      const activeTabId = sec === "invoices" ? "tab-pill-all" : `tab-pill-${sec}`;
+      const activePill = document.getElementById(activeTabId);
+      if (activePill) activePill.classList.add("active");
+
+      let filtered = [...(this.allInvoices || [])];
       const titleEl = document.getElementById("invoicesSectionTitle");
       const subEl = document.getElementById("invoicesSectionSubtitle");
       const selectEl = document.getElementById("stageFilterSelect");
 
       if (sec === "atprevious") {
-        filtered = filtered.filter(b => ["HOD", "Account"].includes(b.current_stage));
-        titleEl.textContent = "At HOD & Account (View Only)";
-        subEl.textContent = "Invoices currently undergoing earlier review by Department Head or Account";
+        filtered = filtered.filter(b => ["Biller", "HOD", "Account"].includes(b.current_stage) && !this.isBillTerminated(b));
+        titleEl.textContent = "At Earlier Stages (View Only)";
+        subEl.textContent = "Invoices currently in earlier review stages with Biller, Department Head, or Account";
         selectEl.value = "All";
       } else if (sec === "approval") {
-        filtered = filtered.filter(b => b.current_stage === "Finance");
-        titleEl.textContent = "Approval Pending For Us";
+        filtered = filtered.filter(b => b.current_stage === "Finance" && !this.isBillTerminated(b));
+        titleEl.textContent = "Approval Pending For Us (Action Required)";
         subEl.textContent = "Bills currently at Finance clearance stage ready for CFO forwarding";
         selectEl.value = "Finance";
       } else if (sec === "pending") {
-        filtered = filtered.filter(b => ["CFO", "SuperAdmin"].includes(b.current_stage));
-        titleEl.textContent = "Pending (In Process at CFO)";
-        subEl.textContent = "Bills cleared by Finance now awaiting CFO or SuperAdmin approval";
+        filtered = filtered.filter(b => ["CFO", "SuperAdmin"].includes(b.current_stage) && !this.isBillTerminated(b));
+        titleEl.textContent = "Pending (In Process at CFO / SuperAdmin)";
+        subEl.textContent = "Bills cleared by Finance now awaiting CFO or SuperAdmin authorization";
         selectEl.value = "CFO";
       } else if (sec === "completed") {
-        filtered = filtered.filter(b => b.current_stage === "Completed");
+        filtered = filtered.filter(b => b.current_stage === "Completed" && !this.isBillTerminated(b));
         titleEl.textContent = "Completed Invoices";
         subEl.textContent = "Invoices that have completed full clearance and payment routing";
         selectEl.value = "Completed";
@@ -866,20 +1364,30 @@
     populateInvoicesTable(list) {
       const tbody = document.getElementById("invoicesTableBody");
       if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:36px;color:var(--gray-400);">No invoices found in this view.</td></tr>';
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" style="text-align:center;padding:48px 20px;color:#64748b;">
+              <i class="fa fa-folder-open" style="font-size:2rem;color:#cbd5e1;display:block;margin-bottom:12px;"></i>
+              <div style="font-weight:600;font-size:0.95rem;color:#475569;">No invoices found in this view</div>
+              <div style="font-size:0.8rem;color:#94a3b8;margin-top:4px;">No records match your selected stage or search filters.</div>
+            </td>
+          </tr>`;
         return;
       }
 
       tbody.innerHTML = list.map(b => {
         const safeId = String(b.id || b.invoice_unique_id || "");
-        const stageCls = this.getStageClass(b.current_stage);
-        const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected" || (b.current_stage === "Completed" && b.overall_status === "FAIL");
-        const isBypassed = b.Finance_Status === "Bypassed" || (b.approval_history || []).some(a => a.stage === "Finance" && String(a.action_type || "").includes("Bypass"));
-        const isActionable = b.current_stage === "Finance" && !isRejected && !isBypassed;
+        const loc = this.getBillLocationInfo(b);
 
         return `
-          <tr style="cursor:pointer;" onclick="Dashboard.openReviewModal('${safeId}')">
+          <tr onclick="Dashboard.openReviewModal('${safeId}')">
             <td style="font-weight:700;color:var(--primary);">${escapeHtml(b.invoice_unique_id || 'N/A')}</td>
+            <td>
+              <div class="location-cell">
+                <span class="stage-badge ${loc.badgeCls}"><i class="fa ${loc.icon}"></i> ${escapeHtml(loc.stage)}</span>
+                <div class="location-holder" title="${escapeHtml(loc.holder)}"><i class="fa fa-user-circle"></i> ${escapeHtml(loc.holder)}</div>
+              </div>
+            </td>
             <td><span class="badge badge-secondary">${escapeHtml(b.department || 'General')}</span></td>
             <td>
               <div style="font-weight:600;">${escapeHtml(b.a13_invoice_number || 'N/A')}</div>
@@ -889,10 +1397,9 @@
             <td>${Utils.formatCurrency(b.a20_basic_amount)}</td>
             <td>${Utils.formatCurrency(b.b8_tds_amount)}</td>
             <td style="font-weight:700;color:#10b981;">${Utils.formatCurrency(b.d1_final_payable_amt || b.a20_basic_amount)}</td>
-            <td><span class="stage-badge ${stageCls}">${escapeHtml(b.current_stage || 'Unknown')}</span></td>
             <td>
-              <button class="btn btn-sm ${isActionable ? 'btn-primary' : 'btn-secondary'}" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
-                ${isActionable ? '<i class="fa fa-sparkles"></i> Review' : '<i class="fa fa-eye"></i> View'}
+              <button class="btn btn-sm ${loc.isActionable ? 'btn-primary pulse-action' : 'btn-secondary'}" onclick="event.stopPropagation();Dashboard.openReviewModal('${safeId}')">
+                ${loc.isActionable ? '<i class="fa fa-bolt"></i> Review & Clear' : '<i class="fa fa-eye"></i> View Details'}
               </button>
             </td>
           </tr>
@@ -902,6 +1409,7 @@
 
     getStageClass(stage) {
       switch (stage) {
+        case "Biller": return "stage-biller";
         case "HOD": return "stage-hod";
         case "Account": return "stage-account";
         case "Finance": return "stage-finance";
@@ -912,34 +1420,78 @@
     },
 
     filterInvoicesTable() {
-      const q = (document.getElementById("invoicesSearch").value || "").toLowerCase().trim();
-      const base = this.currentFilteredInvoices || this.allInvoices;
-      if (!q) {
-        this.populateInvoicesTable(base);
-        return;
+      const q = (document.getElementById("invoicesSearch")?.value || "").toLowerCase().trim();
+      const deptFilter = document.getElementById("departmentFilterSelect")?.value || "All";
+      const stageFilter = document.getElementById("stageFilterSelect")?.value || "All";
+      
+      let base = this.currentFilteredInvoices || this.allInvoices || [];
+      if (stageFilter !== "All") {
+        base = (this.allInvoices || []).filter(b => b.current_stage === stageFilter);
       }
 
-      const searched = base.filter(b => 
-        (b.invoice_unique_id || "").toLowerCase().includes(q) ||
-        (b.a14_vendor_name || "").toLowerCase().includes(q) ||
-        (b.a13_invoice_number || "").toLowerCase().includes(q) ||
-        (b.department || "").toLowerCase().includes(q)
-      );
-      this.populateInvoicesTable(searched);
+      let res = base;
+      if (deptFilter !== "All") {
+        res = res.filter(b => (b.department || "").toLowerCase() === deptFilter.toLowerCase());
+      }
+      if (q) {
+        res = res.filter(b => 
+          (b.invoice_unique_id || "").toLowerCase().includes(q) ||
+          (b.a14_vendor_name || "").toLowerCase().includes(q) ||
+          (b.a13_invoice_number || "").toLowerCase().includes(q) ||
+          (b.department || "").toLowerCase().includes(q) ||
+          (b.current_stage || "").toLowerCase().includes(q) ||
+          (b.d4_hod_name || "").toLowerCase().includes(q)
+        );
+      }
+      this.populateInvoicesTable(res);
     },
 
     onStageSelectChange(val) {
       if (val === "All") {
         this.currentFilteredInvoices = this.allInvoices;
       } else {
-        this.currentFilteredInvoices = this.allInvoices.filter(b => b.current_stage === val);
+        this.currentFilteredInvoices = (this.allInvoices || []).filter(b => b.current_stage === val);
       }
       this.filterInvoicesTable();
     },
 
+    exportToCSV() {
+      const list = this.currentFilteredInvoices || this.allInvoices || [];
+      if (!list || list.length === 0) {
+        Toast.warning("No invoices available to export.");
+        return;
+      }
+      const headers = ["Unique ID", "Current Stage", "Department", "Invoice No", "Invoice Date", "Vendor Name", "Basic Amount", "TDS Section", "TDS Amount", "Final Payable", "Status"];
+      const rows = list.map(b => [
+        b.invoice_unique_id || "",
+        b.current_stage || "",
+        b.department || "General",
+        b.a13_invoice_number || "",
+        b.a12_invoice_date || "",
+        `"${(b.a14_vendor_name || "").replace(/"/g, '""')}"`,
+        b.a20_basic_amount || 0,
+        b.b6_tds_section || "",
+        b.b8_tds_amount || 0,
+        b.d1_final_payable_amt || b.a20_basic_amount || 0,
+        b.overall_status || b["Approval Status"] || ""
+      ]);
+
+      const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Finance_Invoices_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      Toast.success("Exported invoices to CSV! 📊");
+    },
+
     renderRedFlagsTable() {
       const tbody = document.getElementById("redflagsTableBody");
-      const flagged = this.allInvoices.filter(b => {
+      const flagged = (this.allInvoices || []).filter(b => {
         const rf = b.red_flags || "";
         return rf && rf !== "None" && rf !== "N/A" && rf.trim().length > 0;
       });
@@ -971,7 +1523,7 @@
 
     renderSummaryReport() {
       const container = document.getElementById("summaryReportContent");
-      const list = this.allInvoices;
+      const list = this.allInvoices || [];
 
       let totalExpenditure = 0;
       let totalTds = 0;
@@ -1110,18 +1662,26 @@
       const remarkInput = document.getElementById("financeRemarkInput");
       if (remarkInput) remarkInput.value = "";
 
-      // Authorization & Stage Guard
+      // Authorization & Location Guard
+      const loc = this.getBillLocationInfo(bill);
+      const isPendingAtFinance = loc.isActionable;
       const banner = document.getElementById("stageStatusBanner");
       const btnApprove = document.getElementById("btnModalApprove");
       const btnReject = document.getElementById("btnModalReject");
       const remarksBlock = document.getElementById("financeRemarksBlock");
 
-      const isRejected = bill.overall_status === "FAIL" || bill.overall_status === "Rejected" || bill["Approval Status"] === "Rejected" || (bill.current_stage === "Completed" && bill.overall_status === "FAIL");
-      const isBypassed = bill.Finance_Status === "Bypassed" || (bill.approval_history || []).some(a => a.stage === "Finance" && String(a.action_type || "").includes("Bypass"));
-      const isPendingAtFinance = bill.current_stage === "Finance" && !isRejected && !isBypassed;
-
       if (isPendingAtFinance) {
-        if (banner) banner.style.display = "none";
+        if (banner) {
+          banner.style.display = "block";
+          banner.innerHTML = `
+            <div class="stage-callout callout-action">
+              <div class="callout-icon"><i class="fa fa-bolt"></i></div>
+              <div class="callout-content">
+                <strong>⚡ ACTION REQUIRED BY FINANCE:</strong>
+                <span>This invoice is currently at <strong>Finance Clearance</strong> stage. Please verify budget allocation, GST/TDS compliance (Sections A–D), and forward to CFO.</span>
+              </div>
+            </div>`;
+        }
         if (btnApprove) btnApprove.style.display = "inline-flex";
         if (btnReject) btnReject.style.display = "inline-flex";
         if (remarksBlock) remarksBlock.style.display = "block";
@@ -1131,14 +1691,42 @@
         if (remarksBlock) remarksBlock.style.display = "none";
         if (banner) {
           banner.style.display = "block";
-          if (isRejected) {
-            banner.innerHTML = `<div class="alert alert-danger" style="margin:0;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;"><i class="fa fa-times-circle"></i> <strong>Rejected & Closed:</strong> This invoice has been rejected and closed. No changes permitted.</div>`;
-          } else if (isBypassed) {
-            banner.innerHTML = `<div class="alert alert-warning" style="margin:0;background:#fff3e0;color:#c2410c;border:1px solid #fed7aa;"><i class="fa fa-bolt"></i> <strong>Finance Stage Bypassed:</strong> This invoice was bypassed by executive authority. View-only mode (No changes permitted).</div>`;
-          } else if (["HOD", "Account"].includes(bill.current_stage)) {
-            banner.innerHTML = `<div class="alert alert-info" style="margin:0;"><i class="fa fa-info-circle"></i> Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong> (Awaiting earlier signoff — View Only mode)</div>`;
+          if (this.isBillTerminated(bill)) {
+            banner.innerHTML = `
+              <div class="stage-callout callout-danger">
+                <div class="callout-icon"><i class="fa fa-times-circle"></i></div>
+                <div class="callout-content">
+                  <strong>❌ REJECTED & CLOSED (VIEW-ONLY):</strong>
+                  <span>This invoice has been rejected and closed. Rejection remarks: <em>${escapeHtml(bill.rejection_reason || bill.rejection_remark || 'Rejected during audit')}</em></span>
+                </div>
+              </div>`;
+          } else if (["Biller", "HOD", "Account"].includes(bill.current_stage)) {
+            banner.innerHTML = `
+              <div class="stage-callout callout-info">
+                <div class="callout-icon"><i class="fa fa-eye"></i></div>
+                <div class="callout-content">
+                  <strong>👁️ VIEW-ONLY AUDIT MODE:</strong>
+                  <span>Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong> with <em>${escapeHtml(loc.holder)}</em>. You have full audit visibility into compliance and pipeline history. Approval buttons will activate once cleared to Finance.</span>
+                </div>
+              </div>`;
+          } else if (["CFO", "SuperAdmin"].includes(bill.current_stage)) {
+            banner.innerHTML = `
+              <div class="stage-callout callout-purple">
+                <div class="callout-icon"><i class="fa fa-stamp"></i></div>
+                <div class="callout-content">
+                  <strong>⚖️ CLEARED BY FINANCE — UNDER EXECUTIVE REVIEW:</strong>
+                  <span>Finance budget clearance has been granted. Invoice is currently awaiting CFO / SuperAdmin authorization. View-only mode.</span>
+                </div>
+              </div>`;
           } else {
-            banner.innerHTML = `<div class="alert alert-success" style="margin:0;"><i class="fa fa-check-circle"></i> Cleared by Finance — Currently at <strong>${escapeHtml(bill.current_stage)} Stage</strong></div>`;
+            banner.innerHTML = `
+              <div class="stage-callout callout-viewonly">
+                <div class="callout-icon"><i class="fa fa-check-circle"></i></div>
+                <div class="callout-content">
+                  <strong>✅ FULLY COMPLETED (VIEW-ONLY):</strong>
+                  <span>This invoice has completed all approval milestones and final payment routing.</span>
+                </div>
+              </div>`;
           }
         }
       }
@@ -1194,25 +1782,23 @@
     },
 
     updateTimelineProgress(bill) {
-      const stages = ["intake", "hod", "account", "finance", "cfo", "completed"];
+      const stages = ["biller", "hod", "account", "finance", "cfo", "completed"];
       const current = (bill.current_stage || "Finance").toLowerCase();
+      let currIdx = stages.indexOf(current);
+      if (currIdx < 0) {
+        currIdx = (current === "superadmin") ? 4 : 3;
+      }
 
-      let activeFound = false;
-      stages.forEach(st => {
-        const el = document.getElementById(`step-${st}`);
+      stages.forEach((st, idx) => {
+        const el = document.getElementById(`pipe-step-${st}`);
         if (!el) return;
-        el.className = "tracking-step";
-
-        if (st === current) {
-          el.classList.add("active");
-          activeFound = true;
-        } else if (!activeFound) {
+        el.className = "pipe-step";
+        if (idx < currIdx || current === "completed") {
           el.classList.add("completed");
+        } else if (idx === currIdx) {
+          el.classList.add("active");
         }
       });
-      if (current === "completed") {
-        stages.forEach(st => document.getElementById(`step-${st}`)?.classList.add("completed"));
-      }
     },
 
     async handleDecision(action) {
