@@ -802,7 +802,6 @@ module.exports = async function handler(req, res) {
         // Insert into Master Invoices
         const masterPayload = {
           invoice_unique_id: uniqueId,
-          raw_invoice_id: null, // Raw bill is moved to master_invoices and removed from staging invoices
           current_stage: nextStage,
           department: dept,
           assigned_hod_email: hodEmail,
@@ -876,18 +875,6 @@ module.exports = async function handler(req, res) {
           d11_narration: remark,
           red_flags: billData.red_flags || "",
           overall_status: "REVIEW",
-          rejection_by: null,
-          rejection_reason: null,
-          account_status: null,
-          account_remark: null,
-          hod_status: null,
-          hod_remark: null,
-          finance_status: null,
-          finance_remark: null,
-          cfo_status: null,
-          cfo_remark: null,
-          sa_status: null,
-          sa_remark: null,
           close_at: null
         };
 
