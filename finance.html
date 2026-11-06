@@ -1897,13 +1897,14 @@
         : "Are you sure you want to REJECT this invoice?";
       if (!confirm(confirmMsg)) return;
 
+      const billId = this.currentBill?.id || this.currentBill?.queueRowIndex || this.currentBill?.rowIndex;
       this.closeReviewModal();
       Loader.show(action === "approve" ? "Clearing budget & forwarding to CFO..." : "Rejecting invoice...", "Communicating with server...");
 
       try {
         const res = action === "approve"
-          ? await API.approval.approve(this.currentBill.id, remark || "Finance Budget Cleared")
-          : await API.approval.reject(this.currentBill.id, remark);
+          ? await API.approval.approve(billId, remark || "Finance Budget Cleared")
+          : await API.approval.reject(billId, remark);
 
         if (res && res.success) {
           Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");

@@ -1317,6 +1317,7 @@
     },
 
     async confirmReject() {
+      const rejectId = this.pendingRejectId;
       const reason = document.getElementById("rejectReason").value.trim();
       const errorDiv = document.getElementById("rejectReasonError");
       const btn = document.getElementById("confirmRejectBtn");
@@ -1324,6 +1325,10 @@
       if (!reason) {
         errorDiv.style.display = "block";
         document.getElementById("rejectReason").focus();
+        return;
+      }
+      if (!rejectId) {
+        Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
         return;
       }
       errorDiv.style.display = "none";
@@ -1335,7 +1340,7 @@
       this.closeRejectModal();
       Loader.show("Rejecting invoice...", "Returning bill to Biller...");
       try {
-        const res = await API.approval.reject(this.pendingRejectId, reason);
+        const res = await API.approval.reject(rejectId, reason);
         if (res && res.success) {
           Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
           await this.loadAllData();

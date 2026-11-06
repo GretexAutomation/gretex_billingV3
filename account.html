@@ -1651,7 +1651,13 @@ const Dashboard = {
   },
 
   async confirmApprove() {
+    const rowId = Dashboard.pendingApproveRow;
+    const invNo = Dashboard.pendingApproveInvoiceNo;
     const reason = document.getElementById("approveReason").value.trim() || "Approved";
+    if (!rowId) {
+      Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
+      return;
+    }
     const btn = document.getElementById("confirmApproveBtn");
     
     if (btn) {
@@ -1666,7 +1672,7 @@ const Dashboard = {
     Loader.show("Approving invoice...", "Forwarding bill to Finance team...");
     
     try {
-      const res = await API.account.approveBill(Dashboard.pendingApproveRow, reason);
+      const res = await API.account.approveBill(rowId, reason);
       
       if (res?.success) {
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
@@ -1715,6 +1721,7 @@ const Dashboard = {
   },
 
   async confirmReject() {
+    const rowId = Dashboard.pendingRejectRow;
     const reason = document.getElementById("rejectReason").value.trim();
     const errorDiv = document.getElementById("rejectReasonError");
     const btn = document.getElementById("confirmRejectBtn");
@@ -1722,6 +1729,10 @@ const Dashboard = {
       if (errorDiv) errorDiv.style.display = "block"; 
       document.getElementById("rejectReason")?.focus(); 
       return; 
+    }
+    if (!rowId) {
+      Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
+      return;
     }
     errorDiv.style.display = "none";
     
@@ -1736,7 +1747,7 @@ const Dashboard = {
     Loader.show("Rejecting invoice...", "Returning bill to Biller...");
     
     try {
-      const res = await API.account.rejectBill(Dashboard.pendingRejectRow, reason);
+      const res = await API.account.rejectBill(rowId, reason);
       if (res?.success) {
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
         

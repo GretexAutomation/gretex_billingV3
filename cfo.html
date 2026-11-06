@@ -2893,7 +2893,7 @@ const Dashboard = {
       const isCompleted = currentStage === "Completed";
       const isBypassed = (typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(item) : false;
       const isPending = (status === "Pending" || status === "") && !isRejected && !isCompleted;
-      const rowIdx = item.queueRowIndex;
+      const rowIdx = item.id || item.queueRowIndex || item.rowIndex;
       const invNo = item["A13. Invoice Number"] || "";
       const isSelected = Dashboard.selectedQueueIds.has(String(rowIdx));
 
@@ -5727,6 +5727,7 @@ const Dashboard = {
   // 🔥 APPROVE / REJECT MODALS & LOGIC 🔥
   openApproveModal(rowIdx, invoiceNo) {
     const inv = Dashboard.getInvoiceById(rowIdx);
+    const resolvedId = inv?.id || inv?.queueRowIndex || rowIdx;
     const isRejected = inv && (inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected");
     const currentStage = inv ? (inv.current_stage || inv["Current_Stage"] || "") : "";
     if (isRejected || currentStage === "Completed") {
@@ -5734,10 +5735,10 @@ const Dashboard = {
       return;
     }
 
-    Dashboard.pendingApproveRow = rowIdx;
-    Dashboard.pendingApproveInvoiceNo = invoiceNo;
+    Dashboard.pendingApproveRow = resolvedId;
+    Dashboard.pendingApproveInvoiceNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
     const invNoEl = document.getElementById("approveModalInvoiceNo");
-    if (invNoEl) invNoEl.textContent = invoiceNo ? `— ${invoiceNo}` : "";
+    if (invNoEl) invNoEl.textContent = Dashboard.pendingApproveInvoiceNo ? `— ${Dashboard.pendingApproveInvoiceNo}` : "";
     const noteEl = document.getElementById("approveNote");
     if (noteEl) noteEl.value = "Approved by CFO";
     document.getElementById("approveModal")?.classList.add("active");
@@ -5751,7 +5752,13 @@ const Dashboard = {
   },
 
   async confirmApprove() {
+    const rowId = Dashboard.pendingApproveRow;
     const note = document.getElementById("approveNote")?.value.trim() || "Approved by CFO";
+    if (!rowId) {
+      Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
+      return;
+    }
+
     const btn = document.getElementById("confirmApproveBtn");
     if (btn) {
       btn.disabled = true;
@@ -5762,7 +5769,7 @@ const Dashboard = {
 
     Loader.show("Approving invoice...", "Forwarding bill to SuperAdmin team...");
     try {
-      const res = await API.cfo.approveBill(Dashboard.pendingApproveRow, note);
+      const res = await API.cfo.approveBill(rowId, note);
       if (res?.success) {
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
         await Promise.allSettled([
@@ -5787,6 +5794,7 @@ const Dashboard = {
 
   openRejectModal(rowIdx, invoiceNo) {
     const inv = Dashboard.getInvoiceById(rowIdx);
+    const resolvedId = inv?.id || inv?.queueRowIndex || rowIdx;
     const isRejected = inv && (inv.overall_status === "FAIL" || inv.overall_status === "Rejected" || inv["Approval Status"] === "Rejected");
     const currentStage = inv ? (inv.current_stage || inv["Current_Stage"] || "") : "";
     const isBypassed = inv ? ((typeof Utils !== "undefined" && Utils.isBillBypassed) ? Utils.isBillBypassed(inv) : false) : false;
@@ -5799,7 +5807,7 @@ const Dashboard = {
       return;
     }
 
-    Dashboard.pendingRejectRow = rowIdx;
+    Dashboard.pendingRejectRow = resolvedId;
     Dashboard.pendingRejectInvoiceNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
     const invNoEl = document.getElementById("rejectModalInvoiceNo");
     if (invNoEl) invNoEl.textContent = Dashboard.pendingRejectInvoiceNo ? `— ${Dashboard.pendingRejectInvoiceNo}` : "";
@@ -5818,11 +5826,16 @@ const Dashboard = {
   },
 
   async confirmReject() {
+    const rowId = Dashboard.pendingRejectRow;
     const reason = document.getElementById("rejectReason")?.value.trim();
     const errorDiv = document.getElementById("rejectReasonError");
     if (!reason) {
       if (errorDiv) errorDiv.style.display = "block";
       document.getElementById("rejectReason")?.focus();
+      return;
+    }
+    if (!rowId) {
+      Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
       return;
     }
     if (errorDiv) errorDiv.style.display = "none";
@@ -5837,7 +5850,7 @@ const Dashboard = {
 
     Loader.show("Rejecting invoice...", "Returning bill to Biller...");
     try {
-      const res = await API.cfo.rejectBill(Dashboard.pendingRejectRow, reason);
+      const res = await API.cfo.rejectBill(rowId, reason);
       if (res?.success) {
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
         await Promise.allSettled([
