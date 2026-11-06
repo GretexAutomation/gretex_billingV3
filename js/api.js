@@ -251,11 +251,11 @@ const API = {
     },
 
     async approveBill(queueRowIndex, note) {
-      return await API.request("approveBill", { queueRowIndex, note });
+      return await API.request("approveBill", { queueRowIndex, id: queueRowIndex, note });
     },
 
     async rejectBill(queueRowIndex, reason) {
-      return await API.request("rejectBill", { queueRowIndex, reason });
+      return await API.request("rejectBill", { queueRowIndex, id: queueRowIndex, reason, note: reason, remark: reason });
     }
   },
 
@@ -269,11 +269,11 @@ const API = {
     },
 
     async approve(queueRowIndex, note = "") {
-      return await API.request("approveBill", { queueRowIndex, note });
+      return await API.request("approveBill", { queueRowIndex, id: queueRowIndex, note });
     },
 
     async reject(queueRowIndex, reason = "") {
-      return await API.request("rejectBill", { queueRowIndex, reason });
+      return await API.request("rejectBill", { queueRowIndex, id: queueRowIndex, reason, note: reason, remark: reason });
     }
   },
 
@@ -284,11 +284,11 @@ const API = {
     },
 
     async approveBill(queueRowIndex, note = "") {
-      return await API.request("approveBill", { queueRowIndex, note });
+      return await API.request("approveBill", { queueRowIndex, id: queueRowIndex, note });
     },
 
     async rejectBill(queueRowIndex, reason = "") {
-      return await API.request("rejectBill", { queueRowIndex, reason });
+      return await API.request("rejectBill", { queueRowIndex, id: queueRowIndex, reason, note: reason, remark: reason });
     }
   },
 
@@ -304,6 +304,7 @@ const API = {
     async approveBill(queueRowIndex, note = "", bypassAccount = false, adminEmail = "") {
       return await API.request("approveBill", {
         queueRowIndex: queueRowIndex,
+        id: queueRowIndex,
         note: note,
         bypassAccount: bypassAccount.toString(),
         adminEmail: adminEmail  // ✅ NEW: Target admin
@@ -313,7 +314,10 @@ const API = {
     async rejectBill(queueRowIndex, reason = "") {
       return await API.request("rejectBill", {
         queueRowIndex: queueRowIndex,
-        reason: reason
+        id: queueRowIndex,
+        reason: reason,
+        note: reason,
+        remark: reason
       });
     },
 
