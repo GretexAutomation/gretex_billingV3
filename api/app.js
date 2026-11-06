@@ -1003,7 +1003,7 @@ module.exports = async function handler(req, res) {
 
       // ── Approval Decision (Approve / Reject / Bypass) ──
       case "approveBill": {
-        const id = params.queueRowIndex || params.id;
+        const id = params.queueRowIndex || params.id || params.invoice_unique_id;
         const remark = params.note || params.remark || "Approved";
         const isBypass = params.bypass === true || params.bypassAccount === "true" || params.bypassAccount === true;
         const targetAssignee = params.targetAssignee || params.adminEmail || "";
@@ -1130,8 +1130,8 @@ module.exports = async function handler(req, res) {
       }
 
       case "rejectBill": {
-        const id = params.queueRowIndex || params.id;
-        const remark = params.note || params.remark || "Rejected";
+        const id = params.queueRowIndex || params.id || params.invoice_unique_id;
+        const remark = params.note || params.remark || params.reason || "Rejected";
 
         if (!id) return Response.error(res, "Invoice ID required");
 
