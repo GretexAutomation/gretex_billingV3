@@ -1094,8 +1094,9 @@ const Dashboard = {
       let iconHtml = `<i class="fa ${step.icon}"></i>`;
       let dateText = "";
 
-      const isCurrentRejected = rejectedAt && (step.key === rejectedAt || (rejectedAt === "Super Admin" && step.key === "SuperAdmin"));
-      const isPastRejection = rejectedAt && step.stageIdx > stagesOrder.indexOf(rejectedAt);
+      const isCurrentRejected = isOverallRejected && rejectedStageIdx !== -1 && step.stageIdx === rejectedStageIdx;
+      const isPastRejection = isOverallRejected && rejectedStageIdx !== -1 && step.stageIdx > rejectedStageIdx;
+      const isBeforeRejection = isOverallRejected && rejectedStageIdx !== -1 && step.stageIdx < rejectedStageIdx;
 
       if (isCurrentRejected) {
         statusClass = "rejected";
