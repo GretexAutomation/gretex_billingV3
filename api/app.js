@@ -183,6 +183,17 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
   const cfoAction = getLatestAction("CFO");
   const saAction = getLatestAction("SuperAdmin");
 
+  const rejectAction = approvalHistory.find(a => (a.action_type || "").toLowerCase().includes("reject"));
+  let narrationRejectionBy = "";
+  let narrationRejectionReason = "";
+  if (b.d11_narration && /rejected:/i.test(b.d11_narration)) {
+    const m = b.d11_narration.match(/(Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+Rejected:\s*([^|]+)/i);
+    if (m) {
+      narrationRejectionBy = m[1].trim();
+      narrationRejectionReason = m[2].trim();
+    }
+  }
+
   const order = ["Received", "Biller", "HOD", "Account", "Finance", "CFO", "SuperAdmin", "Completed"];
   const currentStage = (b.current_stage || (isNew ? "New" : "Biller")).trim();
   const cIdx = order.indexOf(currentStage);
@@ -190,6 +201,9 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
   // If current_stage is sitting in an active review stage (e.g. Biller, HOD, Account), it is actively in progress!
   const isFailed = (currentStage === "Completed" || currentStage === "Rejected") &&
     (b.overall_status === "FAIL" || b.overall_status === "Rejected");
+
+  const resolvedRejectionBy = rejectAction?.stage || narrationRejectionBy || b.rejection_by || b["Rejection By"] || "";
+  const resolvedRejectionReason = rejectAction?.remark || narrationRejectionReason || b.rejection_reason || b["Rejection Reason"] || (isFailed ? "Rejected during review" : "");
 
   const billReceivedIso = b.timestamp || b.created_at || new Date().toISOString();
   const tReceived = new Date(billReceivedIso).getTime();
@@ -246,6 +260,11 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
     "🚩 Red Flags": b.red_flags || "",
     Timestamp: billReceivedIso,
 
+    "Rejection By": resolvedRejectionBy,
+    "rejection_by": resolvedRejectionBy,
+    "Rejection Reason": resolvedRejectionReason,
+    "rejection_reason": resolvedRejectionReason,
+
     // Field aliases for backward compatibility & direct property access
     invoice_number: b.a13_invoice_number || b.invoice_unique_id || "",
     invoice_date: b.a12_invoice_date || "",
@@ -266,7 +285,7 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
     "CFO_Send_At": safeActionDate("CFO", cfoAction),
     "CFO_Status": getStageStatus("CFO", cfoAction),
     "CFO_Remark": safeActionRemark("CFO", cfoAction),
-    "SA_Approved_At": safeActionDate("SuperAdmin", saAction) || (b.current_stage === "Completed" ? (b.close_at || "") : ""),
+    "SA_Approved_At": safeActionDate("SuperAdmin", saAction) || (!isFailed && b.current_stage === "Completed" ? (b.close_at || "") : ""),
     "SA_Status": (() => {
       if (!isFailed && currentStage !== "Completed" && cIdx !== -1 && order.indexOf("SuperAdmin") > cIdx) return "";
       if (saAction) {
