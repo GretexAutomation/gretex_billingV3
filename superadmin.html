@@ -1921,12 +1921,20 @@ const Dashboard = {
   },
 
   getInvoiceById(id) {
-    if (!id) return null;
-    const strId = String(id).trim();
+    if (!id || id === "undefined" || id === "null") return null;
+    const strId = String(id).trim().toLowerCase();
+    const matchInv = b => (
+      String(b.id || "").toLowerCase() === strId ||
+      String(b.rowIndex || "").toLowerCase() === strId ||
+      String(b.queueRowIndex || "").toLowerCase() === strId ||
+      String(b.invoice_unique_id || "").toLowerCase() === strId ||
+      String(b["A13. Invoice Number"] || "").toLowerCase() === strId ||
+      String(b.invoice_number || "").toLowerCase() === strId
+    );
     return (
-      (Dashboard.allInvoicesData || []).find(b => String(b.rowIndex) === strId || String(b.id) === strId || String(b.invoice_unique_id) === strId || String(b.queueRowIndex) === strId) ||
-      (Dashboard.queueData || []).find(b => String(b.rowIndex) === strId || String(b.id) === strId || String(b.invoice_unique_id) === strId || String(b.queueRowIndex) === strId) ||
-      (Dashboard.billerInvoicesData || []).find(b => String(b.rowIndex) === strId || String(b.id) === strId || String(b.invoice_unique_id) === strId || String(b.queueRowIndex) === strId)
+      (Dashboard.queueData || []).find(matchInv) ||
+      (Dashboard.allInvoicesData || []).find(matchInv) ||
+      (Dashboard.billerInvoicesData || []).find(matchInv)
     );
   },
 
@@ -2713,7 +2721,7 @@ const Dashboard = {
       const isRejected = item.overall_status === "FAIL" || item.overall_status === "Rejected" || status === "Rejected";
       const isCompleted = item.current_stage === "Completed" || status === "Approved" || item.overall_status === "PASS";
       const isPending = (status === "Pending") && !isRejected && !isCompleted;
-      const rowIdx = item.queueRowIndex || item.rowIndex;
+      const rowIdx = item.id || item.queueRowIndex || item.rowIndex || item.invoice_unique_id || item["A13. Invoice Number"] || "";
       const invNo = item["A13. Invoice Number"] || "—";
       const isChecked = Dashboard.selectedQueueIds.has(String(rowIdx));
 
@@ -2922,7 +2930,7 @@ const Dashboard = {
       return; 
     }
 
-    Dashboard.currentRow = rowIndex;
+    Dashboard.currentRow = inv.id || inv.queueRowIndex || inv.rowIndex || inv.invoice_unique_id || rowIndex;
     Dashboard.pendingStage = inv["Current_Stage"] || inv.current_stage || "Biller";
 
     document.getElementById("modalInvoiceNo").textContent = inv["A13. Invoice Number"] || inv.invoice_unique_id || "N/A";
@@ -3140,8 +3148,11 @@ const Dashboard = {
 
   // ── 11. APPROVE / REJECT / BYPASS ──
   openApproveModal(rowIdx, invoiceNo) {
-    Dashboard.pendingApproveRow = rowIdx; 
-    document.getElementById("approveModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
+    const inv = Dashboard.getInvoiceById(rowIdx) || Dashboard.getInvoiceById(invoiceNo);
+    const resolvedId = inv?.id || inv?.queueRowIndex || inv?.rowIndex || inv?.invoice_unique_id || (rowIdx && rowIdx !== "undefined" && rowIdx !== "null" ? rowIdx : invoiceNo);
+    Dashboard.pendingApproveRow = resolvedId; 
+    const finalInvNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
+    document.getElementById("approveModalInvoiceNo").textContent = finalInvNo ? `— ${finalInvNo}` : "";
     
     const bypassWarning = document.getElementById("bypassWarningMsg");
     if (Dashboard.pendingStage && Dashboard.pendingStage !== "SuperAdmin" && Dashboard.pendingStage !== "Completed") {
@@ -3163,6 +3174,13 @@ const Dashboard = {
   
   async confirmApprove() {
     const note = document.getElementById("approveNote").value.trim() || "Final Approved by Super Admin";
+    const rowId = Dashboard.pendingApproveRow;
+    const invNo = document.getElementById("approveModalInvoiceNo").textContent.replace(/^—\s*/, "").trim();
+    if (!rowId || rowId === "undefined" || rowId === "null") {
+      Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
+      return;
+    }
+
     const btn = document.getElementById("confirmApproveBtn");
     if (btn) {
       btn.disabled = true; 
@@ -3174,7 +3192,7 @@ const Dashboard = {
 
     Loader.show("Executing Final Approval...", "Marking invoice completed & clearing...");
     try {
-      const res = await API.superadmin.approveBill(Dashboard.pendingApproveRow, note);
+      const res = await API.superadmin.approveBill(rowId, note, invNo);
       if (res?.success) { 
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
         await Promise.allSettled([
@@ -3198,8 +3216,11 @@ const Dashboard = {
   },
 
   openBypassModal(rowIdx, invoiceNo) {
-    Dashboard.pendingBypassRow = rowIdx;
-    document.getElementById("bypassModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
+    const inv = Dashboard.getInvoiceById(rowIdx) || Dashboard.getInvoiceById(invoiceNo);
+    const resolvedId = inv?.id || inv?.queueRowIndex || inv?.rowIndex || inv?.invoice_unique_id || (rowIdx && rowIdx !== "undefined" && rowIdx !== "null" ? rowIdx : invoiceNo);
+    Dashboard.pendingBypassRow = resolvedId;
+    const finalInvNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
+    document.getElementById("bypassModalInvoiceNo").textContent = finalInvNo ? `— ${finalInvNo}` : "";
     document.getElementById("bypassTargetStage").value = "Completed";
     document.getElementById("bypassNote").value = "Super Admin Fast-Forward / Stage Bypass";
     document.getElementById("bypassModal").classList.add("active");
@@ -3213,6 +3234,13 @@ const Dashboard = {
   async confirmBypass() {
     const targetStage = document.getElementById("bypassTargetStage").value;
     const note = document.getElementById("bypassNote").value.trim() || `Bypassed by Super Admin -> ${targetStage}`;
+    const rowId = Dashboard.pendingBypassRow;
+    const invNo = document.getElementById("bypassModalInvoiceNo").textContent.replace(/^—\s*/, "").trim();
+    if (!rowId || rowId === "undefined" || rowId === "null") {
+      Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
+      return;
+    }
+
     const btn = document.getElementById("confirmBypassBtn");
     if (btn) {
       btn.disabled = true; 
@@ -3224,7 +3252,7 @@ const Dashboard = {
 
     Loader.show("Routing Bill...", `Forwarding directly to ${targetStage}...`);
     try {
-      const res = await API.superadmin.bypassBill(Dashboard.pendingBypassRow, note, targetStage);
+      const res = await API.superadmin.bypassBill(rowId, note, targetStage, invNo);
       if (res?.success) {
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
         await Promise.allSettled([
@@ -3248,8 +3276,11 @@ const Dashboard = {
   },
 
   openRejectModal(rowIdx, invoiceNo) {
-    Dashboard.pendingRejectRow = rowIdx; 
-    document.getElementById("rejectModalInvoiceNo").textContent = invoiceNo ? `— ${invoiceNo}` : "";
+    const inv = Dashboard.getInvoiceById(rowIdx) || Dashboard.getInvoiceById(invoiceNo);
+    const resolvedId = inv?.id || inv?.queueRowIndex || inv?.rowIndex || inv?.invoice_unique_id || (rowIdx && rowIdx !== "undefined" && rowIdx !== "null" ? rowIdx : invoiceNo);
+    Dashboard.pendingRejectRow = resolvedId; 
+    const finalInvNo = invoiceNo || (inv ? (inv["A13. Invoice Number"] || inv.invoice_number) : "");
+    document.getElementById("rejectModalInvoiceNo").textContent = finalInvNo ? `— ${finalInvNo}` : "";
     document.getElementById("rejectReason").value = ""; 
     document.getElementById("rejectReasonError").style.display = "none";
     document.getElementById("rejectModal").classList.add("active");
