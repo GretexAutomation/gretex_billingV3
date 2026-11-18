@@ -1022,7 +1022,8 @@ module.exports = async function handler(req, res) {
 
       // ── Approval Decision (Approve / Reject / Bypass) ──
       case "approveBill": {
-        const id = params.queueRowIndex || params.id || params.invoice_unique_id;
+        const rawId = params.queueRowIndex || params.id || params.invoice_unique_id || params.invoiceNo;
+        const id = (rawId && rawId !== "undefined" && rawId !== "null") ? String(rawId).trim() : (params.invoiceNo ? String(params.invoiceNo).trim() : "");
         const remark = params.note || params.remark || "Approved";
         const isBypass = params.bypass === true || params.bypassAccount === "true" || params.bypassAccount === true;
         const targetAssignee = params.targetAssignee || params.adminEmail || "";
@@ -1042,6 +1043,15 @@ module.exports = async function handler(req, res) {
             .eq("invoice_unique_id", id)
             .maybeSingle();
           bill = billByUid;
+        }
+
+        if (!bill) {
+          const { data: billByInvNo } = await supabase
+            .from("master_invoices")
+            .select("*")
+            .eq("a13_invoice_number", id)
+            .maybeSingle();
+          bill = billByInvNo;
         }
 
         if (!bill) return Response.error(res, "Invoice not found");
@@ -1149,7 +1159,8 @@ module.exports = async function handler(req, res) {
       }
 
       case "rejectBill": {
-        const id = params.queueRowIndex || params.id || params.invoice_unique_id;
+        const rawId = params.queueRowIndex || params.id || params.invoice_unique_id || params.invoiceNo;
+        const id = (rawId && rawId !== "undefined" && rawId !== "null") ? String(rawId).trim() : (params.invoiceNo ? String(params.invoiceNo).trim() : "");
         const remark = params.note || params.remark || params.reason || "Rejected";
 
         if (!id) return Response.error(res, "Invoice ID required");
@@ -1158,6 +1169,10 @@ module.exports = async function handler(req, res) {
         if (!bill) {
           const { data: billByUid } = await supabase.from("master_invoices").select("*").eq("invoice_unique_id", id).maybeSingle();
           bill = billByUid;
+        }
+        if (!bill) {
+          const { data: billByInvNo } = await supabase.from("master_invoices").select("*").eq("a13_invoice_number", id).maybeSingle();
+          bill = billByInvNo;
         }
         if (!bill) return Response.error(res, "Invoice not found");
 
