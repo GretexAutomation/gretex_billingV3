@@ -87,12 +87,64 @@ const UI = {
     const isOverallRejected = (currentStage === "Completed" || currentStage === "Rejected") &&
       (inv["overall_status"] === "Rejected" || inv["overall_status"] === "FAIL" || inv["Approval Status"] === "Rejected");
 
+    const history = inv.approval_history || [];
+
     let rejectedAt = null;
     let rejectionRemark = "";
     
     if (isOverallRejected) {
-      rejectedAt = inv["Rejection By"] || inv["rejection_by"] || currentStage;
-      rejectionRemark = inv["Rejection Reason"] || inv["rejection_reason"] || inv["Account_Remark"] || inv["CFO_Remark"] || inv["d11_narration"] || "No specific reason provided.";
+      // 1. Check approval_history for an explicit Reject action
+      const rejectAction = history.find(a => (a.action_type || "").toLowerCase().includes("reject"));
+      if (rejectAction) {
+        rejectedAt = rejectAction.stage;
+        rejectionRemark = rejectAction.remark;
+      }
+
+      // 2. Check d11_narration
+      if (!rejectedAt && inv.d11_narration && /rejected:/i.test(inv.d11_narration)) {
+        const m = inv.d11_narration.match(/(Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+Rejected:\s*([^|]+)/i);
+        if (m) {
+          rejectedAt = m[1].trim();
+          rejectionRemark = m[2].trim();
+        }
+      }
+
+      // 3. Fallback to explicit fields from API
+      if (!rejectedAt) {
+        rejectedAt = inv["Rejection By"] || inv["rejection_by"];
+      }
+      if (!rejectionRemark) {
+        rejectionRemark = inv["Rejection Reason"] || inv["rejection_reason"];
+      }
+
+      // 4. Check stage statuses
+      if (!rejectedAt) {
+        if (inv["HOD_Status"] === "Rejected") rejectedAt = "HOD";
+        else if (inv["Account_Status"] === "Rejected") rejectedAt = "Account";
+        else if (inv["Finance_Status"] === "Rejected") rejectedAt = "Finance";
+        else if (inv["CFO_Status"] === "Rejected") rejectedAt = "CFO";
+        else if (inv["SA_Status"] === "Rejected") rejectedAt = "SuperAdmin";
+      }
+
+      // 5. DO NOT fallback rejectedAt to "Completed"!
+      if (!rejectedAt || rejectedAt === "Completed") {
+        rejectedAt = "Review";
+      }
+
+      // 6. Ensure rejectionRemark never uses approval remarks like "Verified and Approved."
+      if (!rejectionRemark || rejectionRemark === "Verified and Approved.") {
+        if (rejectedAt === "Account" && inv["Account_Status"] === "Rejected") {
+          rejectionRemark = inv["Account_Remark"];
+        } else if (rejectedAt === "CFO" && inv["CFO_Status"] === "Rejected") {
+          rejectionRemark = inv["CFO_Remark"];
+        } else if (rejectedAt === "Finance" && inv["Finance_Status"] === "Rejected") {
+          rejectionRemark = inv["Finance_Remark"];
+        } else if (rejectedAt === "HOD" && inv["HOD_Status"] === "Rejected") {
+          rejectionRemark = inv["HOD_Remark"];
+        } else {
+          rejectionRemark = "Rejected during review.";
+        }
+      }
     }
 
     const formatDt = (d) => {
@@ -122,7 +174,10 @@ const UI = {
       return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     };
 
-    const history = inv.approval_history || [];
+    const rejectedStageIdx = (isOverallRejected && rejectedAt)
+      ? stagesOrder.findIndex(s => s.toLowerCase() === (rejectedAt === "Super Admin" ? "superadmin" : rejectedAt).toLowerCase())
+      : -1;
+
     const receivedDate = inv["Timestamp"] || inv["created_at"] || inv["timestamp"] || null;
     const tRec = receivedDate ? new Date(receivedDate).getTime() : 0;
 
@@ -150,11 +205,13 @@ const UI = {
       }
     }
 
-    const hodDate = (currIdx >= 2 || isOverallRejected) ? (getHistoryTime("HOD") || inv["HOD_Send_At"] || inv["hod_send_at"]) : null;
-    const accountDate = (currIdx >= 3 || isOverallRejected) ? (getHistoryTime("Account") || inv["Account_Send_At"] || inv["account_send_at"]) : null;
-    const financeDate = (currIdx >= 4 || isOverallRejected) ? (getHistoryTime("Finance") || inv["Finance_Send_At"] || inv["finance_send_at"]) : null;
-    const cfoDate = (currIdx >= 5 || isOverallRejected) ? (getHistoryTime("CFO") || inv["CFO_Send_At"] || inv["cfo_send_at"]) : null;
-    const saDate = (currIdx >= 6 || isOverallRejected) ? (getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || inv["SA_Approved_At"] || inv["close_at"] || inv["send_for_billing_at"]) : null;
+    const hodDate = (currIdx >= 2 || (isOverallRejected && rejectedStageIdx >= 2)) ? (getHistoryTime("HOD") || inv["HOD_Send_At"] || inv["hod_send_at"]) : null;
+    const accountDate = (currIdx >= 3 || (isOverallRejected && rejectedStageIdx >= 3)) ? (getHistoryTime("Account") || inv["Account_Send_At"] || inv["account_send_at"]) : null;
+    const financeDate = (currIdx >= 4 || (isOverallRejected && rejectedStageIdx >= 4)) ? (getHistoryTime("Finance") || inv["Finance_Send_At"] || inv["finance_send_at"]) : null;
+    const cfoDate = (currIdx >= 5 || (isOverallRejected && rejectedStageIdx >= 5)) ? (getHistoryTime("CFO") || inv["CFO_Send_At"] || inv["cfo_send_at"]) : null;
+    const saDate = (!isOverallRejected && (currIdx >= 6 || currentStage === "Completed"))
+      ? (getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || inv["SA_Approved_At"] || inv["close_at"] || inv["send_for_billing_at"])
+      : (rejectedStageIdx === 6 ? (getHistoryTime("SuperAdmin") || getHistoryTime("Super Admin") || inv["SA_Approved_At"]) : null);
 
     const steps = [
       {
@@ -215,8 +272,9 @@ const UI = {
       let iconHtml = `<i class="fa ${step.icon}"></i>`;
       let dateText = "";
 
-      const isCurrentRejected = rejectedAt && (step.key === rejectedAt || (rejectedAt === "Super Admin" && step.key === "SuperAdmin"));
-      const isPastRejection = rejectedAt && step.stageIdx > stagesOrder.indexOf(rejectedAt);
+      const isCurrentRejected = isOverallRejected && rejectedStageIdx !== -1 && step.stageIdx === rejectedStageIdx;
+      const isPastRejection = isOverallRejected && rejectedStageIdx !== -1 && step.stageIdx > rejectedStageIdx;
+      const isBeforeRejection = isOverallRejected && rejectedStageIdx !== -1 && step.stageIdx < rejectedStageIdx;
 
       if (isCurrentRejected) {
         statusClass = "rejected";
@@ -225,7 +283,7 @@ const UI = {
       } else if (isPastRejection) {
         statusClass = "";
         dateText = "Cancelled";
-      } else if (currentStage === "Completed" || step.stageIdx < currIdx) {
+      } else if (isBeforeRejection || (!isOverallRejected && (currentStage === "Completed" || step.stageIdx < currIdx))) {
         statusClass = "completed";
         iconHtml = `<i class="fa fa-check"></i>`;
         dateText = step.rawDate ? formatDt(step.rawDate) : (step.stageIdx === 0 ? "Done" : "Approved");
@@ -238,7 +296,7 @@ const UI = {
 
       // Compute turnaround duration between previous step and this step
       let durationHtml = "";
-      if (idx > 0 && !isPastRejection && (currentStage === "Completed" || step.stageIdx <= currIdx)) {
+      if (idx > 0 && !isPastRejection && ((!isOverallRejected && currentStage === "Completed") || step.stageIdx <= currIdx || (isOverallRejected && step.stageIdx <= rejectedStageIdx))) {
         const prevStep = steps[idx - 1];
         let durationHms = "";
 
