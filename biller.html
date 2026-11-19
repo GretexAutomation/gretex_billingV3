@@ -2327,23 +2327,12 @@ const Dashboard = {
     },
 
     isRejectedBill(b) {
-      if (!b) return false;
-      const status = (b["Approval Status"] || "").trim().toLowerCase();
-      const overall = (b["overall_status"] || "").trim().toUpperCase();
-      return status.includes("reject") ||
-             overall === "FAIL" || overall === "REJECTED" ||
-             Boolean(b["Rejection By"] || b.rejection_by) ||
-             (b["HOD_Status"] || "").includes("Rejected") ||
-             (b["Account_Status"] || "").includes("Rejected") ||
-             (b["Finance_Status"] || "").includes("Rejected") ||
-             (b["CFO_Status"] || "").includes("Rejected") ||
-             (b["Admin_Status"] || "").includes("Rejected") ||
-             (b["SA_Status"] || "").includes("Rejected");
+      return Dashboard.isRejectedBill(b);
     },
 
     isCompletedBill(b) {
       if (!b) return false;
-      if (this.isRejectedBill(b)) return false; // Rejected bills are not completed bills!
+      if (Dashboard.isRejectedBill(b)) return false; // Rejected bills are not completed bills!
       const status = (b["Approval Status"] || "").trim().toLowerCase();
       return status === "approved" ||
              status === "completed" ||
@@ -2352,62 +2341,11 @@ const Dashboard = {
 
     isInProcessBill(b) {
       if (!b) return false;
-      return !this.isNewBill(b) && !this.isRejectedBill(b) && !this.isCompletedBill(b);
+      return !this.isNewBill(b) && !Dashboard.isRejectedBill(b) && !this.isCompletedBill(b);
     },
 
     getRejectionDetails(b) {
-      if (!b) return { by: "Approver", remark: "No rejection remark specified" };
-      let rBy = b["Rejection By"] || b.rejection_by || "";
-      let rRem = b["Rejection Reason"] || b.rejection_reason || b["Rejection Remark"] || "";
-
-      // 1. Direct resolved fields from API
-      if (rBy && rRem && rRem !== "No rejection remark specified") {
-        return { by: rBy, remark: rRem };
-      }
-
-      // 2. Check approval history
-      if (b.approval_history && Array.isArray(b.approval_history)) {
-        const rejActions = b.approval_history.filter(a => String(a.action_type || "").toLowerCase().includes("reject"));
-        if (rejActions.length > 0) {
-          const lastRej = rejActions[rejActions.length - 1];
-          return {
-            by: lastRej.approver_role || lastRej.stage || rBy || "Approver",
-            remark: lastRej.remark || rRem || "Rejected during review"
-          };
-        }
-      }
-
-      // 3. Check D11 Narration
-      const narr = b["D11. Narration"] || b.d11_narration || "";
-      if (narr && /rejected:/i.test(narr)) {
-        const matches = [...narr.matchAll(/(Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+Rejected:\s*([^|]+)/gi)];
-        if (matches.length > 0) {
-          const lastM = matches[matches.length - 1];
-          return { by: lastM[1].trim(), remark: lastM[2].trim() };
-        }
-      }
-
-      // 4. Check stage statuses in pipeline order
-      if ((b["HOD_Status"] || "").includes("Rejected")) { 
-        rBy = "HOD"; rRem = b["HOD_Remark"] || rRem; 
-      } else if ((b["Account_Status"] || "").includes("Rejected")) { 
-        rBy = "Account"; rRem = b["Account_Remark"] || rRem; 
-      } else if ((b["Finance_Status"] || "").includes("Rejected")) { 
-        rBy = "Finance"; rRem = b["Finance_Remark"] || rRem; 
-      } else if ((b["CFO_Status"] || "").includes("Rejected")) { 
-        rBy = "CFO"; rRem = b["CFO_Remark"] || rRem; 
-      } else if ((b["Admin_Status"] || "").includes("Rejected")) { 
-        rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; 
-      } else if ((b["SA_Status"] || "").includes("Rejected")) { 
-        rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; 
-      } else if (rBy) {
-        // use existing rBy
-      } else {
-        rBy = "Approver";
-        rRem = rRem || "No rejection remark specified";
-      }
-
-      return { by: rBy, remark: rRem || "No rejection remark specified" };
+      return Dashboard.getRejectionDetails(b);
     },
 
     parseDate(val) {
@@ -3496,6 +3434,76 @@ const Dashboard = {
 
   approvedFilterStatus: "ALL",
   flowupCloseFilter: "ALL",
+
+  isRejectedBill(b) {
+    if (!b) return false;
+    const status = (b["Approval Status"] || "").trim().toLowerCase();
+    const overall = (b["overall_status"] || "").trim().toUpperCase();
+    return status.includes("reject") ||
+           overall === "FAIL" || overall === "REJECTED" ||
+           Boolean(b["Rejection By"] || b.rejection_by) ||
+           (b["HOD_Status"] || "").includes("Rejected") ||
+           (b["Account_Status"] || "").includes("Rejected") ||
+           (b["Finance_Status"] || "").includes("Rejected") ||
+           (b["CFO_Status"] || "").includes("Rejected") ||
+           (b["Admin_Status"] || "").includes("Rejected") ||
+           (b["SA_Status"] || "").includes("Rejected");
+  },
+
+  getRejectionDetails(b) {
+    if (!b) return { by: "Approver", remark: "No rejection remark specified" };
+    let rBy = b["Rejection By"] || b.rejection_by || "";
+    let rRem = b["Rejection Reason"] || b.rejection_reason || b["Rejection Remark"] || "";
+
+    // 1. Direct resolved fields from API
+    if (rBy && rRem && rRem !== "No rejection remark specified") {
+      return { by: rBy, remark: rRem };
+    }
+
+    // 2. Check approval history
+    if (b.approval_history && Array.isArray(b.approval_history)) {
+      const rejActions = b.approval_history.filter(a => String(a.action_type || "").toLowerCase().includes("reject"));
+      if (rejActions.length > 0) {
+        const lastRej = rejActions[rejActions.length - 1];
+        return {
+          by: lastRej.approver_role || lastRej.stage || rBy || "Approver",
+          remark: lastRej.remark || rRem || "Rejected during review"
+        };
+      }
+    }
+
+    // 3. Check D11 Narration
+    const narr = b["D11. Narration"] || b.d11_narration || "";
+    if (narr && /rejected:/i.test(narr)) {
+      const matches = [...narr.matchAll(/(Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+Rejected:\s*([^|]+)/gi)];
+      if (matches.length > 0) {
+        const lastM = matches[matches.length - 1];
+        return { by: lastM[1].trim(), remark: lastM[2].trim() };
+      }
+    }
+
+    // 4. Check stage statuses in pipeline order
+    if ((b["HOD_Status"] || "").includes("Rejected")) { 
+      rBy = "HOD"; rRem = b["HOD_Remark"] || rRem; 
+    } else if ((b["Account_Status"] || "").includes("Rejected")) { 
+      rBy = "Account"; rRem = b["Account_Remark"] || rRem; 
+    } else if ((b["Finance_Status"] || "").includes("Rejected")) { 
+      rBy = "Finance"; rRem = b["Finance_Remark"] || rRem; 
+    } else if ((b["CFO_Status"] || "").includes("Rejected")) { 
+      rBy = "CFO"; rRem = b["CFO_Remark"] || rRem; 
+    } else if ((b["Admin_Status"] || "").includes("Rejected")) { 
+      rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; 
+    } else if ((b["SA_Status"] || "").includes("Rejected")) { 
+      rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; 
+    } else if (rBy) {
+      // use rBy
+    } else {
+      rBy = "Approver";
+      rRem = rRem || "No rejection remark specified";
+    }
+
+    return { by: rBy, remark: rRem || "No rejection remark specified" };
+  },
 
   isClosedBill(b) {
     if (!b) return false;
@@ -5445,6 +5453,10 @@ const Dashboard = {
   }
 
 };
+
+window.Dashboard = Dashboard;
+window.isRejectedBill = (b) => Dashboard.isRejectedBill(b);
+window.getRejectionDetails = (b) => Dashboard.getRejectionDetails(b);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SUBMIT INVOICE OBJECT
