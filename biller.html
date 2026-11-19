@@ -13,6 +13,46 @@
     .section { display: none; }
     .section.active { display: block; }
 
+    /* ── Date Presets & Cards for Invoices Hub ── */
+    .date-preset {
+      background: var(--white, #fff);
+      border: 1px solid var(--gray-300, #dadce0);
+      color: var(--gray-700, #5f6368);
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .date-preset:hover {
+      background: var(--gray-100, #f1f3f4);
+    }
+    .date-preset.active {
+      background: var(--primary, #1a73e8);
+      color: #fff;
+      border-color: var(--primary, #1a73e8);
+    }
+    .inv-hub-card {
+      background: #fff;
+      border: 1px solid var(--gray-200, #e8eaed);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .inv-hub-card:hover {
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      border-color: var(--primary, #1a73e8);
+      transform: translateY(-1px);
+    }
+
     /* ── Next-Gen AI Holographic Scanner Screen ── */
     #processingScreen {
       position: fixed;
@@ -933,6 +973,14 @@
           </div>
         </div>
       </div>
+
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <!-- INVOICES MODULE (4 SUB-MENUS: NEW, IN PROCESS, COMPLETED, REJECTED) -->
+      <!-- ══════════════════════════════════════════════════════════════ -->
+      <div class="section" id="section-inv-new"></div>
+      <div class="section" id="section-inv-process"></div>
+      <div class="section" id="section-inv-completed"></div>
+      <div class="section" id="section-inv-rejected"></div>
 
       <div class="section" id="section-track">
         <div class="card">
@@ -2159,7 +2207,11 @@ const Dashboard = {
         profile: "My Profile",
         password: "Change Password",
         flowup: "Flowup - All Bills Status",
-        pendingreport: "User Pending Report"
+        pendingreport: "User Pending Report",
+        "inv-new": "Invoices — New Invoice",
+        "inv-process": "Invoices — In Process",
+        "inv-completed": "Invoices — Completed",
+        "inv-rejected": "Invoices — Rejected"
     };
     Header.setTitle(titles[id] || "Dashboard");
     Sidebar.setActive(id);
@@ -2187,6 +2239,809 @@ const Dashboard = {
         if (sInput) sInput.value = "";
         Dashboard.loadUserPendingReport(true);
         Dashboard.startUserPendingAutoRefresh();
+    } else if (id === "inv-new") {
+        Dashboard.invoicesHub.load("new");
+    } else if (id === "inv-process") {
+        Dashboard.invoicesHub.load("process");
+    } else if (id === "inv-completed") {
+        Dashboard.invoicesHub.load("completed");
+    } else if (id === "inv-rejected") {
+        Dashboard.invoicesHub.load("rejected");
+    }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 📁 INVOICES HUB (NEW INVOICE, IN PROCESS, COMPLETED, REJECTED)
+  // Multi-filter system: Search, Date Range, Presets, Stage, Vendor, Sort, CSV
+  // ═══════════════════════════════════════════════════════════════════════════
+  invoicesHub: {
+    state: {
+      new:       { search: "", dateFrom: "", dateTo: "", datePreset: "all", stage: "all", vendor: "all", sort: "date-desc", page: 1, limit: 15 },
+      process:   { search: "", dateFrom: "", dateTo: "", datePreset: "all", stage: "all", vendor: "all", sort: "date-desc", page: 1, limit: 15 },
+      completed: { search: "", dateFrom: "", dateTo: "", datePreset: "all", stage: "all", vendor: "all", sort: "date-desc", page: 1, limit: 15 },
+      rejected:  { search: "", dateFrom: "", dateTo: "", datePreset: "all", stage: "all", vendor: "all", sort: "date-desc", page: 1, limit: 15 }
+    },
+
+    filteredCache: {
+      new: [],
+      process: [],
+      completed: [],
+      rejected: []
+    },
+
+    meta: {
+      new: {
+        title: "New Invoices",
+        subtitle: "Fresh intake invoices awaiting initial review or dispatch",
+        icon: "fa-sparkles",
+        themeColor: "#1a73e8",
+        badgeBg: "#e8f0fe",
+        badgeText: "#1a73e8",
+        emptyIcon: "🎉",
+        emptyTitle: "No New Invoices",
+        emptyText: "All incoming invoices have been reviewed or dispatched to approvers."
+      },
+      process: {
+        title: "In Process Invoices",
+        subtitle: "Invoices currently undergoing departmental reviews & approvals",
+        icon: "fa-clock",
+        themeColor: "#f59e0b",
+        badgeBg: "#fef3c7",
+        badgeText: "#b45309",
+        emptyIcon: "⏳",
+        emptyTitle: "No Invoices In Process",
+        emptyText: "There are currently no invoices in transit across the approval chain."
+      },
+      completed: {
+        title: "Completed Invoices",
+        subtitle: "Invoices that have completed the full approval & payment workflow",
+        icon: "fa-circle-check",
+        themeColor: "#10b981",
+        badgeBg: "#d1fae5",
+        badgeText: "#047857",
+        emptyIcon: "✅",
+        emptyTitle: "No Completed Invoices",
+        emptyText: "No invoices have been finalized or approved yet."
+      },
+      rejected: {
+        title: "Rejected Invoices",
+        subtitle: "Invoices rejected by approvers with audit remarks and reasons",
+        icon: "fa-circle-xmark",
+        themeColor: "#ef4444",
+        badgeBg: "#fee2e2",
+        badgeText: "#b91c1c",
+        emptyIcon: "❌",
+        emptyTitle: "No Rejected Invoices",
+        emptyText: "Great news! No invoices have been rejected across any department."
+      }
+    },
+
+    // Classification helpers
+    isNewBill(b) {
+      if (!b) return false;
+      const status = (b["Approval Status"] || "").trim().toLowerCase();
+      const stage = (b["Current_Stage"] || "").trim().toLowerCase();
+      return b._sourceSheet === "Invoices" ||
+             status === "new" ||
+             (!status && (!stage || stage === "new"));
+    },
+
+    isRejectedBill(b) {
+      if (!b) return false;
+      const status = (b["Approval Status"] || "").trim();
+      const overall = (b["overall_status"] || "").trim().toUpperCase();
+      return status.toLowerCase().includes("reject") ||
+             overall === "FAIL" || overall === "REJECTED" ||
+             (b["HOD_Status"] || "").includes("Rejected") ||
+             (b["Account_Status"] || "").includes("Rejected") ||
+             (b["Finance_Status"] || "").includes("Rejected") ||
+             (b["CFO_Status"] || "").includes("Rejected") ||
+             (b["Admin_Status"] || "").includes("Rejected") ||
+             (b["SA_Status"] || "").includes("Rejected");
+    },
+
+    isCompletedBill(b) {
+      if (!b) return false;
+      const status = (b["Approval Status"] || "").trim().toLowerCase();
+      return status === "approved" ||
+             status === "completed" ||
+             Dashboard.isClosedBill(b);
+    },
+
+    isInProcessBill(b) {
+      if (!b) return false;
+      return !this.isNewBill(b) && !this.isRejectedBill(b) && !this.isCompletedBill(b);
+    },
+
+    getRejectionDetails(b) {
+      let rBy = "Approver", rRem = "No rejection remark specified";
+      if ((b["HOD_Status"] || "").includes("Rejected")) { 
+        rBy = "HOD"; rRem = b["HOD_Remark"] || rRem; 
+      } else if ((b["Account_Status"] || "").includes("Rejected")) { 
+        rBy = "Account"; rRem = b["Account_Remark"] || rRem; 
+      } else if ((b["Finance_Status"] || "").includes("Rejected")) { 
+        rBy = "Finance"; rRem = b["Finance_Remark"] || rRem; 
+      } else if ((b["CFO_Status"] || "").includes("Rejected")) { 
+        rBy = "CFO"; rRem = b["CFO_Remark"] || rRem; 
+      } else if ((b["Admin_Status"] || "").includes("Rejected")) { 
+        rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; 
+      } else if ((b["SA_Status"] || "").includes("Rejected")) { 
+        rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; 
+      } else if (b["Rejection By"]) {
+        rBy = b["Rejection By"]; rRem = b["Rejection Remark"] || rRem;
+      } else if (b["Rejection Remark"]) {
+        rRem = b["Rejection Remark"];
+      }
+      return { by: rBy, remark: rRem };
+    },
+
+    parseDate(val) {
+      if (!val) return null;
+      if (val instanceof Date && !isNaN(val)) return val;
+      const s = String(val).trim();
+      if (!s) return null;
+
+      const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (dmy) {
+        const d = parseInt(dmy[1], 10);
+        const m = parseInt(dmy[2], 10) - 1;
+        const y = parseInt(dmy[3], 10);
+        const dt = new Date(y, m, d);
+        if (!isNaN(dt.getTime())) return dt;
+      }
+
+      const ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+      if (ymd) {
+        const y = parseInt(ymd[1], 10);
+        const m = parseInt(ymd[2], 10) - 1;
+        const d = parseInt(ymd[3], 10);
+        const dt = new Date(y, m, d);
+        if (!isNaN(dt.getTime())) return dt;
+      }
+
+      const dt = new Date(s);
+      return isNaN(dt.getTime()) ? null : dt;
+    },
+
+    formatCurrency(val) {
+      const num = parseFloat(String(val || 0).replace(/[^0-9.-]/g, ""));
+      return isNaN(num) ? "₹0.00" : "₹" + num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+
+    formatDate(val) {
+      const dt = this.parseDate(val);
+      if (!dt) return val || "—";
+      return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    },
+
+    async load(type) {
+      const container = document.getElementById(`section-inv-${type}`);
+      if (!container) return;
+
+      await Dashboard.ensureQueue();
+
+      if (!container.dataset.mounted) {
+        this.renderStructure(type, container);
+        container.dataset.mounted = "true";
+      }
+
+      this.populateVendors(type);
+      this.applyFilters(type);
+    },
+
+    renderStructure(type, container) {
+      const meta = this.meta[type] || this.meta.new;
+      container.innerHTML = `
+        <div class="card" style="margin-bottom:16px; border:1px solid var(--gray-200); box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+          <div class="card-body" style="padding:16px 20px;">
+            
+            <!-- Top Row: Search + Actions -->
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="inv-${type}-search"
+                  placeholder="Search by Invoice #, Vendor name, PO, remark, amount..."
+                  style="padding-left:36px; padding-right:32px; height:38px; border-radius:8px; font-size:0.85rem;"
+                  oninput="Dashboard.invoicesHub.onSearchInput('${type}', this.value)" />
+                <button type="button" id="inv-${type}-search-clear" onclick="Dashboard.invoicesHub.clearSearch('${type}')"
+                  style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); border:none; background:none; color:var(--gray-400); cursor:pointer;">
+                  <i class="fa fa-times-circle"></i>
+                </button>
+              </div>
+
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.invoicesHub.resetFilters('${type}')" title="Reset all filters" style="height:38px; padding:0 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fa fa-rotate-left"></i> <span>Reset</span>
+              </button>
+
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.invoicesHub.syncData('${type}')" title="Sync data" style="height:38px; padding:0 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fa fa-rotate"></i> <span>Sync</span>
+              </button>
+
+              <button class="btn btn-primary btn-sm" onclick="Dashboard.invoicesHub.exportCSV('${type}')" title="Export CSV" style="height:38px; padding:0 14px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
+                <i class="fa fa-file-csv"></i> <span>Export CSV</span>
+              </button>
+            </div>
+
+            <!-- Middle Row: Date Range Filters & Quick Presets -->
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; padding:10px 14px; background:var(--gray-50); border-radius:8px; border:1px solid var(--gray-200);">
+              <div style="display:flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:600; color:var(--gray-700);">
+                <i class="fa fa-calendar-days" style="color:var(--primary);"></i> Date Range:
+              </div>
+
+              <div style="display:flex; align-items:center; gap:4px;">
+                <span style="font-size:0.75rem; color:var(--gray-500);">From</span>
+                <input type="date" class="form-control" id="inv-${type}-from" style="padding:4px 8px; height:32px; font-size:0.8rem; width:135px; border-radius:6px;"
+                  onchange="Dashboard.invoicesHub.onDateChange('${type}')" />
+              </div>
+
+              <div style="display:flex; align-items:center; gap:4px;">
+                <span style="font-size:0.75rem; color:var(--gray-500);">To</span>
+                <input type="date" class="form-control" id="inv-${type}-to" style="padding:4px 8px; height:32px; font-size:0.8rem; width:135px; border-radius:6px;"
+                  onchange="Dashboard.invoicesHub.onDateChange('${type}')" />
+              </div>
+
+              <div style="display:flex; gap:4px; flex-wrap:wrap; margin-left:auto;">
+                <button class="date-preset active" data-preset="all" onclick="Dashboard.invoicesHub.setDatePreset('${type}', 'all', this)">All Time</button>
+                <button class="date-preset" data-preset="today" onclick="Dashboard.invoicesHub.setDatePreset('${type}', 'today', this)">Today</button>
+                <button class="date-preset" data-preset="week" onclick="Dashboard.invoicesHub.setDatePreset('${type}', 'week', this)">Last 7 Days</button>
+                <button class="date-preset" data-preset="month" onclick="Dashboard.invoicesHub.setDatePreset('${type}', 'month', this)">This Month</button>
+                <button class="date-preset" data-preset="lastmonth" onclick="Dashboard.invoicesHub.setDatePreset('${type}', 'lastmonth', this)">Last Month</button>
+              </div>
+            </div>
+
+            <!-- Bottom Row: Filter Dropdowns -->
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <!-- Stage / Department -->
+              <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:180px;">
+                <span style="font-size:0.78rem; font-weight:600; color:var(--gray-600); white-space:nowrap;">Stage:</span>
+                <select class="form-control" id="inv-${type}-stage" style="height:34px; font-size:0.8rem; border-radius:6px;"
+                  onchange="Dashboard.invoicesHub.onFilterChange('${type}')">
+                  <option value="all">All Stages & Approvers</option>
+                  <option value="Biller">At Biller</option>
+                  <option value="HOD">At HOD</option>
+                  <option value="Account">At Account</option>
+                  <option value="Finance">At Finance</option>
+                  <option value="CFO">At CFO</option>
+                  <option value="Super Admin">At Super Admin / Admin</option>
+                </select>
+              </div>
+
+              <!-- Vendor -->
+              <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:200px;">
+                <span style="font-size:0.78rem; font-weight:600; color:var(--gray-600); white-space:nowrap;">Vendor:</span>
+                <select class="form-control" id="inv-${type}-vendor" style="height:34px; font-size:0.8rem; border-radius:6px;"
+                  onchange="Dashboard.invoicesHub.onFilterChange('${type}')">
+                  <option value="all">All Vendors</option>
+                </select>
+              </div>
+
+              <!-- Sort By -->
+              <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:180px;">
+                <span style="font-size:0.78rem; font-weight:600; color:var(--gray-600); white-space:nowrap;">Sort:</span>
+                <select class="form-control" id="inv-${type}-sort" style="height:34px; font-size:0.8rem; border-radius:6px;"
+                  onchange="Dashboard.invoicesHub.onFilterChange('${type}')">
+                  <option value="date-desc">Date (Newest First)</option>
+                  <option value="date-asc">Date (Oldest First)</option>
+                  <option value="amount-desc">Amount (Highest First)</option>
+                  <option value="amount-asc">Amount (Lowest First)</option>
+                  <option value="vendor-asc">Vendor Name (A-Z)</option>
+                  <option value="inv-asc">Invoice No (A-Z)</option>
+                </select>
+              </div>
+
+              <!-- Limit per page -->
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.78rem; font-weight:600; color:var(--gray-600); white-space:nowrap;">Rows:</span>
+                <select class="form-control" id="inv-${type}-limit" style="height:34px; width:72px; font-size:0.8rem; border-radius:6px;"
+                  onchange="Dashboard.invoicesHub.onLimitChange('${type}', this.value)">
+                  <option value="15" selected>15</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Main Bills Card -->
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div class="card-title" style="display:flex; align-items:center; gap:8px;">
+              <i class="fa ${meta.icon}" style="color:${meta.themeColor}"></i>
+              <span>${meta.title}</span>
+              <span id="inv-${type}-count-badge" style="font-size:0.78rem; font-weight:600; padding:2px 8px; border-radius:12px; background:${meta.badgeBg}; color:${meta.badgeText};">
+                0 bills
+              </span>
+            </div>
+            <div id="inv-${type}-summary-stats" style="font-size:0.82rem; color:var(--gray-600); font-weight:500;"></div>
+          </div>
+
+          <!-- Bills List -->
+          <div id="inv-${type}-list" style="padding:16px; min-height:120px;">
+            <div class="text-center" style="padding:32px; color:var(--gray-400);">
+              <i class="fa fa-spinner fa-spin"></i> Loading bills...
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div id="inv-${type}-pagination" style="padding:12px 16px; border-top:1px solid var(--gray-200); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; color:var(--gray-600); background:#fafafa; border-bottom-left-radius:8px; border-bottom-right-radius:8px;">
+          </div>
+        </div>
+      `;
+    },
+
+    populateVendors(type) {
+      const vSelect = document.getElementById(`inv-${type}-vendor`);
+      if (!vSelect) return;
+
+      const currentVal = this.state[type].vendor || "all";
+      const baseBills = this.getBaseBills(type);
+      const vendors = [...new Set(baseBills.map(b => (b["A14. Vendor Name"] || b["Vendor Name"] || "").trim()).filter(Boolean))].sort();
+
+      let options = `<option value="all">All Vendors (${vendors.length})</option>`;
+      vendors.forEach(v => {
+        const isSel = v.toLowerCase() === currentVal.toLowerCase() ? "selected" : "";
+        options += `<option value="${v.replace(/"/g, '&quot;')}" ${isSel}>${v}</option>`;
+      });
+      vSelect.innerHTML = options;
+    },
+
+    getBaseBills(type) {
+      const all = Dashboard.queue || [];
+      if (type === "new") {
+        return all.filter(b => this.isNewBill(b));
+      } else if (type === "process") {
+        return all.filter(b => this.isInProcessBill(b));
+      } else if (type === "completed") {
+        return all.filter(b => this.isCompletedBill(b));
+      } else if (type === "rejected") {
+        return all.filter(b => this.isRejectedBill(b));
+      }
+      return all;
+    },
+
+    onSearchInput(type, val) {
+      this.state[type].search = val;
+      this.state[type].page = 1;
+      const clearBtn = document.getElementById(`inv-${type}-search-clear`);
+      if (clearBtn) clearBtn.style.display = val ? "block" : "none";
+
+      clearTimeout(this._searchTimer);
+      this._searchTimer = setTimeout(() => {
+        this.applyFilters(type);
+      }, 250);
+    },
+
+    clearSearch(type) {
+      const input = document.getElementById(`inv-${type}-search`);
+      if (input) input.value = "";
+      this.onSearchInput(type, "");
+    },
+
+    onDateChange(type) {
+      const fromVal = document.getElementById(`inv-${type}-from`)?.value || "";
+      const toVal = document.getElementById(`inv-${type}-to`)?.value || "";
+      this.state[type].dateFrom = fromVal;
+      this.state[type].dateTo = toVal;
+      this.state[type].datePreset = "custom";
+      this.state[type].page = 1;
+
+      document.querySelectorAll(`#section-inv-${type} .date-preset`).forEach(b => b.classList.remove("active"));
+      this.applyFilters(type);
+    },
+
+    setDatePreset(type, preset, btn) {
+      document.querySelectorAll(`#section-inv-${type} .date-preset`).forEach(b => b.classList.remove("active"));
+      if (btn) btn.classList.add("active");
+
+      const now = new Date();
+      let fromStr = "", toStr = "";
+
+      const toISO = d => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const dt = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${dt}`;
+      };
+
+      if (preset === "today") {
+        fromStr = toISO(now);
+        toStr = toISO(now);
+      } else if (preset === "week") {
+        const past = new Date(now.getTime() - 7 * 86400000);
+        fromStr = toISO(past);
+        toStr = toISO(now);
+      } else if (preset === "month") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        fromStr = toISO(start);
+        toStr = toISO(now);
+      } else if (preset === "lastmonth") {
+        const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const end = new Date(now.getFullYear(), now.getMonth(), 0);
+        fromStr = toISO(start);
+        toStr = toISO(end);
+      }
+
+      this.state[type].dateFrom = fromStr;
+      this.state[type].dateTo = toStr;
+      this.state[type].datePreset = preset;
+      this.state[type].page = 1;
+
+      const fromInput = document.getElementById(`inv-${type}-from`);
+      const toInput = document.getElementById(`inv-${type}-to`);
+      if (fromInput) fromInput.value = fromStr;
+      if (toInput) toInput.value = toStr;
+
+      this.applyFilters(type);
+    },
+
+    onFilterChange(type) {
+      const stage = document.getElementById(`inv-${type}-stage`)?.value || "all";
+      const vendor = document.getElementById(`inv-${type}-vendor`)?.value || "all";
+      const sort = document.getElementById(`inv-${type}-sort`)?.value || "date-desc";
+
+      this.state[type].stage = stage;
+      this.state[type].vendor = vendor;
+      this.state[type].sort = sort;
+      this.state[type].page = 1;
+
+      this.applyFilters(type);
+    },
+
+    onLimitChange(type, val) {
+      this.state[type].limit = parseInt(val, 10) || 15;
+      this.state[type].page = 1;
+      this.renderBills(type);
+    },
+
+    changePage(type, delta) {
+      const filtered = this.filteredCache[type] || [];
+      const limit = this.state[type].limit || 15;
+      const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
+      const newPage = (this.state[type].page || 1) + delta;
+
+      if (newPage >= 1 && newPage <= totalPages) {
+        this.state[type].page = newPage;
+        this.renderBills(type);
+        document.getElementById(`inv-${type}-list`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    },
+
+    resetFilters(type) {
+      this.state[type] = { search: "", dateFrom: "", dateTo: "", datePreset: "all", stage: "all", vendor: "all", sort: "date-desc", page: 1, limit: 15 };
+
+      const sInput = document.getElementById(`inv-${type}-search`);
+      const fInput = document.getElementById(`inv-${type}-from`);
+      const tInput = document.getElementById(`inv-${type}-to`);
+      const stSelect = document.getElementById(`inv-${type}-stage`);
+      const vSelect = document.getElementById(`inv-${type}-vendor`);
+      const soSelect = document.getElementById(`inv-${type}-sort`);
+      const lSelect = document.getElementById(`inv-${type}-limit`);
+      const cBtn = document.getElementById(`inv-${type}-search-clear`);
+
+      if (sInput) sInput.value = "";
+      if (fInput) fInput.value = "";
+      if (tInput) tInput.value = "";
+      if (stSelect) stSelect.value = "all";
+      if (vSelect) vSelect.value = "all";
+      if (soSelect) soSelect.value = "date-desc";
+      if (lSelect) lSelect.value = "15";
+      if (cBtn) cBtn.style.display = "none";
+
+      document.querySelectorAll(`#section-inv-${type} .date-preset`).forEach(b => {
+        b.classList.toggle("active", b.dataset.preset === "all");
+      });
+
+      this.applyFilters(type);
+      Toast.info("Filters reset ✓");
+    },
+
+    async syncData(type) {
+      Toast.info("Syncing invoices...");
+      await Dashboard.syncBills();
+      this.populateVendors(type);
+      this.applyFilters(type);
+    },
+
+    applyFilters(type) {
+      const st = this.state[type];
+      let bills = this.getBaseBills(type);
+
+      // 1. Text Search
+      if (st.search) {
+        const terms = st.search.toLowerCase().split(" ").filter(Boolean);
+        bills = bills.filter(b => {
+          const text = [
+            b["A13. Invoice Number"],
+            b["A14. Vendor Name"],
+            b["A2. PO Number"],
+            b["A20. Basic Amount"],
+            b["D1. Final Payable Amt"],
+            b["Sent To Role"],
+            b["Current_Stage"],
+            b["senderName"],
+            b["Approval Status"],
+            b["Rejection Remark"],
+            b["HOD_Remark"],
+            b["Account_Remark"],
+            b["Finance_Remark"],
+            b["CFO_Remark"],
+            b["SA_Remark"]
+          ].filter(Boolean).join(" ").toLowerCase();
+          return terms.every(t => text.includes(t));
+        });
+      }
+
+      // 2. Date Range
+      if (st.dateFrom || st.dateTo) {
+        const fromDt = st.dateFrom ? new Date(st.dateFrom + "T00:00:00") : null;
+        const toDt = st.dateTo ? new Date(st.dateTo + "T23:59:59") : null;
+        bills = bills.filter(b => {
+          const bDate = this.parseDate(b["Timestamp"] || b["A12. Invoice Date"] || b["A8. Received Date"] || b["Received Date"]);
+          if (!bDate) return true;
+          if (fromDt && bDate < fromDt) return false;
+          if (toDt && bDate > toDt) return false;
+          return true;
+        });
+      }
+
+      // 3. Stage / Approver
+      if (st.stage && st.stage !== "all") {
+        const sMatch = st.stage.toLowerCase();
+        bills = bills.filter(b => {
+          const curStage = (b["Current_Stage"] || b["Sent To Role"] || "").toLowerCase();
+          return curStage.includes(sMatch);
+        });
+      }
+
+      // 4. Vendor
+      if (st.vendor && st.vendor !== "all") {
+        const vMatch = st.vendor.toLowerCase();
+        bills = bills.filter(b => {
+          const v = (b["A14. Vendor Name"] || b["Vendor Name"] || "").trim().toLowerCase();
+          return v === vMatch;
+        });
+      }
+
+      // 5. Sorting
+      bills.sort((a, b) => {
+        if (st.sort === "date-desc") {
+          const da = this.parseDate(a["Timestamp"] || a["A12. Invoice Date"] || a["Received Date"]) || 0;
+          const db = this.parseDate(b["Timestamp"] || b["A12. Invoice Date"] || b["Received Date"]) || 0;
+          return db - da;
+        } else if (st.sort === "date-asc") {
+          const da = this.parseDate(a["Timestamp"] || a["A12. Invoice Date"] || a["Received Date"]) || 0;
+          const db = this.parseDate(b["Timestamp"] || b["A12. Invoice Date"] || b["Received Date"]) || 0;
+          return da - db;
+        } else if (st.sort === "amount-desc") {
+          const na = parseFloat(String(a["A20. Basic Amount"] || a["D1. Final Payable Amt"] || 0).replace(/[^0-9.-]/g, "")) || 0;
+          const nb = parseFloat(String(b["A20. Basic Amount"] || b["D1. Final Payable Amt"] || 0).replace(/[^0-9.-]/g, "")) || 0;
+          return nb - na;
+        } else if (st.sort === "amount-asc") {
+          const na = parseFloat(String(a["A20. Basic Amount"] || a["D1. Final Payable Amt"] || 0).replace(/[^0-9.-]/g, "")) || 0;
+          const nb = parseFloat(String(b["A20. Basic Amount"] || b["D1. Final Payable Amt"] || 0).replace(/[^0-9.-]/g, "")) || 0;
+          return na - nb;
+        } else if (st.sort === "vendor-asc") {
+          return (a["A14. Vendor Name"] || "").localeCompare(b["A14. Vendor Name"] || "");
+        } else if (st.sort === "inv-asc") {
+          return (a["A13. Invoice Number"] || "").localeCompare(b["A13. Invoice Number"] || "");
+        }
+        return 0;
+      });
+
+      this.filteredCache[type] = bills;
+
+      // Update Count Badge & Summary Stats
+      const countBadge = document.getElementById(`inv-${type}-count-badge`);
+      if (countBadge) countBadge.textContent = `${bills.length} bills`;
+
+      const statsEl = document.getElementById(`inv-${type}-summary-stats`);
+      if (statsEl) {
+        const totalBasic = bills.reduce((acc, b) => acc + (parseFloat(String(b["A20. Basic Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+        const totalPayable = bills.reduce((acc, b) => acc + (parseFloat(String(b["D1. Final Payable Amt"] || b["A20. Basic Amount"] || 0).replace(/[^0-9.-]/g, "")) || 0), 0);
+        statsEl.innerHTML = `
+          <span>Showing <strong>${bills.length}</strong> bills</span>
+          <span style="margin:0 6px">•</span>
+          <span>Basic: <strong>${this.formatCurrency(totalBasic)}</strong></span>
+          <span style="margin:0 6px">•</span>
+          <span>Payable: <strong>${this.formatCurrency(totalPayable)}</strong></span>
+        `;
+      }
+
+      this.renderBills(type);
+    },
+
+    renderBills(type) {
+      const listEl = document.getElementById(`inv-${type}-list`);
+      const pagEl = document.getElementById(`inv-${type}-pagination`);
+      if (!listEl) return;
+
+      const bills = this.filteredCache[type] || [];
+      const meta = this.meta[type] || this.meta.new;
+      const st = this.state[type];
+
+      if (bills.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state" style="padding:40px 20px; text-align:center;">
+            <div style="font-size:2.5rem; margin-bottom:12px;">${meta.emptyIcon}</div>
+            <div style="font-size:1.1rem; font-weight:700; color:var(--gray-800); margin-bottom:6px;">${meta.emptyTitle}</div>
+            <div style="font-size:0.85rem; color:var(--gray-500); max-width:400px; margin:0 auto;">${meta.emptyText}</div>
+          </div>
+        `;
+        if (pagEl) pagEl.style.display = "none";
+        return;
+      }
+
+      const limit = st.limit || 15;
+      const totalPages = Math.ceil(bills.length / limit);
+      if (st.page > totalPages) st.page = totalPages;
+      if (st.page < 1) st.page = 1;
+
+      const start = (st.page - 1) * limit;
+      const end = start + limit;
+      const pageSlice = bills.slice(start, end);
+
+      listEl.innerHTML = pageSlice.map(b => this.buildCardHtml(b, type)).join("");
+
+      // Pagination render
+      if (pagEl) {
+        pagEl.style.display = "flex";
+        pagEl.innerHTML = `
+          <div>
+            Showing <strong>${start + 1}</strong> to <strong>${Math.min(end, bills.length)}</strong> of <strong>${bills.length}</strong> entries
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn btn-outline btn-sm" ${st.page <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="Dashboard.invoicesHub.changePage('${type}', -1)">
+              <i class="fa fa-chevron-left"></i> Previous
+            </button>
+            <span style="font-weight:600; padding:0 4px;">Page ${st.page} of ${totalPages}</span>
+            <button class="btn btn-outline btn-sm" ${st.page >= totalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="Dashboard.invoicesHub.changePage('${type}', 1)">
+              Next <i class="fa fa-chevron-right"></i>
+            </button>
+          </div>
+        `;
+      }
+    },
+
+    buildCardHtml(b, type) {
+      const invNo    = b["A13. Invoice Number"] || "—";
+      const vendor   = b["A14. Vendor Name"]    || "—";
+      const basicAmt = this.formatCurrency(b["A20. Basic Amount"]);
+      const payAmt   = this.formatCurrency(b["D1. Final Payable Amt"] || b["A20. Basic Amount"]);
+      const invDate  = this.formatDate(b["A12. Invoice Date"] || b["Timestamp"]);
+      const status   = b["Approval Status"] || "New";
+      const stage    = b["Current_Stage"] || b["Sent To Role"] || "Biller";
+      const flags    = b["🚩 Red Flags"] || "";
+      const flagCnt  = flags ? flags.split("|").length : 0;
+      const sheet    = b._sourceSheet || (status === "New" ? "Invoices" : "Master_Invoices");
+      const rowIndex = (b._sheetRowIndex !== undefined && b._sheetRowIndex !== null && b._sheetRowIndex !== "")
+        ? b._sheetRowIndex
+        : ((b.queueRowIndex !== undefined && b.queueRowIndex !== null && b.queueRowIndex !== "") ? b.queueRowIndex : (b.rowIndex !== undefined ? b.rowIndex : b["A13. Invoice Number"]));
+      const cardId   = b._uid || `${sheet}_row_${rowIndex}`;
+      const isClosed = Dashboard.isClosedBill(b);
+
+      const rejInfo = type === "rejected" || this.isRejectedBill(b) ? this.getRejectionDetails(b) : null;
+
+      return `
+        <div class="inv-hub-card" onclick="Dashboard.openReview('${cardId}', '${sheet}')">
+          <div style="flex:1; min-width:0;">
+            
+            <!-- Top Badges Row -->
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+              <strong style="font-size:0.92rem; color:var(--gray-900);">${invNo}</strong>
+              
+              <!-- Status Badge -->
+              ${Dashboard.buildStatusBadge(status)}
+
+              <!-- Stage Badge -->
+              <span style="font-size:0.72rem; padding:2px 8px; border-radius:12px; background:var(--gray-100); color:var(--gray-700); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+                <i class="fa fa-layer-group" style="font-size:0.65rem; color:var(--gray-500);"></i> ${stage}
+              </span>
+
+              <!-- Closed / Open status for completed -->
+              ${status === "Approved" ? (isClosed 
+                ? `<span style="background:#e8eaed; color:#3c4043; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:600;"><i class="fa fa-lock"></i> Closed</span>` 
+                : `<span style="background:#e6f4ea; color:#137333; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:600;"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block"></span> Open</span>`) : ""}
+
+              <!-- Red Flags if any -->
+              ${flagCnt > 0 ? `<span class="flag-count" style="font-size:0.72rem; padding:2px 6px; border-radius:10px; background:#fef2f2; color:#dc2626; font-weight:600;">🚩 ${flagCnt}</span>` : ""}
+            </div>
+
+            <!-- Vendor Line -->
+            <div style="font-size:0.84rem; color:var(--gray-800); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              <i class="fa fa-building" style="color:var(--gray-400); font-size:0.8rem; width:14px;"></i>
+              <span>${vendor}</span>
+              ${b["A2. PO Number"] ? `<span style="font-size:0.75rem; font-weight:400; color:var(--gray-500); margin-left:6px;">PO: ${b["A2. PO Number"]}</span>` : ""}
+            </div>
+
+            <!-- Metadata Line -->
+            <div style="font-size:0.77rem; color:var(--gray-500); display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+              <span><i class="fa fa-calendar" style="width:12px;"></i> ${invDate}</span>
+              <span>Basic: <strong style="color:var(--gray-700);">${basicAmt}</strong></span>
+              <span>Payable: <strong style="color:var(--gray-900); font-size:0.82rem;">${payAmt}</strong></span>
+              ${b["Sent To Role"] ? `<span style="color:var(--primary); font-weight:500;"><i class="fa fa-paper-plane" style="font-size:0.7rem;"></i> To: ${b["Sent To Role"]}</span>` : ""}
+            </div>
+
+            <!-- Rejection Callout Box for Rejected Bills -->
+            ${rejInfo ? `
+              <div style="margin-top:8px; background:#fff5f5; border-left:3px solid #ef4444; border-radius:6px; padding:6px 12px; font-size:0.76rem;">
+                <div style="color:#b91c1c; font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                  <i class="fa fa-circle-exclamation"></i>
+                  <span>Rejected by: ${rejInfo.by}</span>
+                </div>
+                <div style="color:#4b5563; line-height:1.35;">${rejInfo.remark}</div>
+              </div>
+            ` : ""}
+
+          </div>
+
+          <!-- Right Action Arrow / Button -->
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn btn-outline btn-sm" style="font-size:0.75rem; padding:4px 10px; border-radius:6px;" onclick="event.stopPropagation(); Dashboard.openReview('${cardId}', '${sheet}')">
+              Review <i class="fa fa-chevron-right" style="font-size:0.65rem; margin-left:4px;"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    },
+
+    exportCSV(type) {
+      const bills = this.filteredCache[type] || [];
+      if (bills.length === 0) {
+        Toast.warning("No bills to export!");
+        return;
+      }
+
+      const headers = [
+        "Invoice Number",
+        "Vendor Name",
+        "PO Number",
+        "Invoice Date",
+        "Basic Amount",
+        "Final Payable Amt",
+        "Approval Status",
+        "Current Stage",
+        "Sent To Role",
+        "Rejection By",
+        "Rejection Remark",
+        "Source Sheet"
+      ];
+
+      const escapeCSV = str => {
+        const s = String(str || "").replace(/"/g, '""');
+        return `"${s}"`;
+      };
+
+      const rows = bills.map(b => {
+        const rej = this.getRejectionDetails(b);
+        return [
+          escapeCSV(b["A13. Invoice Number"]),
+          escapeCSV(b["A14. Vendor Name"]),
+          escapeCSV(b["A2. PO Number"]),
+          escapeCSV(b["A12. Invoice Date"] || b["Timestamp"]),
+          escapeCSV(b["A20. Basic Amount"]),
+          escapeCSV(b["D1. Final Payable Amt"]),
+          escapeCSV(b["Approval Status"] || "New"),
+          escapeCSV(b["Current_Stage"] || b["Sent To Role"] || "Biller"),
+          escapeCSV(b["Sent To Role"]),
+          escapeCSV(rej?.by || ""),
+          escapeCSV(rej?.remark || ""),
+          escapeCSV(b._sourceSheet || "Invoices")
+        ].join(",");
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${type}_invoices_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      Toast.success(`Exported ${bills.length} bills to CSV ✓`);
     }
   },
 
