@@ -474,6 +474,221 @@
       </div>
 
       <!-- ============================================================== -->
+      <!-- SECTION: NEW ARRIVAL INVOICE                                   -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-newarrival">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchNewArrival" autocomplete="off" placeholder="Search new arrival invoices..." style="padding-left:36px;" oninput="Dashboard.filterNewArrival()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-inbox" style="color:#f59e0b;"></i> New Arrival Invoices
+              <span id="newArrivalCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">New bills submitted for your approval</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Date</th><th>Basic Amount</th><th>Red Flags</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="newArrivalBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading new arrivals...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION: APPROVED BY ME                                        -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-approvedbyme">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchApprovedByMe" autocomplete="off" placeholder="Search approved bills in process..." style="padding-left:36px;" oninput="Dashboard.filterApprovedByMe()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-check-double" style="color:#3b82f6;"></i> Approved by Me (In Process)
+              <span id="approvedByMeCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">Invoices you approved, currently progressing in Account/Finance/CFO/SuperAdmin</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Basic Amount</th><th>Current Pipeline Stage</th><th>Date</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="approvedByMeBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading approved bills...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION: COMPLETED (WHO APPROVED BY ME)                        -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-completedbyme">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchCompletedByMe" autocomplete="off" placeholder="Search completed bills approved by you..." style="padding-left:36px;" oninput="Dashboard.filterCompletedByMe()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-circle-check" style="color:#10b981;"></i> Completed (Who Approved by Me)
+              <span id="completedByMeCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">Invoices you approved that have received final executive approval</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Basic Amount</th><th>Final Payable</th><th>Status</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="completedByMeBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading completed bills...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION: REJECT BY ME                                          -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-rejectedbyme">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchRejectedByMe" autocomplete="off" placeholder="Search bills rejected by you..." style="padding-left:36px;" oninput="Dashboard.filterRejectedByMe()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-circle-xmark" style="color:#ef4444;"></i> Reject by Me
+              <span id="rejectedByMeCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">Invoices you directly rejected during HOD review</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Basic Amount</th><th>Rejected Date</th><th>Rejection Reason</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="rejectedByMeBody">
+                <tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading rejected bills...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- SECTION: REJECTED (WHO APPROVED BY ME)                         -->
+      <!-- ============================================================== -->
+      <div class="section" id="section-rejectedafterme">
+        
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="padding:14px 20px;">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:240px; position:relative;">
+                <i class="fa fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--gray-400); pointer-events:none;"></i>
+                <input type="text" class="form-control" id="searchRejectedAfterMe" autocomplete="off" placeholder="Search downstream rejected bills..." style="padding-left:36px;" oninput="Dashboard.filterRejectedAfterMe()"/>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="Dashboard.loadAllData()">
+                <i class="fa fa-rotate-right"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title">
+              <i class="fa fa-triangle-exclamation" style="color:#f97316;"></i> Rejected (Who Approved by Me)
+              <span id="rejectedAfterMeCount" style="font-weight:400; color:var(--gray-500); font-size:0.8rem;"></span>
+            </div>
+            <div style="font-size:0.78rem; color:var(--gray-500);">Invoices you approved that were later rejected downstream by Account, Finance, CFO, or SuperAdmin</div>
+          </div>
+          <div class="table-wrapper" style="max-height:65vh; overflow-y:auto;">
+            <table class="data-table">
+              <thead style="position:sticky; top:0; z-index:10;">
+                <tr>
+                  <th>Unique ID</th><th>Invoice No</th><th>Vendor Name</th><th>Basic Amount</th><th>Rejected At Stage</th><th>Rejected By</th><th>Rejection Reason</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="rejectedAfterMeBody">
+                <tr><td colspan="8" class="text-center" style="padding:32px; color:var(--gray-400);"><i class="fa fa-spinner fa-spin"></i> Loading downstream rejected bills...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================================== -->
       <!-- SECTION 6: PROFILE & PASSWORD                                  -->
       <!-- ============================================================== -->
       <div class="section" id="section-profile">
@@ -616,6 +831,11 @@
     pendingBills: [],
     inProcessBills: [],
     completedBills: [],
+    newArrivalBills: [],
+    approvedByMeBills: [],
+    completedByMeBills: [],
+    rejectedByMeBills: [],
+    rejectedAfterMeBills: [],
     currentBill: null,
     pendingRejectId: null,
     pendingRejectInvoiceNo: "",
@@ -627,8 +847,8 @@
       const deptBanner = document.getElementById("deptBannerBadge");
       if (deptBanner) deptBanner.textContent = user.department || "General";
 
-      // Render standard Header and Sidebar
-      Header.render(user, "HOD Department Approvals");
+      // Render standard Header and Sidebar (fixed [object Object] bug)
+      Header.render("HOD Department Approvals");
       Sidebar.init("dashboard");
 
       // Handle Hash Navigation
@@ -656,6 +876,7 @@
         if (res && res.success) {
           const list = res.data.queue || [];
           this.allBills = list;
+          const user = Auth.getUser();
           
           // Categorize bills for HOD view
           // 1. New / Pending for Me: current_stage === "HOD" (not rejected, not bypassed)
@@ -679,6 +900,56 @@
             return st === "Completed" && (b["Approval Status"] !== "Rejected");
           });
 
+          // ── Categorize bills for New Menu ("Invoices") ──
+          // A. New Arrival Invoice
+          this.newArrivalBills = [...this.pendingBills];
+
+          // B. Approved by me: HOD approved, currently in pipeline (not completed, not rejected)
+          this.approvedByMeBills = list.filter(b => {
+            const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected";
+            const isCompleted = (b.current_stage || b["Current_Stage"]) === "Completed";
+            const hodApproved = b["HOD_Status"] === "Approved" || (b.approval_history || []).some(a =>
+              (a.stage === "HOD" || a.approver_role === "HOD" || (user?.email && a.approver_email === user.email)) &&
+              String(a.action_type || "").toLowerCase().includes("approv")
+            );
+            return hodApproved && !isRejected && !isCompleted;
+          });
+
+          // C. Completed (who approved by me): HOD approved, and stage is Completed (not rejected)
+          this.completedByMeBills = list.filter(b => {
+            const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected";
+            const isCompleted = (b.current_stage || b["Current_Stage"]) === "Completed";
+            const hodApproved = b["HOD_Status"] === "Approved" || (b.approval_history || []).some(a =>
+              (a.stage === "HOD" || a.approver_role === "HOD" || (user?.email && a.approver_email === user.email)) &&
+              String(a.action_type || "").toLowerCase().includes("approv")
+            );
+            return hodApproved && isCompleted && !isRejected;
+          });
+
+          // D. Reject by me: directly rejected by HOD
+          this.rejectedByMeBills = list.filter(b => {
+            const rejectedByHOD = (b.approval_history || []).some(a =>
+              (a.stage === "HOD" || a.approver_role === "HOD" || (user?.email && a.approver_email === user.email)) &&
+              String(a.action_type || "").toLowerCase().includes("reject")
+            ) || b["HOD_Status"] === "Rejected" || b.rejection_by === "HOD" || (b.d11_narration && /HOD\s+Rejected/i.test(b.d11_narration));
+            return rejectedByHOD;
+          });
+
+          // E. Rejected (Who approved by me): approved by HOD, but later rejected downstream (Account, Finance, CFO, SuperAdmin)
+          this.rejectedAfterMeBills = list.filter(b => {
+            const isRejected = b.overall_status === "FAIL" || b.overall_status === "Rejected" || b["Approval Status"] === "Rejected";
+            const hodApproved = b["HOD_Status"] === "Approved" || (b.approval_history || []).some(a =>
+              (a.stage === "HOD" || a.approver_role === "HOD" || (user?.email && a.approver_email === user.email)) &&
+              String(a.action_type || "").toLowerCase().includes("approv")
+            );
+            const rejectedByHOD = (b.approval_history || []).some(a =>
+              (a.stage === "HOD" || a.approver_role === "HOD" || (user?.email && a.approver_email === user.email)) &&
+              String(a.action_type || "").toLowerCase().includes("reject")
+            ) || b["HOD_Status"] === "Rejected" || b.rejection_by === "HOD" || (b.d11_narration && /HOD\s+Rejected/i.test(b.d11_narration));
+
+            return hodApproved && isRejected && !rejectedByHOD;
+          });
+
           // Update Dashboard Stats
           this.updateStats();
 
@@ -688,6 +959,13 @@
           this.renderInProcessTable(this.inProcessBills);
           this.renderCompletedTable(this.completedBills);
           this.renderQuickPendingTable(this.pendingBills.slice(0, 5));
+
+          // Render New Menu Tables
+          this.renderNewArrivalTable(this.newArrivalBills);
+          this.renderApprovedByMeTable(this.approvedByMeBills);
+          this.renderCompletedByMeTable(this.completedByMeBills);
+          this.renderRejectedByMeTable(this.rejectedByMeBills);
+          this.renderRejectedAfterMeTable(this.rejectedAfterMeBills);
         } else {
           Toast.error(res?.message || "Failed to load department invoices");
         }
@@ -711,6 +989,13 @@
       document.getElementById("completedCount").textContent = `(${this.completedBills.length} invoices)`;
       document.getElementById("quickPendingCount").textContent = `(${this.pendingBills.length} pending)`;
 
+      // Update New Menu Counts
+      if (document.getElementById("newArrivalCount")) document.getElementById("newArrivalCount").textContent = `(${this.newArrivalBills.length} invoices)`;
+      if (document.getElementById("approvedByMeCount")) document.getElementById("approvedByMeCount").textContent = `(${this.approvedByMeBills.length} invoices)`;
+      if (document.getElementById("completedByMeCount")) document.getElementById("completedByMeCount").textContent = `(${this.completedByMeBills.length} invoices)`;
+      if (document.getElementById("rejectedByMeCount")) document.getElementById("rejectedByMeCount").textContent = `(${this.rejectedByMeBills.length} invoices)`;
+      if (document.getElementById("rejectedAfterMeCount")) document.getElementById("rejectedAfterMeCount").textContent = `(${this.rejectedAfterMeBills.length} invoices)`;
+
       // Update sidebar approval badge
       const badge = document.getElementById("badge-approval");
       if (badge) {
@@ -719,6 +1004,17 @@
           badge.style.display = "inline-block";
         } else {
           badge.style.display = "none";
+        }
+      }
+
+      // Update sidebar newarrival badge
+      const newArrivalBadge = document.getElementById("badge-newarrival");
+      if (newArrivalBadge) {
+        if (this.newArrivalBills.length > 0) {
+          newArrivalBadge.textContent = this.newArrivalBills.length > 99 ? "99+" : this.newArrivalBills.length;
+          newArrivalBadge.style.display = "inline-block";
+        } else {
+          newArrivalBadge.style.display = "none";
         }
       }
     },
@@ -870,6 +1166,135 @@
     },
 
     // ─────────────────────────────────────────────
+    // NEW MENU TABLE RENDERING ("Invoices")
+    // ─────────────────────────────────────────────
+    renderNewArrivalTable(list) {
+      const tbody = document.getElementById("newArrivalBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No new arrival invoices awaiting review 🎉</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td>${b["A12. Invoice Date"] || 'N/A'}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td>${b["🚩 Red Flags"] ? `<span class="badge badge-danger">${b["🚩 Red Flags"]}</span>` : '<span style="color:#10b981;">None</span>'}</td>
+          <td>
+            <button class="queue-action-btn btn-approve" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-signature"></i> Review &amp; Signoff
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    renderApprovedByMeTable(list) {
+      const tbody = document.getElementById("approvedByMeBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No invoices currently in subsequent stages</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td>${Utils.statusBadge(b.current_stage || b["Current_Stage"] || 'N/A')}</td>
+          <td>${b["HOD_Send_At"] || b.hod_send_at || b["A12. Invoice Date"] || 'N/A'}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-timeline"></i> Track
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    renderCompletedByMeTable(list) {
+      const tbody = document.getElementById("completedByMeBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No completed invoices found</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td>${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["D1. Final Payable Amt"] || b["A20. Basic Amount"])}</td>
+          <td><span class="badge badge-success"><i class="fa fa-check"></i> Completed</span></td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-eye"></i> View
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    },
+
+    renderRejectedByMeTable(list) {
+      const tbody = document.getElementById("rejectedByMeBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:var(--gray-400);">No invoices rejected by you 🎉</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => {
+        const reason = b["HOD_Remark"] || b["Rejection Reason"] || b.rejection_reason || "Rejected during HOD review";
+        return `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td>${b.close_at ? Utils.formatDate(b.close_at) : (b["A12. Invoice Date"] || 'N/A')}</td>
+          <td><span style="color:#dc2626;font-size:0.8rem;font-weight:500;">${Utils.truncate(reason, 40)}</span></td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-eye"></i> View
+            </button>
+          </td>
+        </tr>
+      `;}).join("");
+    },
+
+    renderRejectedAfterMeTable(list) {
+      const tbody = document.getElementById("rejectedAfterMeBody");
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:32px; color:var(--gray-400);">No approved invoices were rejected downstream 🎉</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(b => {
+        const rejectedBy = b.rejection_by || b["Rejection By"] || "Executive Stage";
+        const reason = b["Rejection Reason"] || b.rejection_reason || "Rejected downstream";
+        return `
+        <tr>
+          <td style="font-weight:600; color:var(--primary);">${b.invoice_unique_id || 'N/A'}</td>
+          <td><strong>${b["A13. Invoice Number"] || 'N/A'}</strong></td>
+          <td>${Utils.truncate(b["A14. Vendor Name"] || 'N/A', 25)}</td>
+          <td style="font-weight:600; color:var(--secondary);">${Utils.formatCurrency(b["A20. Basic Amount"])}</td>
+          <td><span class="badge badge-danger">${rejectedBy}</span></td>
+          <td><strong>${rejectedBy}</strong></td>
+          <td><span style="color:#dc2626;font-size:0.8rem;font-weight:500;">${Utils.truncate(reason, 40)}</span></td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="Dashboard.openDetail('${b.id || b.rowIndex}')">
+              <i class="fa fa-eye"></i> View
+            </button>
+          </td>
+        </tr>
+      `;}).join("");
+    },
+
+    // ─────────────────────────────────────────────
     // SEARCH FILTERS
     // ─────────────────────────────────────────────
     filterAllBills() {
@@ -912,12 +1337,63 @@
       this.renderCompletedTable(filtered);
     },
 
+    filterNewArrival() {
+      const q = (document.getElementById("searchNewArrival").value || "").toLowerCase();
+      const filtered = this.newArrivalBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderNewArrivalTable(filtered);
+    },
+
+    filterApprovedByMe() {
+      const q = (document.getElementById("searchApprovedByMe").value || "").toLowerCase();
+      const filtered = this.approvedByMeBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderApprovedByMeTable(filtered);
+    },
+
+    filterCompletedByMe() {
+      const q = (document.getElementById("searchCompletedByMe").value || "").toLowerCase();
+      const filtered = this.completedByMeBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderCompletedByMeTable(filtered);
+    },
+
+    filterRejectedByMe() {
+      const q = (document.getElementById("searchRejectedByMe").value || "").toLowerCase();
+      const filtered = this.rejectedByMeBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderRejectedByMeTable(filtered);
+    },
+
+    filterRejectedAfterMe() {
+      const q = (document.getElementById("searchRejectedAfterMe").value || "").toLowerCase();
+      const filtered = this.rejectedAfterMeBills.filter(b =>
+        (b["A13. Invoice Number"] || "").toLowerCase().includes(q) ||
+        (b["A14. Vendor Name"] || "").toLowerCase().includes(q) ||
+        (b.invoice_unique_id || "").toLowerCase().includes(q)
+      );
+      this.renderRejectedAfterMeTable(filtered);
+    },
+
     // ─────────────────────────────────────────────
     // SECTION NAVIGATION
     // ─────────────────────────────────────────────
     showSection(id) {
       if (id === "new") id = "approval";
       if (id === "mybills") id = "invoices";
+      if (id === "hod_invoices") id = "newarrival";
 
       document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
       const target = document.getElementById(`section-${id}`);
@@ -927,6 +1403,26 @@
       } else {
         document.getElementById("section-dashboard")?.classList.add("active");
         Sidebar.setActive("dashboard");
+      }
+
+      // Dynamic header title
+      const titleMap = {
+        "dashboard": "HOD Dashboard",
+        "invoices": "All Department Bills",
+        "approval": "Approval Pending For Me",
+        "pending": "Pending (In Process)",
+        "completed": "Completed Bills",
+        "newarrival": "New Arrival Invoices",
+        "approvedbyme": "Approved by Me",
+        "completedbyme": "Completed (Who Approved by Me)",
+        "rejectedbyme": "Reject by Me",
+        "rejectedafterme": "Rejected (Who Approved by Me)",
+        "profile": "My Profile",
+        "password": "Change Password"
+      };
+      const titleEl = document.getElementById("pageTitle");
+      if (titleEl && titleMap[id]) {
+        titleEl.textContent = titleMap[id];
       }
 
       if (id === "profile") this.loadProfile();
