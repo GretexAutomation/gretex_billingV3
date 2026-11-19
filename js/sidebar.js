@@ -233,6 +233,20 @@ const Sidebar = {
               { id: "pending",   label: "Pending (In Process)",     page: "hod.html#pending",   icon: "fa-clock" },
               { id: "completed", label: "Completed",                page: "hod.html#completed", icon: "fa-circle-check" }
             ]
+          },
+          {
+            id: "hod_invoices",
+            icon: "fa-receipt",
+            label: "Invoices",
+            page: "hod.html#newarrival",
+            badge: "newarrival",
+            children: [
+              { id: "newarrival",       label: "New Arrivel Invoice",               page: "hod.html#newarrival",       icon: "fa-inbox" },
+              { id: "approvedbyme",     label: "Approved by me",                    page: "hod.html#approvedbyme",     icon: "fa-check-double" },
+              { id: "completedbyme",    label: "Completed (who approved by me)",    page: "hod.html#completedbyme",    icon: "fa-circle-check" },
+              { id: "rejectedbyme",     label: "Reject by me",                      page: "hod.html#rejectedbyme",     icon: "fa-circle-xmark" },
+              { id: "rejectedafterme",  label: "Rejected( Who approved by me)",     page: "hod.html#rejectedafterme",  icon: "fa-triangle-exclamation" }
+            ]
           }
         ]
       },
@@ -586,6 +600,16 @@ const Sidebar = {
               badge.style.display = "none";
             }
           });
+
+          const newArrivalBadges = document.querySelectorAll("[id^='badge-newarrival']");
+          newArrivalBadges.forEach(badge => {
+            if (pending > 0) {
+              badge.textContent   = pending > 99 ? "99+" : pending;
+              badge.style.display = "inline-block";
+            } else {
+              badge.style.display = "none";
+            }
+          });
         }
       }
     } catch (e) {
@@ -651,6 +675,10 @@ const Header = {
   render(title = "Dashboard") {
     const header = document.getElementById("appHeader");
     if (!header) return;
+
+    if (typeof title === "object" && title !== null) {
+      title = arguments[1] || "Dashboard";
+    }
 
     const user    = Auth.getUser();
     const initials= Utils.getInitials(user?.name || "?");
