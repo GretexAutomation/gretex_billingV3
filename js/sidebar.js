@@ -29,6 +29,18 @@ const Sidebar = {
               { id: "completed", label: "Completed",   page: "biller.html#completed", icon: "fa-circle-check" }
             ]
           },
+          {
+            id: "invoiceshub",
+            icon: "fa-folder-open",
+            label: "Invoices",
+            page: "biller.html#inv-new",
+            children: [
+              { id: "inv-new",       label: "New Invoice",  page: "biller.html#inv-new",       icon: "fa-sparkles" },
+              { id: "inv-process",   label: "In process",   page: "biller.html#inv-process",   icon: "fa-clock" },
+              { id: "inv-completed", label: "Completed",    page: "biller.html#inv-completed", icon: "fa-circle-check" },
+              { id: "inv-rejected",  label: "Rejected",     page: "biller.html#inv-rejected",  icon: "fa-circle-xmark" }
+            ]
+          },
           { id: "flowup",    icon: "fa-timeline",     label: "Flowup",        page: "biller.html#flowup" },
           { id: "approved",  icon: "fa-check-double", label: "Approved",      page: "biller.html#approved" }
         ]
