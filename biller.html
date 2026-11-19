@@ -2328,10 +2328,11 @@ const Dashboard = {
 
     isRejectedBill(b) {
       if (!b) return false;
-      const status = (b["Approval Status"] || "").trim();
+      const status = (b["Approval Status"] || "").trim().toLowerCase();
       const overall = (b["overall_status"] || "").trim().toUpperCase();
-      return status.toLowerCase().includes("reject") ||
+      return status.includes("reject") ||
              overall === "FAIL" || overall === "REJECTED" ||
+             Boolean(b["Rejection By"] || b.rejection_by) ||
              (b["HOD_Status"] || "").includes("Rejected") ||
              (b["Account_Status"] || "").includes("Rejected") ||
              (b["Finance_Status"] || "").includes("Rejected") ||
@@ -2342,6 +2343,7 @@ const Dashboard = {
 
     isCompletedBill(b) {
       if (!b) return false;
+      if (this.isRejectedBill(b)) return false; // Rejected bills are not completed bills!
       const status = (b["Approval Status"] || "").trim().toLowerCase();
       return status === "approved" ||
              status === "completed" ||
@@ -2354,7 +2356,38 @@ const Dashboard = {
     },
 
     getRejectionDetails(b) {
-      let rBy = "Approver", rRem = "No rejection remark specified";
+      if (!b) return { by: "Approver", remark: "No rejection remark specified" };
+      let rBy = b["Rejection By"] || b.rejection_by || "";
+      let rRem = b["Rejection Reason"] || b.rejection_reason || b["Rejection Remark"] || "";
+
+      // 1. Direct resolved fields from API
+      if (rBy && rRem && rRem !== "No rejection remark specified") {
+        return { by: rBy, remark: rRem };
+      }
+
+      // 2. Check approval history
+      if (b.approval_history && Array.isArray(b.approval_history)) {
+        const rejActions = b.approval_history.filter(a => String(a.action_type || "").toLowerCase().includes("reject"));
+        if (rejActions.length > 0) {
+          const lastRej = rejActions[rejActions.length - 1];
+          return {
+            by: lastRej.approver_role || lastRej.stage || rBy || "Approver",
+            remark: lastRej.remark || rRem || "Rejected during review"
+          };
+        }
+      }
+
+      // 3. Check D11 Narration
+      const narr = b["D11. Narration"] || b.d11_narration || "";
+      if (narr && /rejected:/i.test(narr)) {
+        const matches = [...narr.matchAll(/(Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+Rejected:\s*([^|]+)/gi)];
+        if (matches.length > 0) {
+          const lastM = matches[matches.length - 1];
+          return { by: lastM[1].trim(), remark: lastM[2].trim() };
+        }
+      }
+
+      // 4. Check stage statuses in pipeline order
       if ((b["HOD_Status"] || "").includes("Rejected")) { 
         rBy = "HOD"; rRem = b["HOD_Remark"] || rRem; 
       } else if ((b["Account_Status"] || "").includes("Rejected")) { 
@@ -2367,12 +2400,14 @@ const Dashboard = {
         rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; 
       } else if ((b["SA_Status"] || "").includes("Rejected")) { 
         rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; 
-      } else if (b["Rejection By"]) {
-        rBy = b["Rejection By"]; rRem = b["Rejection Remark"] || rRem;
-      } else if (b["Rejection Remark"]) {
-        rRem = b["Rejection Remark"];
+      } else if (rBy) {
+        // use existing rBy
+      } else {
+        rBy = "Approver";
+        rRem = rRem || "No rejection remark specified";
       }
-      return { by: rBy, remark: rRem };
+
+      return { by: rBy, remark: rRem || "No rejection remark specified" };
     },
 
     parseDate(val) {
@@ -2922,7 +2957,9 @@ const Dashboard = {
       const cardId   = b._uid || `${sheet}_row_${rowIndex}`;
       const isClosed = Dashboard.isClosedBill(b);
 
-      const rejInfo = type === "rejected" || this.isRejectedBill(b) ? this.getRejectionDetails(b) : null;
+      const isRejected = type === "rejected" || Dashboard.isRejectedBill(b);
+      const rejInfo = isRejected ? Dashboard.getRejectionDetails(b) : null;
+      const effectiveStatus = isRejected ? "Rejected" : status;
 
       return `
         <div class="inv-hub-card" onclick="Dashboard.openReview('${cardId}', '${sheet}')">
@@ -2933,7 +2970,7 @@ const Dashboard = {
               <strong style="font-size:0.92rem; color:var(--gray-900);">${invNo}</strong>
               
               <!-- Status Badge -->
-              ${Dashboard.buildStatusBadge(status)}
+              ${Dashboard.buildStatusBadge(effectiveStatus)}
 
               <!-- Stage Badge -->
               <span style="font-size:0.72rem; padding:2px 8px; border-radius:12px; background:var(--gray-100); color:var(--gray-700); font-weight:600; display:inline-flex; align-items:center; gap:4px;">
@@ -3462,6 +3499,17 @@ const Dashboard = {
 
   isClosedBill(b) {
     if (!b) return false;
+    // An invoice can ONLY be a "Closed" bill if it is an Approved/Completed bill and has close_at set.
+    // In-process bills and rejected bills are NEVER closed bills!
+    const isRejected = (typeof Dashboard !== "undefined" && Dashboard.isRejectedBill) ? Dashboard.isRejectedBill(b) : false;
+    if (isRejected) return false;
+
+    const status = (b["Approval Status"] || "").toLowerCase();
+    const stage = (b["Current_Stage"] || b.current_stage || "").toLowerCase();
+    const overall = (b["overall_status"] || "").toLowerCase();
+    const isApproved = status === "approved" || stage === "completed" || overall === "approved" || overall === "pass";
+    if (!isApproved) return false;
+
     const val = String(b["Close at"] || b["Close_At"] || b["Close At"] || "").trim();
     return Boolean(val && val !== "—" && val !== "-" && val !== "N/A" && val !== "NA" && val !== "null" && val !== "undefined");
   },
@@ -4310,14 +4358,10 @@ const Dashboard = {
             ${Utils.truncate(vendor,22)} •
             <strong>${amount}</strong>
           </div>
-          ${status === "Rejected" ? (() => {
-              let rBy = "Unknown", rRem = "No remark provided";
-              if ((b["Account_Status"] || "").includes("Rejected")) { rBy = "Account"; rRem = b["Account_Remark"] || rRem; }
-              else if ((b["CFO_Status"] || "").includes("Rejected")) { rBy = "CFO"; rRem = b["CFO_Remark"] || rRem; }
-              else if ((b["Admin_Status"] || "").includes("Rejected")) { rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; }
-              else if ((b["SA_Status"] || "").includes("Rejected")) { rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; }
+          ${Dashboard.isRejectedBill(b) ? (() => {
+              const rej = Dashboard.getRejectionDetails(b);
               return `<div style="margin-top:6px;font-size:0.72rem;color:#d32f2f;">
-                <strong>Rejected by ${rBy}:</strong> ${Utils.truncate(rRem, 40)}
+                <strong>❌ Rejected by ${rej.by}:</strong> ${Utils.truncate(rej.remark, 45)}
               </div>`;
           })() : ""}
         </div>
@@ -4356,15 +4400,11 @@ const Dashboard = {
                    📤 → ${b["Sent To Role"]}
                  </span>` : ""}
           </div>
-          ${status === "Rejected" ? (() => {
-              let rBy = "Unknown", rRem = "No remark provided";
-              if ((b["Account_Status"] || "").includes("Rejected")) { rBy = "Account"; rRem = b["Account_Remark"] || rRem; }
-              else if ((b["CFO_Status"] || "").includes("Rejected")) { rBy = "CFO"; rRem = b["CFO_Remark"] || rRem; }
-              else if ((b["Admin_Status"] || "").includes("Rejected")) { rBy = "Admin"; rRem = b["Admin_Remark"] || rRem; }
-              else if ((b["SA_Status"] || "").includes("Rejected")) { rBy = "Super Admin"; rRem = b["SA_Remark"] || rRem; }
+          ${Dashboard.isRejectedBill(b) ? (() => {
+              const rej = Dashboard.getRejectionDetails(b);
               return `<div style="margin-top:8px;background:#fff0f0;border-left:3px solid #ea4335;border-radius:4px;padding:6px 10px;font-size:0.75rem;">
-                <div style="color:#d32f2f;font-weight:700;margin-bottom:2px">❌ Rejected by ${rBy}</div>
-                <div style="color:#5f6368">${rRem}</div>
+                <div style="color:#d32f2f;font-weight:700;margin-bottom:2px">❌ Rejected by ${rej.by}</div>
+                <div style="color:#5f6368">${rej.remark}</div>
               </div>`;
           })() : ""}
         </div>
@@ -4400,7 +4440,9 @@ const Dashboard = {
       "New"     : `<span class="status-new">🆕 New</span>`,
       "Reviewed": `<span class="status-reviewed">👁️ Reviewed</span>`,
       "Approved": `<span class="status-approved">✅ Approved</span>`,
+      "PASS"    : `<span class="status-approved">✅ Approved</span>`,
       "Rejected": `<span class="status-rejected">❌ Rejected</span>`,
+      "FAIL"    : `<span class="status-rejected">❌ Rejected</span>`,
       "Pending" : `<span class="status-pending">⏳ Pending</span>`
     };
     return map[status] || `<span class="status-new">${status}</span>`;
@@ -4567,6 +4609,10 @@ const Dashboard = {
 
     document.getElementById("modalInvoiceNo").textContent = invNo;
 
+    const isRejected = Dashboard.isRejectedBill(bill);
+    const rejDetails = isRejected ? Dashboard.getRejectionDetails(bill) : null;
+    const effectiveStatus = isRejected ? "Rejected" : status;
+
     const sheetBadge = sheet === "Invoices"
       ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8f0fe;color:#1a73e8;border:1px solid #c2e7ff;font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:600;"><i class="fa fa-file-invoice"></i> Sheet: Invoices (Row #${rowNum})</span>`
       : `<span style="display:inline-flex;align-items:center;gap:4px;background:#f1f3f4;color:#3c4043;border:1px solid #dadce0;font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:600;"><i class="fa fa-database"></i> Sheet: Master_Invoices (Row #${rowNum})</span>`;
@@ -4601,9 +4647,22 @@ const Dashboard = {
             <div style="font-size:1.2rem;font-weight:800;
               color:var(--primary)">${payable}</div>
           </div>
-          ${Dashboard.buildStatusBadge(status)}
+          ${Dashboard.buildStatusBadge(effectiveStatus)}
         </div>
-      </div>`;
+      </div>
+      ${isRejected && rejDetails ? `
+        <div style="margin-top:12px; background:#fff0f0; border:1.5px solid #fecaca; border-left:4px solid #ea4335; border-radius:8px; padding:10px 14px; display:flex; align-items:flex-start; gap:10px;">
+          <i class="fa fa-circle-xmark" style="color:#d32f2f; font-size:1.25rem; margin-top:2px;"></i>
+          <div style="flex:1;">
+            <div style="color:#b91c1c; font-weight:700; font-size:0.88rem; margin-bottom:2px;">
+              ❌ Rejected by ${rejDetails.by}
+            </div>
+            <div style="color:#4b5563; font-size:0.82rem; line-height:1.4;">
+              <strong>Reason:</strong> ${rejDetails.remark}
+            </div>
+          </div>
+        </div>
+      ` : ""}`;
 
     const trackingBox = document.getElementById("modalTrackingTimeline");
     if(trackingBox) {
@@ -4883,7 +4942,14 @@ const Dashboard = {
 
     const bannerEl = document.getElementById("editNoticeBanner");
     if (bannerEl) {
-      if (isEditable) {
+      if (isRejected && rejDetails) {
+        bannerEl.style.color = "#991b1b";
+        bannerEl.style.background = "#fef2f2";
+        bannerEl.style.border = "1px solid #fecaca";
+        bannerEl.style.padding = "8px 12px";
+        bannerEl.style.borderRadius = "8px";
+        bannerEl.innerHTML = `<i class="fa fa-times-circle" style="font-size:0.85rem;color:#dc2626"></i> <span><strong>REJECTED:</strong> This bill was rejected by <strong>${rejDetails.by}</strong>. Reason: ${rejDetails.remark}</span>`;
+      } else if (isEditable) {
         bannerEl.style.color = "var(--primary)";
         bannerEl.style.background = "transparent";
         bannerEl.style.border = "none";
