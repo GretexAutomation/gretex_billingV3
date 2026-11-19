@@ -183,14 +183,17 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
   const cfoAction = getLatestAction("CFO");
   const saAction = getLatestAction("SuperAdmin");
 
-  const rejectAction = approvalHistory.find(a => (a.action_type || "").toLowerCase().includes("reject"));
+  const rejectActions = approvalHistory.filter(a => (a.action_type || "").toLowerCase().includes("reject"));
+  const rejectAction = rejectActions.length > 0 ? rejectActions[rejectActions.length - 1] : null;
+
   let narrationRejectionBy = "";
   let narrationRejectionReason = "";
   if (b.d11_narration && /rejected:/i.test(b.d11_narration)) {
-    const m = b.d11_narration.match(/(Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+Rejected:\s*([^|]+)/i);
-    if (m) {
-      narrationRejectionBy = m[1].trim();
-      narrationRejectionReason = m[2].trim();
+    const matches = [...b.d11_narration.matchAll(/(Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+Rejected:\s*([^|]+)/gi)];
+    if (matches.length > 0) {
+      const lastM = matches[matches.length - 1];
+      narrationRejectionBy = lastM[1].trim();
+      narrationRejectionReason = lastM[2].trim();
     }
   }
 
@@ -202,7 +205,7 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
   const isFailed = (currentStage === "Completed" || currentStage === "Rejected") &&
     (b.overall_status === "FAIL" || b.overall_status === "Rejected");
 
-  const resolvedRejectionBy = rejectAction?.stage || narrationRejectionBy || b.rejection_by || b["Rejection By"] || "";
+  const resolvedRejectionBy = rejectAction?.approver_role || rejectAction?.stage || narrationRejectionBy || b.rejection_by || b["Rejection By"] || "";
   const resolvedRejectionReason = rejectAction?.remark || narrationRejectionReason || b.rejection_reason || b["Rejection Reason"] || (isFailed ? "Rejected during review" : "");
 
   const billReceivedIso = b.timestamp || b.created_at || new Date().toISOString();
@@ -294,7 +297,10 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
         return "Approved";
       }
       if (b.current_stage === "Completed" && (b.overall_status === "PASS" || b.overall_status === "Approved")) return "Approved";
-      if (b.current_stage === "Completed" && (b.overall_status === "FAIL" || b.overall_status === "Rejected")) return "Rejected";
+      if (b.current_stage === "Completed" && (b.overall_status === "FAIL" || b.overall_status === "Rejected")) {
+        if (resolvedRejectionBy === "SuperAdmin" || resolvedRejectionBy === "Super Admin") return "Rejected";
+        return "Bypassed";
+      }
       if (b.current_stage === "SuperAdmin") return "Pending";
       return "";
     })(),
@@ -1099,7 +1105,8 @@ module.exports = async function handler(req, res) {
         if (nextStage === "Completed") {
           updatePayload.overall_status = "PASS";
           updatePayload.send_for_billing_at = new Date().toISOString();
-          updatePayload.close_at = new Date().toISOString();
+          // Leave close_at as null so biller sees it as Open until manually closed
+          updatePayload.close_at = null;
         }
 
         await supabase.from("master_invoices").update(updatePayload).eq("id", bill.id);
@@ -1194,7 +1201,7 @@ module.exports = async function handler(req, res) {
           current_stage: "Completed",
           overall_status: "FAIL",
           d11_narration: `${bill.d11_narration || ""} | ${user.role} Rejected: ${remark}`.trim(),
-          close_at: new Date().toISOString()
+          close_at: null
         }).eq("id", bill.id);
 
         const { data: existingApprovals } = await supabase
@@ -1244,15 +1251,81 @@ module.exports = async function handler(req, res) {
         return Response.success(res, {}, "Bill marked as rejected.");
       }
 
+      // ── Biller Close / Reopen Actions ──
+      case "toggleCloseBill": {
+        const rawId = params.queueRowIndex || params.id || params.invoice_unique_id;
+        if (!rawId) return Response.error(res, "Bill ID required", 400);
+
+        let { data: bill } = await supabase.from("master_invoices").select("*").eq("id", rawId).maybeSingle();
+        if (!bill) {
+          const { data: billByUid } = await supabase.from("master_invoices").select("*").eq("invoice_unique_id", rawId).maybeSingle();
+          bill = billByUid;
+        }
+        if (!bill) {
+          const { data: billByInvNo } = await supabase.from("master_invoices").select("*").eq("a13_invoice_number", rawId).maybeSingle();
+          bill = billByInvNo;
+        }
+        if (!bill) return Response.error(res, "Bill not found in Master Invoices", 404);
+
+        const isCurrentlyClosed = Boolean(bill.close_at && bill.close_at !== "null" && bill.close_at !== "" && bill.close_at !== "—");
+        const newCloseAt = isCurrentlyClosed ? null : new Date().toISOString();
+
+        await supabase.from("master_invoices").update({
+          close_at: newCloseAt
+        }).eq("id", bill.id);
+
+        await logAudit(supabase, isCurrentlyClosed ? "BILL_REOPEN" : "BILL_CLOSE", user.email, `${isCurrentlyClosed ? "Reopened" : "Closed"} bill ${bill.invoice_unique_id}`);
+
+        return Response.success(res, {
+          isClosed: !isCurrentlyClosed,
+          closeAt: newCloseAt ? new Date(newCloseAt).toLocaleDateString("en-IN") : ""
+        }, !isCurrentlyClosed ? "Bill marked as closed." : "Bill reopened successfully.");
+      }
+
+      case "bulkCloseBills": {
+        const rows = params.rows || [];
+        const isClosing = params.isClosing !== false;
+        if (!Array.isArray(rows) || rows.length === 0) {
+          return Response.error(res, "No bills provided", 400);
+        }
+
+        const newCloseAt = isClosing ? new Date().toISOString() : null;
+
+        await supabase.from("master_invoices").update({
+          close_at: newCloseAt
+        }).in("id", rows);
+
+        await logAudit(supabase, isClosing ? "BULK_CLOSE" : "BULK_REOPEN", user.email, `${isClosing ? "Closed" : "Reopened"} ${rows.length} bills`);
+
+        return Response.success(res, {
+          isClosed: isClosing,
+          closeAt: newCloseAt ? new Date(newCloseAt).toLocaleDateString("en-IN") : ""
+        }, `${rows.length} bill(s) ${isClosing ? "closed" : "reopened"} successfully.`);
+      }
+
       // ── Timeline & Audit History ──
       case "getBillStatusHistory": {
-        const uniqueId = params.invoice_unique_id || params.invoiceNumber;
-        if (!uniqueId) return Response.error(res, "Invoice Unique ID required");
+        const rawId = params.invoice_unique_id || params.invoiceNumber;
+        if (!rawId) return Response.error(res, "Invoice Unique ID required");
+
+        const cleanId = String(rawId).trim();
+        let targetUid = cleanId;
+
+        // Try to find the canonical invoice_unique_id if an invoice number or row id was provided
+        const { data: bill } = await supabase
+          .from("master_invoices")
+          .select("invoice_unique_id")
+          .or(`invoice_unique_id.eq.${cleanId},a13_invoice_number.eq.${cleanId},id.eq.${cleanId}`)
+          .maybeSingle();
+
+        if (bill && bill.invoice_unique_id) {
+          targetUid = bill.invoice_unique_id;
+        }
 
         const { data: timeline } = await supabase
           .from("invoice_approvals")
           .select("*")
-          .eq("invoice_unique_id", uniqueId)
+          .eq("invoice_unique_id", targetUid)
           .order("action_taken_at", { ascending: true });
 
         return Response.success(res, { timeline: timeline || [] });
