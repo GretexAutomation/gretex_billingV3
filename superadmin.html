@@ -3298,6 +3298,14 @@ const Dashboard = {
       return; 
     }
     document.getElementById("rejectReasonError").style.display = "none";
+    const rowId = Dashboard.pendingRejectRow;
+    const invNo = document.getElementById("rejectModalInvoiceNo").textContent.replace(/^—\s*/, "").trim();
+
+    if (!rowId || rowId === "undefined" || rowId === "null") {
+      Toast.error("Invoice ID is missing. Please reopen the invoice and try again.");
+      return;
+    }
+
     const btn = document.getElementById("confirmRejectBtn");
     if (btn) {
       btn.disabled = true;
@@ -3309,7 +3317,7 @@ const Dashboard = {
 
     Loader.show("Rejecting...", "Marking invoice as rejected...");
     try {
-      const res = await API.superadmin.rejectBill(Dashboard.pendingRejectRow, reason);
+      const res = await API.superadmin.rejectBill(rowId, reason, invNo);
       if (res?.success) { 
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
         await Promise.allSettled([

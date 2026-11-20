@@ -1780,6 +1780,7 @@ const Dashboard = {
 
   async confirmReject() {
     const rowId = Dashboard.pendingRejectRow;
+    const invNo = Dashboard.pendingRejectInvoiceNo || "";
     const reason = document.getElementById("rejectReason").value.trim();
     const errorDiv = document.getElementById("rejectReasonError");
     const btn = document.getElementById("confirmRejectBtn");
@@ -1805,7 +1806,7 @@ const Dashboard = {
     Loader.show("Rejecting invoice...", "Returning bill to Biller...");
     
     try {
-      const res = await API.account.rejectBill(rowId, reason);
+      const res = await API.account.rejectBill(rowId, reason, invNo);
       if (res?.success) {
         Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
         

@@ -1795,8 +1795,8 @@
         return;
       }
 
-      this.pendingRejectId = this.currentBill.id || this.currentBill.rowIndex;
-      this.pendingRejectInvoiceNo = this.currentBill["A13. Invoice Number"] || "";
+      this.pendingRejectId = this.currentBill.id || this.currentBill.queueRowIndex || this.currentBill.rowIndex || this.currentBill.invoice_unique_id || this.currentBill["A13. Invoice Number"];
+      this.pendingRejectInvoiceNo = this.currentBill["A13. Invoice Number"] || this.currentBill["Invoice Number"] || "";
       this.closeModal();
 
       document.getElementById("rejectReason").value = "";
@@ -1814,6 +1814,7 @@
 
     async confirmReject() {
       const rejectId = this.pendingRejectId;
+      const invNo = this.pendingRejectInvoiceNo || "";
       const reason = document.getElementById("rejectReason").value.trim();
       const errorDiv = document.getElementById("rejectReasonError");
       const btn = document.getElementById("confirmRejectBtn");
@@ -1836,7 +1837,7 @@
       this.closeRejectModal();
       Loader.show("Rejecting invoice...", "Returning bill to Biller...");
       try {
-        const res = await API.approval.reject(rejectId, reason);
+        const res = await API.approval.reject(rejectId, reason, invNo);
         if (res && res.success) {
           Loader.show("Updating database...", "Synchronizing approval queue & refreshing table...");
           await this.loadAllData();
