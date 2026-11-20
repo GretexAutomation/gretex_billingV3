@@ -1060,6 +1060,15 @@ module.exports = async function handler(req, res) {
           bill = billByInvNo;
         }
 
+        if (!bill && params.invoiceNo) {
+          const { data: billByInvNo2 } = await supabase
+            .from("master_invoices")
+            .select("*")
+            .eq("a13_invoice_number", String(params.invoiceNo).trim())
+            .maybeSingle();
+          bill = billByInvNo2;
+        }
+
         if (!bill) return Response.error(res, "Invoice not found");
 
         // 🛡️ LOCKDOWN GUARD: If bill is already Completed or Rejected, it CANNOT be modified or approved!
@@ -1180,6 +1189,10 @@ module.exports = async function handler(req, res) {
         if (!bill) {
           const { data: billByInvNo } = await supabase.from("master_invoices").select("*").eq("a13_invoice_number", id).maybeSingle();
           bill = billByInvNo;
+        }
+        if (!bill && params.invoiceNo) {
+          const { data: billByInvNo2 } = await supabase.from("master_invoices").select("*").eq("a13_invoice_number", String(params.invoiceNo).trim()).maybeSingle();
+          bill = billByInvNo2;
         }
         if (!bill) return Response.error(res, "Invoice not found");
 
