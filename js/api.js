@@ -250,12 +250,26 @@ const API = {
       return await API.request("getApprovalQueue", filters);
     },
 
-    async approveBill(queueRowIndex, note) {
-      return await API.request("approveBill", { queueRowIndex, id: queueRowIndex, note });
+    async approveBill(queueRowIndex, note = "", invoiceNo = "") {
+      return await API.request("approveBill", {
+        queueRowIndex,
+        id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
+        note
+      });
     },
 
-    async rejectBill(queueRowIndex, reason) {
-      return await API.request("rejectBill", { queueRowIndex, id: queueRowIndex, reason, note: reason, remark: reason });
+    async rejectBill(queueRowIndex, reason = "", invoiceNo = "") {
+      return await API.request("rejectBill", {
+        queueRowIndex,
+        id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
+        reason,
+        note: reason,
+        remark: reason
+      });
     }
   },
 
@@ -268,12 +282,26 @@ const API = {
       return await API.request("getApprovalQueue", { stage, ...filters });
     },
 
-    async approve(queueRowIndex, note = "") {
-      return await API.request("approveBill", { queueRowIndex, id: queueRowIndex, note });
+    async approve(queueRowIndex, note = "", invoiceNo = "") {
+      return await API.request("approveBill", {
+        queueRowIndex,
+        id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
+        note
+      });
     },
 
-    async reject(queueRowIndex, reason = "") {
-      return await API.request("rejectBill", { queueRowIndex, id: queueRowIndex, reason, note: reason, remark: reason });
+    async reject(queueRowIndex, reason = "", invoiceNo = "") {
+      return await API.request("rejectBill", {
+        queueRowIndex,
+        id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
+        reason,
+        note: reason,
+        remark: reason
+      });
     }
   },
 
@@ -283,12 +311,26 @@ const API = {
       return await API.request("getApprovalQueue", filters);
     },
 
-    async approveBill(queueRowIndex, note = "") {
-      return await API.request("approveBill", { queueRowIndex, id: queueRowIndex, note });
+    async approveBill(queueRowIndex, note = "", invoiceNo = "") {
+      return await API.request("approveBill", {
+        queueRowIndex,
+        id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
+        note
+      });
     },
 
-    async rejectBill(queueRowIndex, reason = "") {
-      return await API.request("rejectBill", { queueRowIndex, id: queueRowIndex, reason, note: reason, remark: reason });
+    async rejectBill(queueRowIndex, reason = "", invoiceNo = "") {
+      return await API.request("rejectBill", {
+        queueRowIndex,
+        id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
+        reason,
+        note: reason,
+        remark: reason
+      });
     }
   },
 
@@ -301,30 +343,36 @@ const API = {
       return await API.request("getApprovalQueue", filters);
     },
 
-    async approveBill(queueRowIndex, note = "", bypassAccount = false, adminEmail = "") {
+    async approveBill(queueRowIndex, note = "", bypassAccount = false, adminEmail = "", invoiceNo = "") {
       return await API.request("approveBill", {
         queueRowIndex: queueRowIndex,
         id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
         note: note,
         bypassAccount: bypassAccount.toString(),
         adminEmail: adminEmail  // ✅ NEW: Target admin
       });
     },
 
-    async rejectBill(queueRowIndex, reason = "") {
+    async rejectBill(queueRowIndex, reason = "", invoiceNo = "") {
       return await API.request("rejectBill", {
         queueRowIndex: queueRowIndex,
         id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
         reason: reason,
         note: reason,
         remark: reason
       });
     },
 
-    async bypassBill(queueRowIndex, note = "", targetStage = "Completed") {
+    async bypassBill(queueRowIndex, note = "", targetStage = "Completed", invoiceNo = "") {
       return await API.request("approveBill", {
         queueRowIndex: queueRowIndex,
         id: queueRowIndex,
+        invoice_unique_id: queueRowIndex,
+        invoiceNo: invoiceNo,
         note: note,
         bypass: true,
         targetStage: targetStage
