@@ -169,6 +169,62 @@ function getCleanNarration(rawNarr) {
   return (parts[0] || "").trim();
 }
 
+// Scan both master_invoices and invoices to generate a 100% unique, non-colliding ID
+async function generateNextInvoiceUniqueId(supabase) {
+  const currentYear = new Date().getFullYear();
+  const prefix = `INV-${currentYear}-`;
+
+  try {
+    const [{ data: masterRows }, { data: intakeRows }] = await Promise.all([
+      supabase
+        .from("master_invoices")
+        .select("invoice_unique_id")
+        .ilike("invoice_unique_id", `${prefix}%`)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("invoices")
+        .select("invoice_unique_id")
+        .ilike("invoice_unique_id", `${prefix}%`)
+        .order("created_at", { ascending: false })
+        .limit(100)
+    ]);
+
+    let maxNum = 1000;
+    const all = [...(masterRows || []), ...(intakeRows || [])];
+    all.forEach(r => {
+      if (r && r.invoice_unique_id) {
+        const m = String(r.invoice_unique_id).match(/INV-\d{4}-(\d+)/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      }
+    });
+
+    let nextNum = maxNum + 1;
+    let candidate = `${prefix}${nextNum}`;
+
+    let collision = true;
+    while (collision) {
+      candidate = `${prefix}${nextNum}`;
+      const [{ data: inM }, { data: inI }] = await Promise.all([
+        supabase.from("master_invoices").select("id").eq("invoice_unique_id", candidate).maybeSingle(),
+        supabase.from("invoices").select("id").eq("invoice_unique_id", candidate).maybeSingle()
+      ]);
+      if (!inM && !inI) {
+        collision = false;
+      } else {
+        nextNum++;
+      }
+    }
+    return candidate;
+  } catch (err) {
+    console.error("[generateNextInvoiceUniqueId Error]", err);
+    return `${prefix}${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
+  }
+}
+
 // Convert a database row from Supabase into complete UI compatible object (all 54 points + snake_case)
 function formatInvoiceForUI(b, isNew = false, approvals = []) {
   if (!b) return {};
@@ -711,6 +767,18 @@ module.exports = async function handler(req, res) {
           .order("created_at", { ascending: false });
 
         const masterIds = (masterBills || []).map(b => b.invoice_unique_id).filter(Boolean);
+        const masterUniqueIdSet = new Set(masterIds);
+
+        // 🛡️ Collision Auto-Repair: If any new intake bill has an ID that already exists in master_invoices, fix it now!
+        for (const nb of (newBills || [])) {
+          if (nb.invoice_unique_id && masterUniqueIdSet.has(nb.invoice_unique_id)) {
+            const freshId = await generateNextInvoiceUniqueId(supabase);
+            console.warn(`[getBillerQueue] Auto-fixing colliding invoice_unique_id for intake row ${nb.id}: was ${nb.invoice_unique_id}, now ${freshId}`);
+            await supabase.from("invoices").update({ invoice_unique_id: freshId }).eq("id", nb.id);
+            nb.invoice_unique_id = freshId;
+          }
+        }
+
         let approvalsMap = {};
         if (masterIds.length > 0) {
           const { data: allApprovals } = await supabase
@@ -822,8 +890,24 @@ module.exports = async function handler(req, res) {
         // Merge raw bill with any edited fields
         const billData = { ...rawBill, ...updatePayload };
 
-        // Ensure unique ID exists
-        const uniqueId = billData.invoice_unique_id || `INV-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+        // Ensure unique ID exists and does not collide with a different bill in master_invoices!
+        let uniqueId = billData.invoice_unique_id;
+        if (!uniqueId) {
+          uniqueId = await generateNextInvoiceUniqueId(supabase);
+        } else {
+          // Check if this uniqueId is already taken by a DIFFERENT bill in master_invoices
+          const { data: existingInMaster } = await supabase
+            .from("master_invoices")
+            .select("id, invoice_unique_id")
+            .eq("invoice_unique_id", uniqueId)
+            .maybeSingle();
+
+          if (existingInMaster && existingInMaster.id !== rawBill.id) {
+            console.warn(`[sendBillForApproval] Collision detected: ${uniqueId} already exists in master_invoices (ID: ${existingInMaster.id}). Generating a fresh unique ID...`);
+            uniqueId = await generateNextInvoiceUniqueId(supabase);
+            await supabase.from("invoices").update({ invoice_unique_id: uniqueId }).eq("id", rawBill.id);
+          }
+        }
 
         // Next stage defaults to targetRole or HOD (or Account if HOD not assigned/bypassed)
         const targetRole = params.targetRole || (hodEmail ? "HOD" : "Account");

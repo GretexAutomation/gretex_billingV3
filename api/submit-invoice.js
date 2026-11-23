@@ -421,6 +421,64 @@ overallStatus: PASS, REVIEW, or FAIL
 }
 
 // ─────────────────────────────────────────────
+// 3.5 Guaranteed Unique Invoice ID Generator
+// ─────────────────────────────────────────────
+async function generateNextInvoiceUniqueId(supabase) {
+  const currentYear = new Date().getFullYear();
+  const prefix = `INV-${currentYear}-`;
+
+  try {
+    const [{ data: masterRows }, { data: intakeRows }] = await Promise.all([
+      supabase
+        .from("master_invoices")
+        .select("invoice_unique_id")
+        .ilike("invoice_unique_id", `${prefix}%`)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("invoices")
+        .select("invoice_unique_id")
+        .ilike("invoice_unique_id", `${prefix}%`)
+        .order("created_at", { ascending: false })
+        .limit(100)
+    ]);
+
+    let maxNum = 1000;
+    const all = [...(masterRows || []), ...(intakeRows || [])];
+    all.forEach(r => {
+      if (r && r.invoice_unique_id) {
+        const m = String(r.invoice_unique_id).match(/INV-\d{4}-(\d+)/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      }
+    });
+
+    let nextNum = maxNum + 1;
+    let candidate = `${prefix}${nextNum}`;
+
+    let collision = true;
+    while (collision) {
+      candidate = `${prefix}${nextNum}`;
+      const [{ data: inM }, { data: inI }] = await Promise.all([
+        supabase.from("master_invoices").select("id").eq("invoice_unique_id", candidate).maybeSingle(),
+        supabase.from("invoices").select("id").eq("invoice_unique_id", candidate).maybeSingle()
+      ]);
+      if (!inM && !inI) {
+        collision = false;
+      } else {
+        nextNum++;
+      }
+    }
+    return candidate;
+  } catch (err) {
+    console.error("[generateNextInvoiceUniqueId Error]", err);
+    return `${prefix}${Date.now().toString().slice(-4)}${Math.floor(10 + Math.random() * 90)}`;
+  }
+}
+
+// ─────────────────────────────────────────────
 // 4. Handler
 // ─────────────────────────────────────────────
 async function handler(req, res) {
@@ -508,8 +566,12 @@ async function handler(req, res) {
     const finalAmount = rawD1 > 0 ? rawD1 : (rawA20 > 0 ? rawA20 : 0);
     const basicAmount = rawA20 > 0 ? rawA20 : (rawD1 > 0 ? rawD1 : 0);
 
+    // Guaranteed Unique ID across master_invoices & invoices
+    const generatedUniqueId = await generateNextInvoiceUniqueId(supabase);
+
     // Insert directly into Supabase invoices table
     const invoicePayload = {
+      invoice_unique_id: generatedUniqueId,
       timestamp: new Date().toISOString(),
       email_from: effectiveBiller,
       email_subject: "Web Submission",
