@@ -162,6 +162,13 @@ function mapFieldsToDbPayload(fields = {}) {
   return payload;
 }
 
+// Clean any legacy concatenated approval flow strings from narration
+function getCleanNarration(rawNarr) {
+  if (!rawNarr) return "";
+  const parts = String(rawNarr).split(/\s*\|\s*(?:Biller|HOD|Account|Finance|CFO|SuperAdmin|Super Admin)\s+(?:Approved|Bypassed|Rejected):/i);
+  return (parts[0] || "").trim();
+}
+
 // Convert a database row from Supabase into complete UI compatible object (all 54 points + snake_case)
 function formatInvoiceForUI(b, isNew = false, approvals = []) {
   if (!b) return {};
@@ -371,7 +378,7 @@ function formatInvoiceForUI(b, isNew = false, approvals = []) {
     "D8. Arvind/Alok SS": b.d8_arvind_alok_ss || "",
     "D9. Update Person": b.d9_update_person || "",
     "D10. Update Email": b.d10_update_email || "",
-    "D11. Narration": b.d11_narration || "",
+    "D11. Narration": getCleanNarration(b.d11_narration),
 
     Current_Stage: b.current_stage || (isNew ? "New" : ""),
     "Close at": b.close_at || ""
@@ -897,7 +904,7 @@ module.exports = async function handler(req, res) {
           d8_arvind_alok_ss: billData.d8_arvind_alok_ss || "",
           d9_update_person: user.name,
           d10_update_email: user.email,
-          d11_narration: remark,
+          d11_narration: billData.d11_narration || remark || "",
           red_flags: billData.red_flags || "",
           overall_status: "REVIEW",
           close_at: null
@@ -1107,8 +1114,7 @@ module.exports = async function handler(req, res) {
         }
 
         const updatePayload = {
-          current_stage: nextStage,
-          d11_narration: `${bill.d11_narration || ""} | ${user.role} ${isBypass ? "Bypassed" : "Approved"}: ${remark}`.trim()
+          current_stage: nextStage
         };
 
         if (nextStage === "Completed") {
@@ -1213,7 +1219,6 @@ module.exports = async function handler(req, res) {
         await supabase.from("master_invoices").update({
           current_stage: "Completed",
           overall_status: "FAIL",
-          d11_narration: `${bill.d11_narration || ""} | ${user.role} Rejected: ${remark}`.trim(),
           close_at: null
         }).eq("id", bill.id);
 
