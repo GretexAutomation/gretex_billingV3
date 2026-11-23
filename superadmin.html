@@ -2698,7 +2698,7 @@ const Dashboard = {
     const search = (document.getElementById("queueSearch")?.value || "").toLowerCase();
     let filtered = [...Dashboard.queueData];
     if (status !== "ALL") filtered = filtered.filter(i => (i["Approval Status"]||"Pending") === status);
-    if (search) filtered = filtered.filter(i => String(i["A13. Invoice Number"]||"").toLowerCase().includes(search) || String(i["A14. Vendor Name"]||"").toLowerCase().includes(search));
+    if (search) filtered = filtered.filter(i => String(i.invoice_unique_id||"").toLowerCase().includes(search) || String(i.id||"").toLowerCase().includes(search) || String(i["A13. Invoice Number"]||"").toLowerCase().includes(search) || String(i["A14. Vendor Name"]||"").toLowerCase().includes(search));
     Dashboard.queueFiltered = filtered;
     Dashboard.renderQueue();
   },

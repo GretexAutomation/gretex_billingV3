@@ -1379,7 +1379,7 @@ const Dashboard = {
         return stage === status;
       });
     }
-    if (search) filtered = filtered.filter(i => (i["A14. Vendor Name"]||"").toLowerCase().includes(search) || (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A16. Bill Description"]||"").toLowerCase().includes(search));
+    if (search) filtered = filtered.filter(i => (i.invoice_unique_id||"").toLowerCase().includes(search) || (i.id||"").toLowerCase().includes(search) || (i["A14. Vendor Name"]||"").toLowerCase().includes(search) || (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A16. Bill Description"]||"").toLowerCase().includes(search));
     if (redOnly) filtered = filtered.filter(i => i["🚩 Red Flags"] && i["🚩 Red Flags"].trim() !== "");
 
     Dashboard.filteredData = filtered;
@@ -1563,7 +1563,7 @@ const Dashboard = {
     const search = (document.getElementById("queueSearchInput")?.value || "").toLowerCase();
     let filtered = [...Dashboard.queueData];
     if (status !== "ALL") filtered = filtered.filter(i => (i["Approval Status"] || "Pending") === status);
-    if (search) filtered = filtered.filter(i => (i["A13. Invoice Number"] || "").toLowerCase().includes(search) || (i["A14. Vendor Name"] || "").toLowerCase().includes(search));
+    if (search) filtered = filtered.filter(i => (i.invoice_unique_id || "").toLowerCase().includes(search) || (i.id || "").toLowerCase().includes(search) || (i["A13. Invoice Number"] || "").toLowerCase().includes(search) || (i["A14. Vendor Name"] || "").toLowerCase().includes(search));
     Dashboard.queueFiltered = filtered;
     Dashboard.queueCurrentPage = 1; // 👈 Reset filter to page 1
     Dashboard.renderQueue();

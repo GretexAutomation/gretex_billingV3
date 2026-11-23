@@ -2892,7 +2892,8 @@ const Dashboard = {
       const rowIndex = (b._sheetRowIndex !== undefined && b._sheetRowIndex !== null && b._sheetRowIndex !== "")
         ? b._sheetRowIndex
         : ((b.queueRowIndex !== undefined && b.queueRowIndex !== null && b.queueRowIndex !== "") ? b.queueRowIndex : (b.rowIndex !== undefined ? b.rowIndex : b["A13. Invoice Number"]));
-      const cardId   = b._uid || `${sheet}_row_${rowIndex}`;
+      const uniqueId = b.invoice_unique_id || b.id || "";
+      const cardId   = uniqueId || b._uid || `${sheet}_row_${rowIndex}`;
       const isClosed = Dashboard.isClosedBill(b);
 
       const isRejected = type === "rejected" || Dashboard.isRejectedBill(b);
@@ -2906,6 +2907,7 @@ const Dashboard = {
             <!-- Top Badges Row -->
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
               <strong style="font-size:0.92rem; color:var(--gray-900);">${invNo}</strong>
+              ${uniqueId ? `<span style="font-size:0.72rem; padding:2px 6px; border-radius:4px; background:var(--gray-100); color:var(--gray-600); font-family:monospace; font-weight:600;" title="Unique ID">#${uniqueId}</span>` : ""}
               
               <!-- Status Badge -->
               ${Dashboard.buildStatusBadge(effectiveStatus)}
@@ -4082,6 +4084,9 @@ const Dashboard = {
     const q = (query || "").trim().toLowerCase();
     if (q) {
       bills = bills.filter(b =>
+        String(b.invoice_unique_id || "").toLowerCase().includes(q) ||
+        String(b.id || "").toLowerCase().includes(q) ||
+        String(b._uid || "").toLowerCase().includes(q) ||
         String(b["A13. Invoice Number"]||"").toLowerCase().includes(q) ||
         String(b["A14. Vendor Name"]||"").toLowerCase().includes(q)
       );
@@ -4208,6 +4213,9 @@ const Dashboard = {
       // Strictly search within invoicesQueue (Invoices sheet)
       const bills  = Dashboard.invoicesQueue
         .filter(b => !search ||
+          String(b.invoice_unique_id || "").toLowerCase().includes(search) ||
+          String(b.id || "").toLowerCase().includes(search) ||
+          String(b._uid || "").toLowerCase().includes(search) ||
           String(b["A13. Invoice Number"]||"").toLowerCase().includes(search) ||
           String(b["A14. Vendor Name"]||"").toLowerCase().includes(search));
       const el    = document.getElementById("newBillsList2");
@@ -4235,6 +4243,9 @@ const Dashboard = {
         }
         return true;
       }).filter(b => !search ||
+        String(b.invoice_unique_id || "").toLowerCase().includes(search) ||
+        String(b.id || "").toLowerCase().includes(search) ||
+        String(b._uid || "").toLowerCase().includes(search) ||
         String(b["A13. Invoice Number"]||"").toLowerCase().includes(search)||
         String(b["A14. Vendor Name"]||"").toLowerCase().includes(search));
 
@@ -4262,6 +4273,9 @@ const Dashboard = {
     }
     if (search) {
       bills = bills.filter(b =>
+        String(b.invoice_unique_id || "").toLowerCase().includes(search) ||
+        String(b.id || "").toLowerCase().includes(search) ||
+        String(b._uid || "").toLowerCase().includes(search) ||
         String(b["A13. Invoice Number"]||"").toLowerCase().includes(search)||
         String(b["A14. Vendor Name"]||"").toLowerCase().includes(search));
     }
@@ -4338,7 +4352,8 @@ const Dashboard = {
     const rowIndex = (b._sheetRowIndex !== undefined && b._sheetRowIndex !== null && b._sheetRowIndex !== "")
       ? b._sheetRowIndex
       : ((b.queueRowIndex !== undefined && b.queueRowIndex !== null && b.queueRowIndex !== "") ? b.queueRowIndex : (b.rowIndex !== undefined ? b.rowIndex : b["A13. Invoice Number"]));
-    const cardId   = b._uid || `${sheet}_row_${rowIndex}`;
+    const uniqueId = b.invoice_unique_id || b.id || "";
+    const cardId   = uniqueId || b._uid || `${sheet}_row_${rowIndex}`;
     const isClosed = Dashboard.isClosedBill(b);
     const closeAtDate = Dashboard.getCloseAtDate(b);
 
@@ -4357,6 +4372,7 @@ const Dashboard = {
           <div style="display:flex;align-items:center;
             gap:6px;margin-bottom:2px">
             <strong style="font-size:0.84rem">${invNo}</strong>
+            ${uniqueId ? `<span style="font-size:0.7rem;color:var(--gray-500);font-family:monospace;">#${uniqueId}</span>` : ""}
             ${badge}
             ${status === "Approved" ? (isClosed 
               ? `<span style="background:#e8eaed;color:#3c4043;font-size:0.68rem;padding:2px 6px;border-radius:10px;"><i class="fa fa-lock"></i> Closed</span>` 
@@ -4384,6 +4400,7 @@ const Dashboard = {
           <div style="display:flex;align-items:center;
             gap:8px;margin-bottom:6px;flex-wrap:wrap">
             <strong style="font-size:0.9rem">${invNo}</strong>
+            ${uniqueId ? `<span style="font-size:0.73rem;padding:2px 6px;border-radius:4px;background:var(--gray-100);color:var(--gray-600);font-family:monospace;font-weight:600;" title="Unique ID">#${uniqueId}</span>` : ""}
             ${badge}
             ${status === "Approved" ? (isClosed 
               ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#e8eaed;color:#3c4043;font-size:0.72rem;padding:3px 8px;border-radius:12px;font-weight:600;"><i class="fa fa-lock" style="font-size:0.7rem"></i> Closed: ${closeAtDate}</span>` 
@@ -4561,33 +4578,33 @@ const Dashboard = {
       return;
     }
 
+    const sKey = String(rowIndex).trim();
+    const isMatch = (b) => {
+      if (!b) return false;
+      return (b.invoice_unique_id && String(b.invoice_unique_id).trim() === sKey) ||
+             (b.id && String(b.id).trim() === sKey) ||
+             (b._uid && String(b._uid).trim() === sKey) ||
+             (b.queueRowIndex !== undefined && String(b.queueRowIndex).trim() === sKey) ||
+             (b._sheetRowIndex !== undefined && String(b._sheetRowIndex).trim() === sKey) ||
+             (b.rowIndex !== undefined && String(b.rowIndex).trim() === sKey) ||
+             (b["A13. Invoice Number"] && String(b["A13. Invoice Number"]).trim() === sKey);
+    };
+
     let bill = null;
 
     // 1. If explicit hint is Invoices, search ONLY in invoicesQueue (Invoices sheet)
-    if (sourceSheetHint === "Invoices" || String(rowIndex).startsWith("Invoices_")) {
-      bill = Dashboard.invoicesQueue.find(b => 
-        (b._uid && String(b._uid) === String(rowIndex)) ||
-        (b._sheetRowIndex !== undefined && String(b._sheetRowIndex) === String(rowIndex)) ||
-        (b.queueRowIndex !== undefined && String(b.queueRowIndex) === String(rowIndex)) ||
-        (b.rowIndex !== undefined && String(b.rowIndex) === String(rowIndex)) ||
-        (b["A13. Invoice Number"] && String(b["A13. Invoice Number"]) === String(rowIndex))
-      );
+    if (sourceSheetHint === "Invoices" || sKey.startsWith("Invoices_")) {
+      bill = Dashboard.invoicesQueue.find(isMatch);
     } 
     // 2. If explicit hint is Master_Invoices, search ONLY in masterQueue (Master_Invoices sheet)
-    else if (sourceSheetHint === "Master_Invoices" || String(rowIndex).startsWith("Master_")) {
-      bill = Dashboard.masterQueue.find(b => 
-        (b._uid && String(b._uid) === String(rowIndex)) ||
-        (b._sheetRowIndex !== undefined && String(b._sheetRowIndex) === String(rowIndex)) ||
-        (b.queueRowIndex !== undefined && String(b.queueRowIndex) === String(rowIndex)) ||
-        (b.rowIndex !== undefined && String(b.rowIndex) === String(rowIndex)) ||
-        (b["A13. Invoice Number"] && String(b["A13. Invoice Number"]) === String(rowIndex))
-      );
+    else if (sourceSheetHint === "Master_Invoices" || sKey.startsWith("Master_")) {
+      bill = Dashboard.masterQueue.find(isMatch);
     } 
-    // 3. Fallback: match by unique _uid or queue
+    // 3. Fallback: match by Unique ID or row key across queue
     else {
-      bill = Dashboard.queue.find(b => b._uid && String(b._uid) === String(rowIndex)) ||
-             Dashboard.invoicesQueue.find(b => String(b.queueRowIndex) === String(rowIndex) || String(b["A13. Invoice Number"]) === String(rowIndex)) ||
-             Dashboard.masterQueue.find(b => String(b.queueRowIndex) === String(rowIndex) || String(b["A13. Invoice Number"]) === String(rowIndex));
+      bill = Dashboard.queue.find(isMatch) ||
+             Dashboard.invoicesQueue.find(isMatch) ||
+             Dashboard.masterQueue.find(isMatch);
     }
 
     if (!bill) { 

@@ -2821,7 +2821,7 @@ const Dashboard = {
       });
     }
     if (search) {
-      filtered = filtered.filter(i => (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A14. Vendor Name"]||"").toLowerCase().includes(search));
+      filtered = filtered.filter(i => (i.invoice_unique_id||"").toLowerCase().includes(search) || (i.id||"").toLowerCase().includes(search) || (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A14. Vendor Name"]||"").toLowerCase().includes(search));
     }
 
     const tbody = document.getElementById("allInvoicesBody");
@@ -2918,7 +2918,7 @@ const Dashboard = {
       filtered = filtered.filter(i => (i["Approval Status"]||"") === status);
     }
     if (search) {
-      filtered = filtered.filter(i => (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A14. Vendor Name"]||"").toLowerCase().includes(search));
+      filtered = filtered.filter(i => (i.invoice_unique_id||"").toLowerCase().includes(search) || (i.id||"").toLowerCase().includes(search) || (i["A13. Invoice Number"]||"").toLowerCase().includes(search) || (i["A14. Vendor Name"]||"").toLowerCase().includes(search));
     }
     Dashboard.queueFiltered = filtered;
     Dashboard.queueCurrentPage = 1; // Reset to page 1 on filter
